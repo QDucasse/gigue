@@ -17,4 +17,7 @@ include CONTRIBUTING.rst
 include LICENSE
 include README.rst
 
+include *.toml
+
+
 global-exclude *.py[cod] __pycache__/* *.so *.dylib
