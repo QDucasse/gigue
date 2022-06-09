@@ -8,7 +8,11 @@ from gigue.instructions import RInstruction
 disassembler = Disassembler()
 
 
-@pytest.mark.parametrize("name", ["add", "addw"])
+# TODO: Check
+@pytest.mark.parametrize("name", [
+    "add", "addw", "andr", "mul", "mulh", "mulhsu", "mulhu", "mulw", "orr", "sll",
+    "sllw", "slt", "sltu", "sra", "sraw", "srl", "srlw", "sub", "subw", "xor"
+])
 def test_correct_encoding_rinstr(name):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
@@ -18,9 +22,14 @@ def test_correct_encoding_rinstr(name):
     assert instr.rd == disassembler.extract_rd(mc_instr)
     assert instr.rs1 == disassembler.extract_rs1(mc_instr)
     assert instr.rs2 == disassembler.extract_rs2(mc_instr)
+    assert instr.top7 == disassembler.extract_top7(mc_instr)
 
 
-@pytest.mark.parametrize("name", ["addi", "addiw"])
+# TODO: Check
+@pytest.mark.parametrize("name", [
+    "addi", "addiw", "andi", "jalr", "lb", "lbu", "ld", "lh", "lhu", "ori",
+    "slli", "slliw", "slti", "sltiu", "srai", "sraiw", "srli", "srliw", "xori"
+])
 def test_correct_encoding_iinstr(name):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=255)

@@ -25,6 +25,9 @@ class Disassembler:
     def extract_rs2(self, instruction):
         return self.extract_info(instruction, 5, 20)
 
+    def extract_top7(self, instruction):
+        return self.extract_info(instruction, 7, 25)
+
     def disassemble(self, instruction):
         instr_type = self.get_instruction_type(instruction)
         if instr_type == "R":
