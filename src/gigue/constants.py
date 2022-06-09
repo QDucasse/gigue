@@ -1,4 +1,4 @@
-
+# TODO: Doc
 class InstructionInfo:
 
     def __init__(self, name, opcode7, opcode3, instr_type, top7=0):
@@ -9,12 +9,14 @@ class InstructionInfo:
         self.instr_type = instr_type
 
 
+# TODO: Another data structure?
 def find_instr_for_opcode(opcode):
     for info in instructions_info.values():
         if info.opcode7 == opcode:
             return info.instr_type
 
 
+# TODO: Recheck
 instructions_info = {
     # Adds
     "add":    InstructionInfo("add",    0b0110011, 0b000, "R"),
@@ -24,6 +26,8 @@ instructions_info = {
     # Ands
     "andr":   InstructionInfo("andr",   0b0110011, 0b111, "R"),
     "andi":   InstructionInfo("andi",   0b0010011, 0b111, "I"),
+    # Add upp imm to PC
+    "auipc":  InstructionInfo("auipc",  0b0010111, 0b000, "U"),
     # Jumps
     "jalr":   InstructionInfo("jalr",   0b1100111, 0b000, "I"),
     # Loads
@@ -32,6 +36,8 @@ instructions_info = {
     "ld":     InstructionInfo("ld",     0b0000011, 0b011, "I"),
     "lh":     InstructionInfo("lh",     0b0000011, 0b001, "I"),
     "lhu":    InstructionInfo("lhu",    0b0000011, 0b101, "I"),
+    # Load upper immediate
+    "lui":    InstructionInfo("lui",    0b0110111, 0b000, "U"),
     # Muls
     "mul":    InstructionInfo("mul",    0b0110011, 0b000, "R", 0b0000001),
     "mulh":   InstructionInfo("mulh",   0b0110011, 0b001, "R", 0b0000001),

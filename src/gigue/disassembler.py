@@ -1,6 +1,7 @@
 from gigue.constants import find_instr_for_opcode
 
 
+# TODO: Doc
 class Disassembler:
 
     def extract_info(self, instruction, size, shift):
@@ -15,6 +16,10 @@ class Disassembler:
 
     def extract_imm_i(self, instruction):
         return self.extract_info(instruction, 12, 20)
+
+    def extract_imm_u(self, instruction):
+        upper20 = self.extract_info(instruction, 20, 12)
+        return upper20 << 12
 
     def extract_rd(self, instruction):
         return self.extract_info(instruction, 5, 7)
@@ -62,6 +67,13 @@ class Disassembler:
         disa_instr += "rd: {}\n".format(str(self.extract_rd(instruction)))
         disa_instr += "rs1: {}\n".format(str(self.extract_rs1(instruction)))
         disa_instr += "imm: {}".format(str(self.extract_imm_i(instruction)))
+        return disa_instr
+
+    def disassemble_u_instruction(self, instruction):
+        disa_instr = "Disassembled U instruction:\n"
+        disa_instr += "opcode7: {}\n".format(str(bin(self.extract_opcode7(instruction))))
+        disa_instr += "rd: {}\n".format(str(self.extract_rd(instruction)))
+        disa_instr += "imm: {}".format(str(self.extract_imm_u(instruction)))
         return disa_instr
 
 

@@ -4,6 +4,7 @@ from gigue.constants import instructions_info
 from gigue.disassembler import Disassembler
 from gigue.instructions import IInstruction
 from gigue.instructions import RInstruction
+from gigue.instructions import UInstruction
 
 disassembler = Disassembler()
 
@@ -39,3 +40,14 @@ def test_correct_encoding_iinstr(name):
     assert instr.rd == disassembler.extract_rd(mc_instr)
     assert instr.rs1 == disassembler.extract_rs1(mc_instr)
     assert instr.imm == disassembler.extract_imm_i(mc_instr)
+
+
+# TODO: Check
+@pytest.mark.parametrize("name", ["auipc", "lui"])
+def test_correct_encoding_uinstr(name):
+    constr = getattr(UInstruction, name)
+    instr = constr(rd=5, imm=0x7FFFFFFF)
+    mc_instr = instr.generate()
+    assert instr.opcode7 == instructions_info[name].opcode7
+    assert instr.rd == disassembler.extract_rd(mc_instr)
+    assert instr.imm & 0xFFFFF000 == disassembler.extract_imm_u(mc_instr)

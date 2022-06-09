@@ -1,6 +1,7 @@
 from gigue.constants import instructions_info
 
 
+# TODO: Doc
 class Instruction:
     def __init__(self, name, opcode7, top7=0):
         self.name = name
@@ -12,6 +13,7 @@ class Instruction:
         raise NotImplementedError("Please Implement this method")
 
 
+# TODO: Doc
 class RInstruction(Instruction):
     def __init__(self, name, opcode7, opcode3, rd, rs1, rs2, top7=0):
         super().__init__(name, opcode7, top7)
@@ -26,6 +28,7 @@ class RInstruction(Instruction):
         self.machine_instruction |= self.opcode3 << 12
         self.machine_instruction |= self.rs1 << 15
         self.machine_instruction |= self.rs2 << 20
+        self.machine_instruction |= self.top7 << 25
         return self.machine_instruction
 
     @classmethod
@@ -34,7 +37,6 @@ class RInstruction(Instruction):
                    instructions_info[name].opcode3, rd, rs1, rs2)
 
     # TODO: Autogenerate?
-
     @classmethod
     def add(cls, rd, rs1, rs2):
         return cls.r_instr("add", rd, rs1, rs2)
@@ -116,9 +118,10 @@ class RInstruction(Instruction):
         return cls.r_instr("xor", rd, rs1, rs2)
 
 
+# TODO: Doc
 class IInstruction(Instruction):
-    def __init__(self, name, opcode7, opcode3, rd, rs1, imm, top7=0):
-        super().__init__(name, opcode7, top7)
+    def __init__(self, name, opcode7, opcode3, rd, rs1, imm):
+        super().__init__(name, opcode7)
         self.opcode3 = opcode3
         self.rd = rd
         self.rs1 = rs1
@@ -137,8 +140,7 @@ class IInstruction(Instruction):
         return cls(name, instructions_info[name].opcode7,
                    instructions_info[name].opcode3, rd, rs1, imm)
 
-    # TODO: Autogenerate?
-
+    # TODO: Autogenerate
     @classmethod
     def addi(cls, rd, rs1, imm):
         return cls.i_instr("addi", rd, rs1, imm)
@@ -214,6 +216,33 @@ class IInstruction(Instruction):
     @classmethod
     def xori(cls, rd, rs1, imm):
         return cls.i_instr("xori", rd, rs1, imm)
+
+
+# TODO: Doc
+class UInstruction(Instruction):
+    def __init__(self, name, opcode7, rd, imm):
+        super().__init__(name, opcode7)
+        self.rd = rd
+        self.imm = imm
+
+    def generate(self):
+        self.machine_instruction = self.opcode7
+        self.machine_instruction |= self.rd << 7
+        self.machine_instruction |= self.imm & 0xFFFFF000
+        return self.machine_instruction
+
+    @classmethod
+    def u_instr(cls, name, rd, imm):
+        return cls(name, instructions_info[name].opcode7, rd, imm)
+
+    # TODO: Autogenerate
+    @classmethod
+    def auipc(cls, rd, imm):
+        return cls.u_instr("auipc", rd, imm)
+
+    @classmethod
+    def lui(cls, rd, imm):
+        return cls.u_instr("lui", rd, imm)
 
 
 if __name__ == "__main__":
