@@ -11,7 +11,7 @@ class Instruction:
         raise NotImplementedError("Please Implement this method")
 
 
-class R_Instruction(Instruction):
+class RInstruction(Instruction):
     def __init__(self, name, opcode7, opcode3, rd, rs1, rs2):
         super().__init__(name, opcode7)
         self.opcode3 = opcode3
@@ -25,6 +25,7 @@ class R_Instruction(Instruction):
         self.machine_instruction |= self.opcode3 << 12
         self.machine_instruction |= self.rs1 << 15
         self.machine_instruction |= self.rs2 << 20
+        return self.machine_instruction
 
     @classmethod
     def r_instr(cls, name, rd, rs1, rs2):
@@ -34,8 +35,12 @@ class R_Instruction(Instruction):
     def add(cls, rd, rs1, rs2):
         return cls.r_instr("add", rd, rs1, rs2)
 
+    @classmethod
+    def addw(cls, rd, rs1, rs2):
+        return cls.r_instr("addw", rd, rs1, rs2)
 
-class I_Instruction(Instruction):
+
+class IInstruction(Instruction):
     def __init__(self, name, opcode7, opcode3, rd, rs1, imm):
         super().__init__(name, opcode7)
         self.opcode3 = opcode3
@@ -49,6 +54,7 @@ class I_Instruction(Instruction):
         self.machine_instruction |= self.opcode3 << 12
         self.machine_instruction |= self.rs1 << 15
         self.machine_instruction |= self.imm << 20
+        return self.machine_instruction
 
     @classmethod
     def i_instr(cls, name, rd, rs1, imm):
@@ -58,14 +64,18 @@ class I_Instruction(Instruction):
     def addi(cls, rd, rs1, imm):
         return cls.i_instr("addi", rd, rs1, imm)
 
+    @classmethod
+    def addiw(cls, rd, rs1, imm):
+        return cls.i_instr("addiw", rd, rs1, imm)
+
 
 if __name__ == "__main__":
-    add = R_Instruction.add(rd=5, rs1=6, rs2=7)
+    add = RInstruction.add(rd=5, rs1=6, rs2=7)
     add.generate()
     print(add)
     print(add.__dict__)
 
-    addi = I_Instruction.addi(rd=5, rs1=6, imm=255)
+    addi = IInstruction.addi(rd=5, rs1=6, imm=255)
     addi.generate()
     print(addi)
     print(addi.__dict__)
