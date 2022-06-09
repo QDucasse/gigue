@@ -1,10 +1,9 @@
 import pytest
 
 from gigue.constants import instructions_info
+from gigue.disassembler import Disassembler
 from gigue.instructions import IInstruction
 from gigue.instructions import RInstruction
-from gigue.disassembler import Disassembler
-
 
 disassembler = Disassembler()
 
