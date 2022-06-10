@@ -17,6 +17,15 @@ class Disassembler:
     def extract_imm_i(self, instruction):
         return self.extract_info(instruction, 12, 20)
 
+    def extract_imm_j(self, instruction):
+        # imm[20 | 10:1 | 11 | 19:12] << 12
+        immediate = (self.extract_info(instruction, 10, 21) << 1)
+        immediate |= (self.extract_info(instruction, 1, 20) << 11)
+        immediate |= (self.extract_info(instruction, 8, 12) << 12)
+        immediate |= (self.extract_info(instruction, 1, 31) << 20)
+        print(immediate)
+        return immediate
+
     def extract_imm_u(self, instruction):
         upper20 = self.extract_info(instruction, 20, 12)
         return upper20 << 12
@@ -49,7 +58,7 @@ class Disassembler:
             raise NotImplementedError("Instruction type not recognized.")
 
     def get_instruction_type(self, instruction):
-        return find_instr_for_opcode(instruction & 0x3F)
+        return find_instr_for_opcode(instruction & 0x3F).type
 
     def disassemble_r_instruction(self, instruction):
         disa_instr = "Disassembled R instruction:\n"
@@ -74,6 +83,13 @@ class Disassembler:
         disa_instr += "opcode7: {}\n".format(str(bin(self.extract_opcode7(instruction))))
         disa_instr += "rd: {}\n".format(str(self.extract_rd(instruction)))
         disa_instr += "imm: {}".format(str(self.extract_imm_u(instruction)))
+        return disa_instr
+
+    def disassemble_j_instruction(self, instruction):
+        disa_instr = "Disassembled  instruction:\n"
+        disa_instr += "opcode7: {}\n".format(str(bin(self.extract_opcode7(instruction))))
+        disa_instr += "rd: {}\n".format(str(self.extract_rd(instruction)))
+        disa_instr += "imm: {}".format(str(self.extract_imm_j(instruction)))
         return disa_instr
 
 

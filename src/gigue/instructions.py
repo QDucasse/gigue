@@ -245,13 +245,44 @@ class UInstruction(Instruction):
         return cls.u_instr("lui", rd, imm)
 
 
+# TODO: Doc
+class JInstruction(Instruction):
+    def __init__(self, name, opcode7, rd, imm):
+        super().__init__(name, opcode7)
+        self.rd = rd
+        self.imm = imm
+
+    def shuffle_imm(self):
+        # imm[20 | 10:1 | 11 | 19:12]
+        shuffle = ((self.imm >> 20) & 0x1) << 19   # 20th bit
+        shuffle |= ((self.imm >> 1) & 0x3FF) << 9  # 10th to 1st
+        shuffle |= ((self.imm >> 11) & 0x1) << 8    # 11th bit
+        shuffle |= ((self.imm >> 12) & 0xFF)        # 12th to 19th
+        return shuffle
+
+    def generate(self):
+        self.machine_instruction = self.opcode7
+        self.machine_instruction |= self.rd << 7
+        self.machine_instruction |= self.shuffle_imm() << 12
+        return self.machine_instruction
+
+    @classmethod
+    def j_instr(cls, name, rd, imm):
+        return cls(name, instructions_info[name].opcode7, rd, imm)
+
+    # TODO: Autogenerate
+    @classmethod
+    def jal(cls, rd, imm):
+        return cls.j_instr("jal", rd, imm)
+
+
 if __name__ == "__main__":
     add = RInstruction.add(rd=5, rs1=6, rs2=7)
     add.generate()
     print(add)
     print(add.__dict__)
 
-    addi = IInstruction.addi(rd=5, rs1=6, imm=255)
+    addi = IInstruction.addi(rd=5, rs1=6, imm=1234)
     addi.generate()
     print(addi)
     print(addi.__dict__)

@@ -13,7 +13,7 @@ class InstructionInfo:
 def find_instr_for_opcode(opcode):
     for info in instructions_info.values():
         if info.opcode7 == opcode:
-            return info.instr_type
+            return info
 
 
 # TODO: Recheck
@@ -29,6 +29,7 @@ instructions_info = {
     # Add upp imm to PC
     "auipc":  InstructionInfo("auipc",  0b0010111, 0b000, "U"),
     # Jumps
+    "jal":    InstructionInfo("jal",    0b1101111, 0b000, "J"),
     "jalr":   InstructionInfo("jalr",   0b1100111, 0b000, "I"),
     # Loads
     "lb":     InstructionInfo("lb",     0b0000011, 0b000, "I"),

@@ -3,6 +3,7 @@ import pytest
 from gigue.constants import instructions_info
 from gigue.disassembler import Disassembler
 from gigue.instructions import IInstruction
+from gigue.instructions import JInstruction
 from gigue.instructions import RInstruction
 from gigue.instructions import UInstruction
 
@@ -44,10 +45,39 @@ def test_correct_encoding_iinstr(name):
 
 # TODO: Check
 @pytest.mark.parametrize("name", ["auipc", "lui"])
-def test_correct_encoding_uinstr(name):
+@pytest.mark.parametrize("imm", [0x7FFFFFFF, 0x7FFFF000, 0x00001FFF])
+def test_correct_encoding_uinstr(name, imm):
     constr = getattr(UInstruction, name)
-    instr = constr(rd=5, imm=0x7FFFFFFF)
+    instr = constr(rd=5, imm=imm)
     mc_instr = instr.generate()
     assert instr.opcode7 == instructions_info[name].opcode7
     assert instr.rd == disassembler.extract_rd(mc_instr)
     assert instr.imm & 0xFFFFF000 == disassembler.extract_imm_u(mc_instr)
+
+
+# TODO: Check
+@pytest.mark.parametrize("name", ["jal"])
+@pytest.mark.parametrize("imm", [
+    0x7FFFFFFF, 0x7FFFF000, 0x00001FFF, 0x001FFFFE, 0x000001FF
+])
+def test_correct_encoding_jinstr(name, imm):
+    constr = getattr(JInstruction, name)
+    instr = constr(rd=5, imm=imm)
+    mc_instr = instr.generate()
+    assert instr.opcode7 == instructions_info[name].opcode7
+    assert instr.rd == disassembler.extract_rd(mc_instr)
+    print(hex(instr.imm & 0x1FFFFE))
+    assert instr.imm & 0x1FFFFE == disassembler.extract_imm_j(mc_instr)
+
+
+@pytest.mark.parametrize("imm,res", [
+    (0x7FFFFFFF, 0xFFFFF),
+    (0x7FFFF000, 0x800FF),
+    (0x00001FFF, 0x7FF01),
+    (0x000001FF, 0x1FE00),
+    (0x001FFFFE, 0xFFFFF)
+])
+def test_immediate_shuffle(imm, res):
+    instr = JInstruction("rand", 0b1111111, 6, imm)
+    shuffle = instr.shuffle_imm()
+    assert shuffle == res
