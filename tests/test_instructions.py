@@ -56,6 +56,19 @@ def test_correct_encoding_uinstr(name, imm):
     assert instr.imm & 0xFFFFF000 == disassembler.extract_imm_u(mc_instr)
 
 
+@pytest.mark.parametrize("imm,res", [
+    (0x7FFFFFFF, 0xFFFFF),
+    (0x7FFFF000, 0x800FF),
+    (0x00001FFF, 0x7FF01),
+    (0x000001FF, 0x1FE00),
+    (0x001FFFFE, 0xFFFFF)
+])
+def test_immediate_shuffle(imm, res):
+    instr = JInstruction("rand", 0b1111111, 6, imm)
+    shuffle = instr.shuffle_imm()
+    assert shuffle == res
+
+
 # TODO: Check
 @pytest.mark.parametrize("name", ["jal"])
 @pytest.mark.parametrize("imm", [
@@ -71,14 +84,15 @@ def test_correct_encoding_jinstr(name, imm):
     assert instr.imm & 0x1FFFFE == disassembler.extract_imm_j(mc_instr)
 
 
-@pytest.mark.parametrize("imm,res", [
-    (0x7FFFFFFF, 0xFFFFF),
-    (0x7FFFF000, 0x800FF),
-    (0x00001FFF, 0x7FF01),
-    (0x000001FF, 0x1FE00),
-    (0x001FFFFE, 0xFFFFF)
-])
-def test_immediate_shuffle(imm, res):
-    instr = JInstruction("rand", 0b1111111, 6, imm)
-    shuffle = instr.shuffle_imm()
-    assert shuffle == res
+# TODO: Check
+@pytest.mark.parametrize("name", ["sb", "sd", "sh", "sw"])
+@pytest.mark.parametrize("imm", [0xFFF, 0x1F, 0xFC0])
+def test_correct_encoding_sinstr(name, imm):
+    constr = getattr(SInstruction, name)
+    instr = constr(rs1=5, rs2=6, imm=imm)
+    mc_instr = instr.generate()
+    assert instr.opcode7 == instructions_info[name].opcode7
+    assert instr.opcode3 == instructions_info[name].opcode3
+    assert instr.rs1 == disassembler.extract_rs1(mc_instr)
+    assert instr.rs2 == disassembler.extract_rs2(mc_instr)
+    assert instr.imm & 0xFFF == disassembler.extract_imm_s(mc_instr)
