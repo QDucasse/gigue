@@ -48,6 +48,11 @@ instructions_info = {
     # Ors
     "orr":    InstructionInfo("orr",    0b0110011, 0b110, "R"),
     "ori":    InstructionInfo("ori",    0b0010011, 0b110, "I"),
+    # Stores
+    "sb":     InstructionInfo("sb",     0b0100011, 0b000, "S"),
+    "sd":     InstructionInfo("sd",     0b0100011, 0b011, "S"),
+    "sh":     InstructionInfo("sb",     0b0100011, 0b001, "S"),
+    "sw":     InstructionInfo("sb",     0b0100011, 0b010, "S"),
     # Logical shift left
     "sll":    InstructionInfo("sll",    0b0110011, 0b001, "R"),
     "slli":   InstructionInfo("slli",   0b0010011, 0b001, "I"),

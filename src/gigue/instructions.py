@@ -276,6 +276,47 @@ class JInstruction(Instruction):
         return cls.j_instr("jal", rd, imm)
 
 
+# TODO: Doc
+class SInstruction(Instruction):
+    def __init__(self, name, opcode7, opcode3, rs1, rs2, imm):
+        super().__init__(name, opcode7)
+        self.opcode3 = opcode3
+        self.rs1 = rs1
+        self.rs2 = rs2
+        self.imm = imm
+
+    def generate(self):
+        self.machine_instruction = self.opcode7
+        self.machine_instruction |= (self.imm & 0x1F) << 7
+        self.machine_instruction |= self.opcode3 << 12
+        self.machine_instruction |= self.rs1 << 15
+        self.machine_instruction |= self.rs2 << 20
+        self.machine_instruction |= ((self.imm & 0xFE0) >> 5) << 25
+        return self.machine_instruction
+
+    @classmethod
+    def s_instr(cls, name, rs1, rs2, imm):
+        return cls(name, instructions_info[name].opcode7,
+                   instructions_info[name].opcode3, rs1, rs2, imm)
+
+    # TODO: Autogenerate
+    @classmethod
+    def sb(cls, rs1, rs2, imm):
+        return cls.s_instr("sb", rs1, rs2, imm)
+
+    @classmethod
+    def sh(cls, rs1, rs2, imm):
+        return cls.s_instr("sh", rs1, rs2, imm)
+
+    @classmethod
+    def sw(cls, rs1, rs2, imm):
+        return cls.s_instr("sw", rs1, rs2, imm)
+
+    @classmethod
+    def sd(cls, rs1, rs2, imm):
+        return cls.s_instr("sd", rs1, rs2, imm)
+
+
 if __name__ == "__main__":
     add = RInstruction.add(rd=5, rs1=6, rs2=7)
     add.generate()
