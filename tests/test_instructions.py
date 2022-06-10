@@ -2,6 +2,7 @@ import pytest
 
 from gigue.constants import instructions_info
 from gigue.disassembler import Disassembler
+from gigue.instructions import BInstruction
 from gigue.instructions import IInstruction
 from gigue.instructions import JInstruction
 from gigue.instructions import RInstruction
@@ -96,3 +97,17 @@ def test_correct_encoding_sinstr(name, imm):
     assert instr.rs1 == disassembler.extract_rs1(mc_instr)
     assert instr.rs2 == disassembler.extract_rs2(mc_instr)
     assert instr.imm & 0xFFF == disassembler.extract_imm_s(mc_instr)
+
+
+# TODO: Check
+@pytest.mark.parametrize("name", ["beq", "bge", "bgeu", "blt", "bltu", "bne"])
+@pytest.mark.parametrize("imm", [0xFFF, 0x1F, 0xFC0])
+def test_correct_encoding_binstr(name, imm):
+    constr = getattr(BInstruction, name)
+    instr = constr(rs1=5, rs2=6, imm=imm)
+    mc_instr = instr.generate()
+    assert instr.opcode7 == instructions_info[name].opcode7
+    assert instr.opcode3 == instructions_info[name].opcode3
+    assert instr.rs1 == disassembler.extract_rs1(mc_instr)
+    assert instr.rs2 == disassembler.extract_rs2(mc_instr)
+    assert instr.imm & 0x1FFE == disassembler.extract_imm_b(mc_instr)

@@ -28,6 +28,13 @@ instructions_info = {
     "andi":   InstructionInfo("andi",   0b0010011, 0b111, "I"),
     # Add upp imm to PC
     "auipc":  InstructionInfo("auipc",  0b0010111, 0b000, "U"),
+    # Branches
+    "beq":    InstructionInfo("beq",    0b1100011, 0b000, "B"),
+    "bge":    InstructionInfo("bge",    0b1100011, 0b101, "B"),
+    "bgeu":   InstructionInfo("bgeu",   0b1100011, 0b111, "B"),
+    "blt":    InstructionInfo("blt",    0b1100011, 0b100, "B"),
+    "bltu":   InstructionInfo("bltu",   0b1100011, 0b110, "B"),
+    "bne":    InstructionInfo("bne",    0b1100011, 0b001, "B"),
     # Jumps
     "jal":    InstructionInfo("jal",    0b1101111, 0b000, "J"),
     "jalr":   InstructionInfo("jalr",   0b1100111, 0b000, "I"),
