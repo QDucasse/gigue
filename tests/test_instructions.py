@@ -249,6 +249,22 @@ def test_correct_encoding_sinstr(name, imm):
     assert instr.imm & 0xFFF == disassembler.extract_imm_s(mc_instr)
 
 
+@pytest.mark.parametrize("name", ["sb", "sd", "sh", "sw"])
+@pytest.mark.parametrize("imm", [0x7FF, 0x1F, 0x7C0])
+def test_capstone_sinstr(name, imm):
+    constr = getattr(SInstruction, name)
+    instr = constr(rs1=5, rs2=6, imm=imm)
+    bytes = instr.generate_bytes()
+    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    assert instr_disasm.mnemonic == name
+    assert instr_disasm.op_str == "t1, " + imm_str(imm) + "(t0)"
+
+
+# =================================
+#         B Instructions
+# =================================
+
+
 # TODO: Check
 @pytest.mark.parametrize("name", ["beq", "bge", "bgeu", "blt", "bltu", "bne"])
 @pytest.mark.parametrize("imm", [0xFFF, 0x1F, 0xFC0])
