@@ -46,7 +46,6 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3 :: Only',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
@@ -66,9 +65,10 @@ setup(
     keywords=[
         # eg: 'keyword1', 'keyword2', 'keyword3',
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=[
-        "capstone==5.0.0rc2"
+        "capstone==5.0.0rc2",
+        "unicorn==2.0.0rc7"
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
     extras_require={

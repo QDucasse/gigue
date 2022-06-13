@@ -2,6 +2,9 @@ import pytest
 from capstone import CS_ARCH_RISCV
 from capstone import CS_MODE_RISCV64
 from capstone import Cs
+from unicorn import Uc
+from unicorn.unicorn_const import UC_ARCH_RISCV
+from unicorn.unicorn_const import UC_MODE_RISCV64
 
 from gigue.constants import instructions_info
 from gigue.disassembler import Disassembler
@@ -12,14 +15,16 @@ from gigue.instructions import RInstruction
 from gigue.instructions import SInstruction
 from gigue.instructions import UInstruction
 
-
 # =================================
 #         Disassemblers
 # =================================
 
 
+ADDRESS = 0x1000
 disassembler = Disassembler()
 cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
+uc_emul.mem_map(ADDRESS, 2 * 1024 * 1024)
 
 
 def imm_str(immediate):
@@ -59,7 +64,7 @@ def test_capstone_rinstr(name):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
     bytes = instr.generate_bytes()
-    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, t1, t2"
 
@@ -69,10 +74,22 @@ def test_capstone_rinstr_special_cases(name):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
     bytes = instr.generate_bytes()
-    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic + "r" == name
     assert instr_disasm.op_str == "t0, t1, t2"
 
+
+@pytest.mark.parametrize("name", [
+    "add", "addw", "andr", "mul", "mulh", "mulhsu", "mulhu", "mulw", "orr", "sll",
+    "sllw", "slt", "sltu", "sra", "sraw", "srl", "srlw", "sub", "subw", "xor"
+])
+def test_unicorn_smoke_rinstr(name):
+    constr = getattr(RInstruction, name)
+    instr = constr(rd=5, rs1=6, rs2=7)
+    bytes = instr.generate_bytes()
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.emu_start(ADDRESS, ADDRESS + len(bytes))
+    uc_emul.emu_stop()
 
 # =================================
 #         I Instructions
@@ -125,7 +142,7 @@ def test_capstone_iinstr(name, imm):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
     bytes = instr.generate_bytes()
-    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, t1, " + imm_str(imm)
 
@@ -138,7 +155,7 @@ def test_capstone_iinstr_shifts(name, imm):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
     bytes = instr.generate_bytes()
-    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     imm = (imm & 0x1F) if name.endswith("w") else (imm & 0x2F)
     assert instr_disasm.op_str == "t0, t1, " + imm_str(imm)
@@ -150,7 +167,7 @@ def test_capstone_iinstr_loads(name, imm):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
     bytes = instr.generate_bytes()
-    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, " + imm_str(imm) + "(t1)"
 
@@ -178,7 +195,7 @@ def test_capstone_uinstr(name, imm):
     constr = getattr(UInstruction, name)
     instr = constr(rd=5, imm=imm)
     bytes = instr.generate_bytes()
-    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, " + imm_str((imm & 0xFFFFF000) >> 12)
 
@@ -220,7 +237,7 @@ def test_capstone_jinstr(name, imm):
     constr = getattr(JInstruction, name)
     instr = constr(rd=5, imm=imm)
     bytes = instr.generate_bytes()
-    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, " + imm_str(imm)
 
@@ -250,7 +267,7 @@ def test_capstone_sinstr(name, imm):
     constr = getattr(SInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
     bytes = instr.generate_bytes()
-    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t1, " + imm_str(imm) + "(t0)"
 
@@ -281,6 +298,6 @@ def test_capstone_binstr(name, imm):
     constr = getattr(BInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
     bytes = instr.generate_bytes()
-    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, t1, " + imm_str(imm)
