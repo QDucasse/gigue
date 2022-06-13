@@ -12,7 +12,22 @@ from gigue.instructions import RInstruction
 from gigue.instructions import SInstruction
 from gigue.instructions import UInstruction
 
+
+# =================================
+#         Disassemblers
+# =================================
+
+
 disassembler = Disassembler()
+cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+
+
+def imm_str(immediate):
+    if immediate < 0xA:
+        return str(immediate)
+    else:
+        return hex(immediate)
+
 
 # =================================
 #         R Instructions
@@ -44,7 +59,6 @@ def test_capstone_rinstr(name):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
     bytes = instr.generate_bytes()
-    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
     instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, t1, t2"
@@ -55,7 +69,6 @@ def test_capstone_rinstr_special_cases(name):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
     bytes = instr.generate_bytes()
-    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
     instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
     assert instr_disasm.mnemonic + "r" == name
     assert instr_disasm.op_str == "t0, t1, t2"
@@ -107,14 +120,14 @@ def test_correct_encoding_iinstr_shifts(name, imm):
 @pytest.mark.parametrize("name", [
     "addi", "addiw", "andi", "jalr", "ori", "slti", "sltiu", "xori"
 ])
-def test_capstone_iinstr(name):
+@pytest.mark.parametrize("imm", [0x1C, 0xFF, 0x7FF])
+def test_capstone_iinstr(name, imm):
     constr = getattr(IInstruction, name)
-    instr = constr(rd=5, rs1=6, imm=0xFF)
+    instr = constr(rd=5, rs1=6, imm=imm)
     bytes = instr.generate_bytes()
-    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
     instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
     assert instr_disasm.mnemonic == name
-    assert instr_disasm.op_str == "t0, t1, 0xff"
+    assert instr_disasm.op_str == "t0, t1, " + imm_str(imm)
 
 
 @pytest.mark.parametrize("name", [
@@ -124,7 +137,6 @@ def test_capstone_iinstr_shifts(name):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=0x3F)
     bytes = instr.generate_bytes()
-    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
     instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
     assert instr_disasm.mnemonic == name
     if name.endswith("w"):
@@ -139,7 +151,6 @@ def test_capstone_iinstr_loads(name):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=0xFF)
     bytes = instr.generate_bytes()
-    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
     instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, 0xff(t1)"
@@ -160,6 +171,17 @@ def test_correct_encoding_uinstr(name, imm):
     assert instr.opcode7 == instructions_info[name].opcode7
     assert instr.rd == disassembler.extract_rd(mc_instr)
     assert instr.imm & 0xFFFFF000 == disassembler.extract_imm_u(mc_instr)
+
+
+@pytest.mark.parametrize("name", ["auipc", "lui"])
+@pytest.mark.parametrize("imm", [0x7FFFFFFF, 0x7FFFF000, 0x00001FFF])
+def test_capstone_uinstr(name, imm):
+    constr = getattr(UInstruction, name)
+    instr = constr(rd=5, imm=imm)
+    bytes = instr.generate_bytes()
+    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    assert instr_disasm.mnemonic == name
+    assert instr_disasm.op_str == "t0, " + imm_str((imm & 0xFFFFF000) >> 12)
 
 
 # =================================
