@@ -217,6 +217,19 @@ def test_correct_encoding_jinstr(name, imm):
     assert instr.imm & 0x1FFFFE == disassembler.extract_imm_j(mc_instr)
 
 
+@pytest.mark.parametrize("name", ["jal"])
+@pytest.mark.parametrize("imm", [
+    0x1FE, 0x1FFE, 0x01FFFE, 0xFFFFE
+])
+def test_capstone_jinstr(name, imm):
+    constr = getattr(JInstruction, name)
+    instr = constr(rd=5, imm=imm)
+    bytes = instr.generate_bytes()
+    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    assert instr_disasm.mnemonic == name
+    assert instr_disasm.op_str == "t0, " + imm_str(imm)
+
+
 # =================================
 #         S Instructions
 # =================================
