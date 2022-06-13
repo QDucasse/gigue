@@ -71,6 +71,7 @@ instructions_info = {
     "sltiu":  InstructionInfo("sltiu",  0b0010011, 0b011, "I"),
     "sltu":   InstructionInfo("sltu",   0b0110011, 0b011, "R"),
     # Arithmetic shift right
+    # Note (srai, sraiw) the top7 here is used on top of the shift immediate
     "sra":    InstructionInfo("sra",    0b0110011, 0b101, "R", 0b0100000),
     "srai":   InstructionInfo("srai",   0b0010011, 0b101, "I", 0b0100000),
     "sraiw":  InstructionInfo("sraiw",  0b0011011, 0b101, "I", 0b0100000),

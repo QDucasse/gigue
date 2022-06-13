@@ -125,7 +125,7 @@ class RInstruction(Instruction):
 # TODO: Doc
 class IInstruction(Instruction):
     def __init__(self, name, opcode7, opcode3, rd, rs1, imm, top7=0):
-        super().__init__(name, opcode7)
+        super().__init__(name, opcode7, top7)
         self.opcode3 = opcode3
         self.rd = rd
         self.rs1 = rs1
@@ -137,6 +137,7 @@ class IInstruction(Instruction):
         self.machine_instruction |= self.opcode3 << 12
         self.machine_instruction |= self.rs1 << 15
         self.machine_instruction |= self.imm << 20
+        self.machine_instruction |= self.top7 << 25
         return self.machine_instruction
 
     @classmethod
@@ -188,11 +189,13 @@ class IInstruction(Instruction):
 
     @classmethod
     def slli(cls, rd, rs1, imm):
-        return cls.i_instr("slli", rd, rs1, imm)
+        # shamt 6 bits long
+        return cls.i_instr("slli", rd, rs1, imm & 0x2F)
 
     @classmethod
     def slliw(cls, rd, rs1, imm):
-        return cls.i_instr("slliw", rd, rs1, imm)
+        # shamt 6 bits long and only valid if shamt[5] = 0
+        return cls.i_instr("slliw", rd, rs1, imm & 0x1F)
 
     @classmethod
     def slti(cls, rd, rs1, imm):
@@ -204,19 +207,23 @@ class IInstruction(Instruction):
 
     @classmethod
     def srai(cls, rd, rs1, imm):
-        return cls.i_instr("srai", rd, rs1, imm)
+        # shamt 6 bits long
+        return cls.i_instr("srai", rd, rs1, imm & 0x2F)
 
     @classmethod
     def sraiw(cls, rd, rs1, imm):
-        return cls.i_instr("sraiw", rd, rs1, imm)
+        # shamt 6 bits long and only valid if shamt[5] = 0
+        return cls.i_instr("sraiw", rd, rs1, imm & 0x1F)
 
     @classmethod
     def srli(cls, rd, rs1, imm):
-        return cls.i_instr("srli", rd, rs1, imm)
+        # shamt 6 bits long
+        return cls.i_instr("srli", rd, rs1, imm & 0x2F)
 
     @classmethod
     def srliw(cls, rd, rs1, imm):
-        return cls.i_instr("srliw", rd, rs1, imm)
+        # shamt 6 bits long and only valid if shamt[5] = 0
+        return cls.i_instr("srliw", rd, rs1, imm & 0x1F)
 
     @classmethod
     def xori(cls, rd, rs1, imm):
@@ -381,7 +388,9 @@ class BInstruction(Instruction):
 
 
 if __name__ == "__main__":
-    from capstone import Cs, CS_ARCH_RISCV, CS_MODE_RISCV64
+    from capstone import CS_ARCH_RISCV
+    from capstone import CS_MODE_RISCV64
+    from capstone import Cs
     add = RInstruction.add(rd=5, rs1=6, rs2=7)
     code = add.generate().to_bytes(4, 'little')
     print(code)

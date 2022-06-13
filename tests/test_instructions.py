@@ -1,6 +1,7 @@
 import pytest
-from capstone import Cs, CS_ARCH_RISCV, CS_MODE_RISCV64
-
+from capstone import CS_ARCH_RISCV
+from capstone import CS_MODE_RISCV64
+from capstone import Cs
 
 from gigue.constants import instructions_info
 from gigue.disassembler import Disassembler
@@ -12,6 +13,10 @@ from gigue.instructions import SInstruction
 from gigue.instructions import UInstruction
 
 disassembler = Disassembler()
+
+# =================================
+#         R Instructions
+# =================================
 
 
 # TODO: Check
@@ -56,20 +61,93 @@ def test_capstone_rinstr_special_cases(name):
     assert instr_disasm.op_str == "t0, t1, t2"
 
 
+# =================================
+#         I Instructions
+# =================================
+
+
 # TODO: Check
 @pytest.mark.parametrize("name", [
     "addi", "addiw", "andi", "jalr", "lb", "lbu", "ld", "lh", "lhu", "ori",
-    "slli", "slliw", "slti", "sltiu", "srai", "sraiw", "srli", "srliw", "xori"
+    "slti", "sltiu", "xori"
 ])
-def test_correct_encoding_iinstr(name):
+@pytest.mark.parametrize("imm", [0x00, 0x01, 0x1C, 0xFF, 0xFFF])
+def test_correct_encoding_iinstr(name, imm):
     constr = getattr(IInstruction, name)
-    instr = constr(rd=5, rs1=6, imm=255)
+    instr = constr(rd=5, rs1=6, imm=imm)
     mc_instr = instr.generate()
     assert instr.opcode7 == instructions_info[name].opcode7
     assert instr.opcode3 == instructions_info[name].opcode3
     assert instr.rd == disassembler.extract_rd(mc_instr)
     assert instr.rs1 == disassembler.extract_rs1(mc_instr)
     assert instr.imm == disassembler.extract_imm_i(mc_instr)
+
+
+# TODO: Check
+@pytest.mark.parametrize("name", [
+    "slli", "slliw", "srai", "sraiw", "srli", "srliw"
+])
+@pytest.mark.parametrize("imm", [0x00, 0x01, 0x1C, 0xFF, 0xFFF])
+def test_correct_encoding_iinstr_shifts(name, imm):
+    constr = getattr(IInstruction, name)
+    instr = constr(rd=5, rs1=6, imm=imm)
+    mc_instr = instr.generate()
+    assert instr.opcode7 == instructions_info[name].opcode7
+    assert instr.opcode3 == instructions_info[name].opcode3
+    assert instr.rd == disassembler.extract_rd(mc_instr)
+    assert instr.rs1 == disassembler.extract_rs1(mc_instr)
+    imm_disasm = disassembler.extract_imm_i(mc_instr)
+    if name.endswith("w"):
+        masked_imm = imm_disasm & 0x1F
+    else:
+        masked_imm = imm_disasm & 0x2F
+    assert instr.imm == masked_imm
+
+
+@pytest.mark.parametrize("name", [
+    "addi", "addiw", "andi", "jalr", "ori", "slti", "sltiu", "xori"
+])
+def test_capstone_iinstr(name):
+    constr = getattr(IInstruction, name)
+    instr = constr(rd=5, rs1=6, imm=0xFF)
+    bytes = instr.generate_bytes()
+    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    assert instr_disasm.mnemonic == name
+    assert instr_disasm.op_str == "t0, t1, 0xff"
+
+
+@pytest.mark.parametrize("name", [
+    "slli", "slliw", "srai", "sraiw", "srli", "srliw"
+])
+def test_capstone_iinstr_shifts(name):
+    constr = getattr(IInstruction, name)
+    instr = constr(rd=5, rs1=6, imm=0x3F)
+    bytes = instr.generate_bytes()
+    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    assert instr_disasm.mnemonic == name
+    if name.endswith("w"):
+        res = "t0, t1, 0x1f"
+    else:
+        res = "t0, t1, 0x2f"
+    assert instr_disasm.op_str == res
+
+
+@pytest.mark.parametrize("name", ["lb", "lbu", "ld", "lh", "lhu"])
+def test_capstone_iinstr_loads(name):
+    constr = getattr(IInstruction, name)
+    instr = constr(rd=5, rs1=6, imm=0xFF)
+    bytes = instr.generate_bytes()
+    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    assert instr_disasm.mnemonic == name
+    assert instr_disasm.op_str == "t0, 0xff(t1)"
+
+
+# =================================
+#         U Instructions
+# =================================
 
 
 # TODO: Check
@@ -82,6 +160,11 @@ def test_correct_encoding_uinstr(name, imm):
     assert instr.opcode7 == instructions_info[name].opcode7
     assert instr.rd == disassembler.extract_rd(mc_instr)
     assert instr.imm & 0xFFFFF000 == disassembler.extract_imm_u(mc_instr)
+
+
+# =================================
+#         J Instructions
+# =================================
 
 
 @pytest.mark.parametrize("imm,res", [
@@ -110,6 +193,11 @@ def test_correct_encoding_jinstr(name, imm):
     assert instr.rd == disassembler.extract_rd(mc_instr)
     print(hex(instr.imm & 0x1FFFFE))
     assert instr.imm & 0x1FFFFE == disassembler.extract_imm_j(mc_instr)
+
+
+# =================================
+#         S Instructions
+# =================================
 
 
 # TODO: Check
