@@ -1,4 +1,6 @@
 import pytest
+from capstone import Cs, CS_ARCH_RISCV, CS_MODE_RISCV64
+
 
 from gigue.constants import instructions_info
 from gigue.disassembler import Disassembler
@@ -27,6 +29,31 @@ def test_correct_encoding_rinstr(name):
     assert instr.rs1 == disassembler.extract_rs1(mc_instr)
     assert instr.rs2 == disassembler.extract_rs2(mc_instr)
     assert instr.top7 == disassembler.extract_top7(mc_instr)
+
+
+@pytest.mark.parametrize("name", [
+    "add", "addw", "mul", "mulh", "mulhsu", "mulhu", "mulw", "sll", "sllw",
+    "slt", "sltu", "sra", "sraw", "srl", "srlw", "sub", "subw", "xor"
+])
+def test_capstone_rinstr(name):
+    constr = getattr(RInstruction, name)
+    instr = constr(rd=5, rs1=6, rs2=7)
+    bytes = instr.generate_bytes()
+    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    assert instr_disasm.mnemonic == name
+    assert instr_disasm.op_str == "t0, t1, t2"
+
+
+@pytest.mark.parametrize("name", ["andr", "orr"])
+def test_capstone_rinstr_special_cases(name):
+    constr = getattr(RInstruction, name)
+    instr = constr(rd=5, rs1=6, rs2=7)
+    bytes = instr.generate_bytes()
+    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+    instr_disasm = next(cap_disasm.disasm(bytes, 0x1000))
+    assert instr_disasm.mnemonic + "r" == name
+    assert instr_disasm.op_str == "t0, t1, t2"
 
 
 # TODO: Check

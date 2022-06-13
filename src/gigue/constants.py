@@ -71,18 +71,18 @@ instructions_info = {
     "sltiu":  InstructionInfo("sltiu",  0b0010011, 0b011, "I"),
     "sltu":   InstructionInfo("sltu",   0b0110011, 0b011, "R"),
     # Arithmetic shift right
-    "sra":    InstructionInfo("sra",    0b0110011, 0b101, "R", 0b010000),
-    "srai":   InstructionInfo("srai",   0b0010011, 0b101, "I", 0b010000),
-    "sraiw":  InstructionInfo("sraiw",  0b0011011, 0b101, "I", 0b010000),
-    "sraw":   InstructionInfo("sraw",   0b0111011, 0b101, "R", 0b010000),
+    "sra":    InstructionInfo("sra",    0b0110011, 0b101, "R", 0b0100000),
+    "srai":   InstructionInfo("srai",   0b0010011, 0b101, "I", 0b0100000),
+    "sraiw":  InstructionInfo("sraiw",  0b0011011, 0b101, "I", 0b0100000),
+    "sraw":   InstructionInfo("sraw",   0b0111011, 0b101, "R", 0b0100000),
     # Logical shift right
     "srl":    InstructionInfo("srl",    0b0110011, 0b101, "R"),
     "srli":   InstructionInfo("srli",   0b0010011, 0b101, "I"),
     "srliw":  InstructionInfo("srliw",  0b0011011, 0b101, "I"),
     "srlw":   InstructionInfo("srlw",   0b0111011, 0b101, "R"),
     # Subs
-    "sub":    InstructionInfo("sub",    0b0110011, 0b000, "R"),
-    "subw":   InstructionInfo("subw",   0b0111011, 0b000, "R"),
+    "sub":    InstructionInfo("sub",    0b0110011, 0b000, "R", 0b0100000),
+    "subw":   InstructionInfo("subw",   0b0111011, 0b000, "R", 0b0100000),
     # Note: subi is performed with addi!
     # Xors
     "xor":    InstructionInfo("xor",    0b0110011, 0b100, "R"),

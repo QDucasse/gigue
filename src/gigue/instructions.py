@@ -9,6 +9,9 @@ class Instruction:
         self.top7 = top7
         self.machine_instruction = 0
 
+    def generate_bytes(self):
+        return self.generate().to_bytes(4, "little")
+
     def generate(self):
         raise NotImplementedError("Please Implement this method")
 
@@ -34,7 +37,8 @@ class RInstruction(Instruction):
     @classmethod
     def r_instr(cls, name, rd, rs1, rs2):
         return cls(name, instructions_info[name].opcode7,
-                   instructions_info[name].opcode3, rd, rs1, rs2)
+                   instructions_info[name].opcode3, rd, rs1, rs2,
+                   instructions_info[name].top7)
 
     # TODO: Autogenerate?
     @classmethod
@@ -120,7 +124,7 @@ class RInstruction(Instruction):
 
 # TODO: Doc
 class IInstruction(Instruction):
-    def __init__(self, name, opcode7, opcode3, rd, rs1, imm):
+    def __init__(self, name, opcode7, opcode3, rd, rs1, imm, top7=0):
         super().__init__(name, opcode7)
         self.opcode3 = opcode3
         self.rd = rd
@@ -138,7 +142,8 @@ class IInstruction(Instruction):
     @classmethod
     def i_instr(cls, name, rd, rs1, imm):
         return cls(name, instructions_info[name].opcode7,
-                   instructions_info[name].opcode3, rd, rs1, imm)
+                   instructions_info[name].opcode3, rd, rs1, imm,
+                   instructions_info[name].top7)
 
     # TODO: Autogenerate
     @classmethod
@@ -376,8 +381,16 @@ class BInstruction(Instruction):
 
 
 if __name__ == "__main__":
+    from capstone import Cs, CS_ARCH_RISCV, CS_MODE_RISCV64
     add = RInstruction.add(rd=5, rs1=6, rs2=7)
-    add.generate()
+    code = add.generate().to_bytes(4, 'little')
+    print(code)
+    md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+    for i in md.disasm(code, 0x1000):
+        print(i.address)
+        print(i.mnemonic)
+        print(i.op_str)
+
     print(add)
     print(add.__dict__)
 
