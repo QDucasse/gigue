@@ -1,21 +1,68 @@
+import random
+
+from gigue.instructions import IInstruction
+from gigue.instructions import RInstruction
+
+MAX_METHOD_SIZE = 30
+MAX_CALL_NUMBER = 5
+MAX_CASE_NUMBER = 5
+
+
+class InstructionBuilder:
+    R_INSTRUCTIONS = [
+        "add", "addw", "andr", "mul", "mulh", "mulhsu", "mulhu", "mulw",
+        "orr", "sll", "sllw", "slt", "sltu", "sra", "sraw", "srl", "srlw",
+        "sub", "subw", "xor"
+    ]
+    I_INSTRUCTIONS = ["addi", "addiw", "andi", "ori", "slti", "sltiu", "xori"]
+    I_INSTRUCTIONS_LOAD = ["lb", "lbu", "ld", "lh", "lhu"]
+    U_INSTRUCTIONS = ["auipc", "lui"]
+    J_INSTRUCTIONS = ["jal"]
+    S_INSTRUCTIONS = ["sb", "sd", "sh", "sw"]
+    B_INSTRUCTIONS = ["beq", "bge", "bgeu", "blt", "bltu", "bne"]
+
+    def build_random_r_instruction(self, registers):
+        name = random.choice(InstructionBuilder.R_INSTRUCTIONS)
+        constr = getattr(RInstruction, name)
+        rd, rs1, rs2 = tuple(random.choices(registers, k=3))
+        return constr(rd=rd, rs1=rs1, rs2=rs2)
+
+    def build_random_i_instruction(self, registers):
+        name = random.choice(InstructionBuilder.I_INSTRUCTIONS)
+        constr = getattr(IInstruction, name)
+        rd, rs1 = tuple(random.choices(registers, k=2))
+        imm = random.randint(0, 4095)  # Up to 0xFFF
+        return constr(rd=rd, rs1=rs1, imm=imm)
+
+    def build_random(self):
+        pass
+
 
 class Method:
     def __init__(self, size, call_number, address, registers: list):
-        # Instance variables for basic attributes and checks
-        self.size = size         # TODO: Check against max size
-        self.address = address      # TODO: Check against max address
-        self.call_number = call_number  # TODO: Check against max call
+        self.address = address
+        self.size = min(size, MAX_METHOD_SIZE)
+        self.call_number = min(call_number, MAX_CALL_NUMBER)
 
-        # Placeholder for generated machine code
+        self.registers = registers
+
         self.machine_code = []
-        # Placeholder to hold addresses
+        self.instructions = []
         self.callees = []
 
-    def generate(self):
-        # Generate calls
+    def add_instructions(self):
+        current_size = 0
+        while current_size < self.size:
+            # Add random instructions
+            self.instructions.append()
 
-        while len(self.machine_code) < self.size:
-            pass
+    def generate(self):
+        self.machine_code = [instruction.generate() for instruction in self.instructions]
+        return self.machine_code
+
+    def patch_calls(self, callees):
+        # Replace calls with
+        self.callees = callees
 
 
 class PIC:
@@ -25,3 +72,8 @@ class PIC:
 
     def generate(self):
         pass
+
+
+if __name__ == "__main__":
+    ib = InstructionBuilder()
+    ib.build_random_r_instruction([5, 6, 7])
