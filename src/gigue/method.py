@@ -1,7 +1,10 @@
 import random
 
+from gigue.instructions import BInstruction
 from gigue.instructions import IInstruction
+from gigue.instructions import JInstruction
 from gigue.instructions import RInstruction
+from gigue.instructions import UInstruction
 
 MAX_METHOD_SIZE = 30
 MAX_CALL_NUMBER = 5
@@ -17,7 +20,6 @@ class InstructionBuilder:
     I_INSTRUCTIONS = ["addi", "addiw", "andi", "ori", "slti", "sltiu", "xori"]
     I_INSTRUCTIONS_LOAD = ["lb", "lbu", "ld", "lh", "lhu"]
     U_INSTRUCTIONS = ["auipc", "lui"]
-    J_INSTRUCTIONS = ["jal"]
     S_INSTRUCTIONS = ["sb", "sd", "sh", "sw"]
     B_INSTRUCTIONS = ["beq", "bge", "bgeu", "blt", "bltu", "bne"]
 
@@ -31,8 +33,31 @@ class InstructionBuilder:
         name = random.choice(InstructionBuilder.I_INSTRUCTIONS)
         constr = getattr(IInstruction, name)
         rd, rs1 = tuple(random.choices(registers, k=2))
-        imm = random.randint(0, 4095)  # Up to 0xFFF
+        imm = random.randint(0, 0xFFF)
         return constr(rd=rd, rs1=rs1, imm=imm)
+
+    # TODO: loads
+
+    def build_random_u_instruction(self, registers):
+        name = random.choice(InstructionBuilder.U_INSTRUCTIONS)
+        constr = getattr(UInstruction, name)
+        rd = random.choice(registers)
+        imm = random.randint(0, 0xFFFFFFFF)
+        return constr(rd=rd, imm=imm)
+
+    def build_random_j_instruction(self, max_address):
+        # Jump to stay in the method and keep aligment
+        offset = random.randrange(0, min(max_address, 0x7FFFFFFF), 2)
+        return JInstruction.jal(0, offset)
+
+    # TODO: stores
+
+    def build_random_b_instruction(self, registers, max_address):
+        name = random.choice(InstructionBuilder.B_INSTRUCTIONS)
+        constr = getattr(BInstruction, name)
+        rs1, rs2 = random.choices(registers, k=2)
+        offset = random.randrange(0, min(max_address, 0x7FF), 2)
+        return constr(rs1=rs1, rs2=rs2, imm=offset)
 
     def build_random(self):
         pass
