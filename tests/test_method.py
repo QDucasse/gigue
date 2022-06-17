@@ -56,8 +56,8 @@ def test_builder_random_u_instruction(execution_number):
 @pytest.mark.parametrize("execution_number", range(5))
 def test_builder_random_j_instruction(execution_number):
     instr_builder = InstructionBuilder()
-    instr = instr_builder.build_random_j_instruction(0xFFF)
-    assert instr.rd == 0
+    instr = instr_builder.build_random_j_instruction(CALLER_SAVED_REG, 0xFFF)
+    assert instr.rd in CALLER_SAVED_REG
     assert 0 <= instr.imm <= 0xFFF
     assert instr.imm % 2 == 0
 
@@ -70,6 +70,14 @@ def test_builder_random_b_instruction(execution_number):
     assert instr.rs2 in CALLER_SAVED_REG
     assert 0 <= instr.imm <= 0xFFF
     assert instr.imm % 2 == 0
+
+
+@pytest.mark.parametrize("execution_number", range(30))
+def test_builder_random_instruction_disassembly_smoke(execution_number):
+    instr_builder = InstructionBuilder()
+    instr = instr_builder.build_random_instruction(CALLER_SAVED_REG, 0xFFF)
+    bytes = instr.generate_bytes()
+    next(cap_disasm.disasm(bytes, ADDRESS))
 
 
 @pytest.mark.parametrize("execution_number", range(30))
@@ -93,7 +101,7 @@ def test_random_riu_disassembly_execution_smoke(execution_number, build_method):
 @pytest.mark.parametrize("execution_number", range(5))
 def test_random_j_disassembly_smoke(execution_number):
     instr_builder = InstructionBuilder()
-    instr = instr_builder.build_random_j_instruction(2 * 1024 * 1024)
+    instr = instr_builder.build_random_j_instruction(CALLER_SAVED_REG, 2 * 1024 * 1024)
     bytes = instr.generate_bytes()
     next(cap_disasm.disasm(bytes, ADDRESS))
 
@@ -116,3 +124,42 @@ def test_initialization():
     assert method.size == 30
     assert method.address == 0x7FFFFF
     assert method.call_number == 5
+
+
+@pytest.mark.parametrize("execution_number", range(5))
+def test_instructions_adding(execution_number):
+    method = Method(size=32, address=0x1000, call_number=15, registers=CALLER_SAVED_REG)
+    method.add_instructions()
+    assert len(method.instructions) == method.size
+
+
+@pytest.mark.parametrize("execution_number", range(30))
+@pytest.mark.parametrize("weights", [
+    [100, 0, 0, 0, 0],
+    [0, 100, 0, 0, 0],
+    [0, 0, 100, 0, 0],
+    # [0, 0, 0, 100, 0],
+    # [0, 0, 0, 0, 100],
+    # [35, 40, 10, 5, 10],
+])
+def test_instructions_disassembly_execution_smoke(execution_number, weights):
+    method = Method(size=10, address=0x1000, call_number=15, registers=CALLER_SAVED_REG)
+    method.add_instructions(weights)
+    bytes = method.generate_bytes()
+    for i in cap_disasm.disasm(bytes, ADDRESS):
+        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.emu_start(ADDRESS, ADDRESS + len(bytes))
+    uc_emul.emu_stop()
+
+
+if __name__ == "__main__":
+    method = Method(size=32, address=0x1000, call_number=15, registers=CALLER_SAVED_REG)
+    method.add_instructions(weights=[0, 0, 0, 100, 0])
+    # jal_instr = JInstruction.jal(0, )
+    bytes = method.generate_bytes()
+    for i in cap_disasm.disasm(bytes, ADDRESS):
+        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.emu_start(ADDRESS, ADDRESS + len(bytes))
+    uc_emul.emu_stop()

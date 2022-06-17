@@ -45,10 +45,11 @@ class InstructionBuilder:
         imm = random.randint(0, 0xFFFFFFFF)
         return constr(rd=rd, imm=imm)
 
-    def build_random_j_instruction(self, max_address):
+    def build_random_j_instruction(self, registers, max_address):
         # Jump to stay in the method and keep aligment
-        offset = random.randrange(0, min(max_address, 0x7FFFFFFF), 2)
-        return JInstruction.jal(0, offset)
+        rd = random.choice(registers)
+        offset = random.randrange(4, max(8, max_address), 2)
+        return JInstruction.jal(rd, offset)
 
     # TODO: stores
 
@@ -56,11 +57,21 @@ class InstructionBuilder:
         name = random.choice(InstructionBuilder.B_INSTRUCTIONS)
         constr = getattr(BInstruction, name)
         rs1, rs2 = random.choices(registers, k=2)
-        offset = random.randrange(0, min(max_address, 0x7FF), 2)
+        offset = random.randrange(4, max(8, max_address), 2)
         return constr(rs1=rs1, rs2=rs2, imm=offset)
 
-    def build_random(self):
-        pass
+    def build_random_instruction(self, registers, max_address,
+                                 weights=[35, 40, 10, 5, 10]):
+        method_name, needs_max_addr = random.choices([
+            ("build_random_r_instruction", False),
+            ("build_random_i_instruction", False),
+            ("build_random_u_instruction", False),
+            ("build_random_j_instruction", True),
+            ("build_random_b_instruction", True)
+        ], weights)[0]
+        method = getattr(InstructionBuilder, method_name)
+        instruction = method(self, registers, max_address) if needs_max_addr else method(self, registers)
+        return instruction
 
 
 class Method:
@@ -71,19 +82,29 @@ class Method:
 
         self.registers = registers
 
+        self.instruction_builder = InstructionBuilder()
         self.machine_code = []
+        self.bytes = b''
         self.instructions = []
         self.callees = []
 
-    def add_instructions(self):
-        current_size = 0
-        while current_size < self.size:
+    def add_instructions(self, weights=[35, 40, 10, 5, 10]):
+        for current_address in range(self.address, self.address + self.size * 4, 4):
             # Add random instructions
-            self.instructions.append()
+            max_offset = self.address + self.size * 4 - current_address
+            instruction = self.instruction_builder.build_random_instruction(
+                self.registers, max_offset, weights
+            )
+            self.instructions.append(instruction)
 
     def generate(self):
         self.machine_code = [instruction.generate() for instruction in self.instructions]
         return self.machine_code
+
+    def generate_bytes(self):
+        for instruction in self.instructions:
+            self.bytes += instruction.generate_bytes()
+        return self.bytes
 
     def patch_calls(self, callees):
         # Replace calls with
