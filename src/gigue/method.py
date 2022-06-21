@@ -48,7 +48,7 @@ class InstructionBuilder:
     def build_random_j_instruction(self, registers, max_address):
         # Jump to stay in the method and keep aligment
         rd = random.choice(registers)
-        offset = random.randrange(4, max(8, max_address), 2)
+        offset = random.randrange(4, max(8, max_address), 4)
         return JInstruction.jal(rd, offset)
 
     # TODO: stores
@@ -57,7 +57,7 @@ class InstructionBuilder:
         name = random.choice(InstructionBuilder.B_INSTRUCTIONS)
         constr = getattr(BInstruction, name)
         rs1, rs2 = random.choices(registers, k=2)
-        offset = random.randrange(4, max(8, max_address), 2)
+        offset = random.randrange(4, max(8, max_address), 4)
         return constr(rs1=rs1, rs2=rs2, imm=offset)
 
     def build_random_instruction(self, registers, max_address,

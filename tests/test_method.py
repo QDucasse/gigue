@@ -138,9 +138,9 @@ def test_instructions_adding(execution_number):
     [100, 0, 0, 0, 0],
     [0, 100, 0, 0, 0],
     [0, 0, 100, 0, 0],
-    # [0, 0, 0, 100, 0],
-    # [0, 0, 0, 0, 100],
-    # [35, 40, 10, 5, 10],
+    [0, 0, 0, 100, 0],
+    [0, 0, 0, 0, 100],
+    [35, 40, 10, 5, 10],
 ])
 def test_instructions_disassembly_execution_smoke(execution_number, weights):
     method = Method(size=10, address=0x1000, call_number=15, registers=CALLER_SAVED_REG)
