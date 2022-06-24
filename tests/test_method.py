@@ -169,10 +169,10 @@ def test_instructions_disassembly_execution_smoke(execution_number, weights):
     method = Method(size=10, address=0x1000, call_number=15, registers=CALLER_SAVED_REG)
     method.add_instructions(weights)
     bytes = method.generate_bytes()
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # for i in cap_disasm.disasm(bytes, ADDRESS):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     uc_emul.mem_write(ADDRESS, bytes)
-    uc_emul.emu_start(ADDRESS, ADDRESS + len(bytes))
+    uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()
 
 
