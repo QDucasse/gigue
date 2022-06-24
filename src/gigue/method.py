@@ -111,7 +111,7 @@ class Method:
             )
             self.instructions.append(instruction)
         # TODO: Should be ret
-        self.instructions.append(IInstruction.nop())
+        self.instructions.append(IInstruction.ret())
 
     def generate(self):
         self.machine_code = [instruction.generate() for instruction in self.instructions]
