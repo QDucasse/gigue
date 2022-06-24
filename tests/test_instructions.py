@@ -227,7 +227,6 @@ def test_correct_encoding_jinstr(name, imm):
     mc_instr = instr.generate()
     assert instr.opcode7 == instructions_info[name].opcode7
     assert instr.rd == disassembler.extract_rd(mc_instr)
-    print(hex(instr.imm & 0x1FFFFE))
     assert instr.imm & 0x1FFFFE == disassembler.extract_imm_j(mc_instr)
 
 

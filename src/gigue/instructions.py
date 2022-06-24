@@ -164,6 +164,11 @@ class IInstruction(Instruction):
         return cls.i_instr("jalr", rd, rs1, imm)
 
     @classmethod
+    def ret(cls):
+        # ret expands to jalr x0, 0(x1)
+        return cls.i_instr("jalr", 0, 1, 0)
+
+    @classmethod
     def lb(cls, rd, rs1, imm):
         return cls.i_instr("lb", rd, rs1, imm)
 
@@ -182,6 +187,10 @@ class IInstruction(Instruction):
     @classmethod
     def lhu(cls, rd, rs1, imm):
         return cls.i_instr("lhu", rd, rs1, imm)
+
+    @classmethod
+    def nop(cls):
+        return cls.i_instr("addi", 0, 0, 0)
 
     @classmethod
     def ori(cls, rd, rs1, imm):
