@@ -1,5 +1,4 @@
 from gigue.builder import InstructionBuilder
-from gigue.instructions import IInstruction
 
 
 class Method:
