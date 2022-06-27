@@ -20,10 +20,10 @@ class Method:
         self.registers = registers
 
         self.builder = InstructionBuilder()
-        self.machine_code = []
-        self.bytes = b''
         self.instructions = []
+        self.machine_code = []
         self.callees = []
+        self.bytes = b''
 
     def fill_with_nops(self):
         for current_address in range(self.address, self.address + self.size * 4, 4):
@@ -50,18 +50,31 @@ class Method:
             self.bytes += instruction.generate_bytes()
         return self.bytes
 
-    def patch_calls(self, callees):
-        # Replace random parts of the
-        self.callees = callees
+    # def patch_calls(self, callees):
+    #     # Replace random parts of the
+    #     self.callees = callees
 
 
 class PIC:
-    def __init__(self, case_number, method_size, address):
+    def __init__(self, case_number, method_size, address, registers):
         self.case_number = case_number
         self.address = address
+        self.registers = registers
+
+        self.builder = InstructionBuilder()
+        self.switch_instructions = []
+        self.pic_instructions = []
+        self.methods = []
+        self.bytes = b''
+
+    def add_method_instructions(self):
+        pass
+
+    def add_switch_instructions(self):
+        pass
 
     def generate(self):
-        pass
+        return
 
 
 if __name__ == "__main__":
