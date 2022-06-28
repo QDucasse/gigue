@@ -4,6 +4,10 @@ from gigue.constants import find_instr_for_opcode
 # TODO: Doc
 class Disassembler:
 
+    def sign_extend(self, value, bits):
+        sign_bit = 1 << (bits - 1)
+        return (value & (sign_bit - 1)) - (value & sign_bit)
+
     def extract_info(self, instruction, size, shift):
         mask = (1 << size) - 1
         return (instruction & (mask << shift)) >> shift
@@ -54,6 +58,21 @@ class Disassembler:
 
     def extract_top7(self, instruction):
         return self.extract_info(instruction, 7, 25)
+
+    def extract_call_offset(self, instructions):
+        # instructions correspond to [auipc(offset high), jalr(offset low)]
+        offset_low = self.extract_imm_i(instructions[1])
+        offset_high = self.extract_imm_u(instructions[0])
+        signed_offset_low = self.sign_extend(offset_low, 12)
+        signed_offset_high = self.sign_extend(offset_high, 32)
+        # print("Disassembler:\nlowo {}\nhigho {}\nsignlowo {}\nsignhigho {}\nsum {}\n__________".format(
+        #     hex(offset_low),
+        #     hex(offset_high),
+        #     hex(signed_offset_low),
+        #     hex(signed_offset_high),
+        #     hex(signed_offset_low + signed_offset_high)
+        # ))
+        return signed_offset_low + signed_offset_high
 
     def disassemble(self, instruction):
         instr_type = self.get_instruction_type(instruction)

@@ -13,12 +13,12 @@ class Gigue:
     ]
 
     def __init__(self, jit_start_address, interpreter_start_address,
-                 method_nb, method_max_size, method_max_calls,
+                 jit_elements_nb, method_max_size, method_max_calls,
                  pics_method_max_size, pics_max_cases, pics_ratio=0.2):
         self.jit_start_address = jit_start_address
         self.interpreter_start_address = interpreter_start_address
         # Methods parameters
-        self.method_nb = method_nb
+        self.jit_elements_nb = jit_elements_nb  # Methods + PICs
         self.method_max_size = method_max_size
         self.method_max_calls = method_max_calls
         # PICs parameters
@@ -29,6 +29,7 @@ class Gigue:
         self.builder = InstructionBuilder()  # for the interpretation loop
         self.jit_methods = []
         self.jit_pics = []
+        self.jit_elements = []  # Shuffled concatenation of above
         self.jit_machine_code = []
         self.jit_bytes = b''
         self.interpreter_calls = []
@@ -51,19 +52,24 @@ class Gigue:
 
     def fill_jit_code(self):
         current_address = self.jit_start_address
-        code_type = random.choices(["method", "pic"], [1 - self.pics_ratio, self.pics_ratio])[0]
-        current_element = getattr(Gigue, "add_" + code_type)(self, current_address)
-        current_address += len(current_element.generate()) * 4
+        current_element_count = 0
+        while current_element_count < self.jit_elements_nb:
+            code_type = random.choices(["method", "pic"], [1 - self.pics_ratio, self.pics_ratio])[0]
+            adder_function = getattr(Gigue, "add_" + code_type)
+            current_element = adder_function(self, current_address)
+            current_address += len(current_element.generate()) * 4
+            current_element_count += 1
 
-    def fill_interpetation_loop(self):
+    def fill_interpretation_loop(self):
         current_address = self.interpreter_start_address
         # for all addresses in methods and pics, generate a call
-        jit_code = random.shuffle(self.methods + self.pics)
-        for element in jit_code:
+        self.jit_elements = self.jit_methods + self.jit_pics
+        random.shuffle(self.jit_elements)
+        for element in self.jit_elements:
             # generate a call
             call_instructions = self.builder.build_call(element.address - current_address)
             self.interpreter_calls.append(call_instructions)
-            self.current_address += 8
+            current_address += 8
 
     def generate_jit_code(self):
         generated_instructions = [elt.generate() for elt in self.jit_elements]

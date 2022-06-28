@@ -77,5 +77,11 @@ class InstructionBuilder:
     def build_call(self, offset):
         offset_low = offset & 0xFFF
         # The right part handles the low offset sign extension (that should be mitigated)
-        offset_high = (offset & 0xFFFFF000) + (offset & 0x800)
+        offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
+        # print("offset: {}/{} -> olow: {} + ohigh: {}".format(
+        #     hex(offset),
+        #     hex(offset & 0xFFFFFFFF),
+        #     hex(offset_low),
+        #     hex(offset_high)
+        # ))
         return [UInstruction.auipc(1, offset_high), IInstruction.jalr(1, 1, offset_low)]
