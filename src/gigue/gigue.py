@@ -1,4 +1,3 @@
-import itertools
 import random
 
 from gigue.builder import InstructionBuilder
@@ -11,10 +10,14 @@ class Gigue:
     CALLER_SAVED_REG = [
         5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31
     ]
+    BIN_DIR = "bin/"
 
     def __init__(self, jit_start_address, interpreter_start_address,
                  jit_elements_nb, method_max_size, method_max_calls,
-                 pics_method_max_size, pics_max_cases, pics_ratio=0.2):
+                 pics_method_max_size, pics_max_cases, pics_ratio=0.2,
+                 registers=CALLER_SAVED_REG,
+                 output_jit_file=BIN_DIR+"jit.out",
+                 output_interpret_file=BIN_DIR+"interpret.out",):
         self.jit_start_address = jit_start_address
         self.interpreter_start_address = interpreter_start_address
         # Methods parameters
@@ -31,10 +34,15 @@ class Gigue:
         self.jit_pics = []
         self.jit_elements = []  # Shuffled concatenation of above
         self.jit_machine_code = []
-        self.jit_bytes = b''
+        self.jit_bytes = []
         self.interpreter_calls = []
-        self.interpretation_loop_machine_code = []
-        self.interpretation_loop_bytes = b''
+        self.interpreter_machine_code = []
+        self.interpreter_bytes = []
+        self.output_jit_bin = b''
+        self.output_interpreter_bin = b''
+
+    def flatten_list(self, nested_list):
+        return [item for sublist in nested_list for item in sublist]
 
     def add_method(self, address):
         size = random.randint(3, self.method_max_size)
@@ -50,13 +58,14 @@ class Gigue:
         self.jit_pics.append(pic)
         return pic
 
-    def fill_jit_code(self):
+    def fill_jit_code(self, weights=[35, 40, 10, 5, 10]):
         current_address = self.jit_start_address
         current_element_count = 0
         while current_element_count < self.jit_elements_nb:
             code_type = random.choices(["method", "pic"], [1 - self.pics_ratio, self.pics_ratio])[0]
             adder_function = getattr(Gigue, "add_" + code_type)
             current_element = adder_function(self, current_address)
+            current_element.add_instructions(weights)
             current_address += len(current_element.generate()) * 4
             current_element_count += 1
 
@@ -71,22 +80,49 @@ class Gigue:
             self.interpreter_calls.append(call_instructions)
             current_address += 8
 
-    def generate_jit_code(self):
-        generated_instructions = [elt.generate() for elt in self.jit_elements]
-        self.jit_machine_code = list(itertools.chain.from_iterable(generated_instructions))
+    def generate_jit_machine_code(self):
+        self.jit_machine_code = [elt.generate() for elt in self.jit_elements]
         return self.jit_machine_code
 
-    def generate_interpretation_loop_code(self):
-        generated_instructions = [call.generate() for call in self.interpreter_calls]
-        self.interpretation_loop_machine_code = list(itertools.chain.from_iterable(generated_instructions))
-        return self.interpretation_loop_machine_code
+    def generate_interpreter_machine_code(self):
+        for call in self.interpreter_calls:
+            self.interpreter_machine_code.append([instr.generate() for instr in call])
+        return self.interpreter_machine_code
 
     def generate_jit_bytes(self):
-        for element in self.jit_elements:
-            self.jit_bytes += element.generate_bytes()
+        self.jit_bytes = [elt.generate_bytes() for elt in self.jit_elements]
         return self.jit_bytes
 
-    def generate_interpretation_loop_bytes(self):
+    def generate_interpreter_bytes(self):
         for call in self.interpreter_calls:
-            self.interpretation_loop_bytes += call.generate_bytes()
-        return self.interpretation_loop_bytes
+            self.interpreter_bytes.append([instr.generate_bytes() for instr in call])
+        return self.interpreter_bytes
+
+    def generate_jit_binary(self):
+        self.output_jit_bin = b''.join(self.jit_bytes)
+        return self.output_jit_bin
+
+    def generate_interpreter_binary(self):
+        self.output_interpreter_bin = b''.join(self.interpreter_bytes)
+        return self.output_interpreter_bin
+
+    def write_binaries(self):
+        jit_bin = open(self.output_jit_file, "wb")
+        jit_bin.write(self.jit_bytes)
+        jit_bin.close()
+        interpreter_bin = open(self.output_interpret_file, "wb")
+        interpreter_bin.write(self.interpreter_bytes)
+        interpreter_bin.close()
+
+    def generate_gigue(self):
+        # Fill
+        self.fill_jit_code()
+        self.fill_interpretation_loop()
+        # Generate the machine code
+        self.generate_jit_code()
+        self.generate_interpretation_loop_code()
+        # Generate bytes
+        self.generate_jit_bytes()
+        self.generate_interpreter_bytes()
+        # Write binaries
+        self.output_binaries()
