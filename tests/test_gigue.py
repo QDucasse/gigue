@@ -1,6 +1,5 @@
 import pytest
 from unicorn import Uc
-from unicorn.riscv_const import UC_RISCV_REG_RA
 from unicorn.unicorn_const import UC_ARCH_RISCV
 from unicorn.unicorn_const import UC_MODE_RISCV64
 
