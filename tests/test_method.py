@@ -7,15 +7,13 @@ from unicorn.riscv_const import UC_RISCV_REG_RA
 from unicorn.unicorn_const import UC_ARCH_RISCV
 from unicorn.unicorn_const import UC_MODE_RISCV64
 
+from gigue.constants import CALLER_SAVED_REG
 from gigue.instructions import IInstruction
 from gigue.method import Method
 
 # =================================
 #            Constants
 # =================================
-
-
-CALLER_SAVED_REG = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31]
 
 ADDRESS = 0x1000
 RET_ADDRESS = 0xB000
@@ -43,9 +41,9 @@ def setup_function():
 
 def test_initialization():
     method = Method(size=32, address=0x7FFFFF, call_number=15, registers=[])
-    assert method.size == 30
+    assert method.size == 32
     assert method.address == 0x7FFFFF
-    assert method.call_number == 5
+    assert method.call_number == 15
 
 
 @pytest.mark.parametrize("execution_number", range(5))
@@ -70,6 +68,7 @@ def test_instructions_disassembly_execution_smoke(execution_number, weights):
     bytes = method.generate_bytes()
     # for i in cap_disasm.disasm(bytes, ADDRESS):
     #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    next(cap_disasm.disasm(bytes, ADDRESS))
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()

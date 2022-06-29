@@ -3,8 +3,8 @@ import random
 from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
-from gigue.method import PIC
 from gigue.method import Method
+from gigue.pic import PIC
 
 
 class Gigue:
@@ -13,8 +13,8 @@ class Gigue:
 
     def __init__(self, jit_start_address, interpreter_start_address,
                  jit_elements_nb, method_max_size, method_max_calls,
-                 pics_method_max_size, pics_max_cases, pics_ratio=0.2,
-                 registers=None,
+                 pics_method_max_size, pics_max_cases, pics_methods_max_calls,
+                 pics_temp_reg=6, pics_ratio=0.2, registers=None,
                  output_jit_file=BIN_DIR+"jit.out",
                  output_interpret_file=BIN_DIR+"interpret.out",):
         if registers is None:
@@ -29,6 +29,8 @@ class Gigue:
         self.pics_ratio = pics_ratio
         self.pics_max_cases = pics_max_cases
         self.pics_method_max_size = pics_method_max_size
+        self.pics_methods_max_calls = pics_methods_max_calls
+        self.pics_temp_reg = pics_temp_reg
         # Generation
         self.builder = InstructionBuilder()  # for the interpretation loop
         self.jit_methods = []
@@ -56,9 +58,9 @@ class Gigue:
         return method
 
     def add_pic(self, address):
-        method_size = random.randint(1, self.pics_method_max_size)
         cases_nb = random.randint(2, self.pics_max_cases)
-        pic = PIC(cases_nb, method_size, address, CALLER_SAVED_REG)
+        pic = PIC(address, cases_nb, self.pics_method_max_size,
+                  self.pics_methods_max_calls, self.pics_temp_reg, CALLER_SAVED_REG)
         self.jit_pics.append(pic)
         return pic
 
@@ -109,7 +111,7 @@ class Gigue:
         return self.output_jit_bin
 
     def generate_interpreter_binary(self):
-        self.output_interpreter_bin = b''.join(self.interpreter_bytes)
+        self.output_interpreter_bin = b''.join(self.flatten_list(self.interpreter_bytes))
         return self.output_interpreter_bin
 
     def write_binaries(self):

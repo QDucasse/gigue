@@ -95,3 +95,16 @@ class InstructionBuilder:
         #     hex(offset_high)
         # ))
         return [UInstruction.auipc(1, offset_high), IInstruction.jalr(1, 1, offset_low)]
+
+    @staticmethod
+    def build_switch_case(case_number, method_offset, temp_register=6):
+        # Switch for one case:
+        #   1 - Loading the value to compare in x6
+        #   2 - Compare to the current case (should be in x5)
+        #   3 - Jump to the corresponding method if equal
+        #   4 - Go to the next case if not
+        return [
+            IInstruction.addi(rd=6, rs1=0, imm=case_number),
+            BInstruction.bne(rs1=5, rs2=6, imm=8),
+            JInstruction.jal(rd=0, imm=method_offset)
+        ]
