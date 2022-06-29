@@ -30,18 +30,19 @@ class PIC:
         # ret
 
         # The size is: instruction size * 3 (addi bne jalr) + 1 (ret)
-        return 4 * 3 * self.case_number + 1
+        return 4 * (3 * self.case_number + 1)
 
     def add_case_methods(self, weights=None):
         if weights is None:
             weights = INSTRUCTION_WEIGHTS
+        method_address = self.address + self.get_switch_size()
         for _ in range(self.case_number):
-            method_address = self.address + self.get_switch_size()
             size = random.randint(3, self.method_max_size)
             call_nb = random.randint(0, min(self.method_max_calls, size // 2 - 1))
             case_method = Method(size, call_nb, method_address, CALLER_SAVED_REG)
             case_method.add_instructions(weights)
             self.methods.append(case_method)
+            print(hex(case_method.address))
             method_address += case_method.size * 4
 
     def add_switch_instructions(self):
@@ -53,7 +54,10 @@ class PIC:
         #   5 - Repeat (1/2/3/4)
         #   6 - Simple ret at the end if no case was reached
         for case_nb, method in enumerate(self.methods):
-            method_offset = method.address - self.address + (case_nb * 3 - 1) * 4
+            # method_offset = method.address - self.address + (case_nb * 3 - 1) * 4
+            current_address = self.address + (case_nb * 3) * 4
+            method_offset = method.address - current_address
+            print(method_offset)
             switch_case = self.builder.build_switch_case(case_nb + 1, method_offset, self.temp_reg)
             self.switch_instructions.append(switch_case)
         self.switch_instructions.append([self.builder.build_ret()])
