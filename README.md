@@ -7,7 +7,7 @@
 ## Installation
 
 ```
-pip install gigue
+python setup.py install
 ```
 
 
