@@ -19,20 +19,6 @@ ADDRESS = 0x1000
 RET_ADDRESS = 0xB000
 
 cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
-uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
-uc_emul.mem_map(ADDRESS, 2 * 1024 * 1024)
-# Fill memory with nops up to BEEC by default
-for addr in range(ADDRESS, RET_ADDRESS + 4, 4):
-    uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
-uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
-
-
-def setup_function():
-    # Zero out registers
-    for reg in CALLER_SAVED_REG:
-        uc_emul.reg_write(reg, 0)
-    uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
-
 
 # =================================
 #             Method
@@ -69,6 +55,16 @@ def test_instructions_disassembly_execution_smoke(execution_number, weights):
     # for i in cap_disasm.disasm(bytes, ADDRESS):
     #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     next(cap_disasm.disasm(bytes, ADDRESS))
+    uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
+    uc_emul.mem_map(ADDRESS, 2 * 1024 * 1024)
+    # Fill memory with nops up to BEEC by default
+    for addr in range(ADDRESS, RET_ADDRESS + 4, 4):
+        uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
+    uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
+    # Zero out registers
+    for reg in CALLER_SAVED_REG:
+        uc_emul.reg_write(reg, 0)
+    uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()
@@ -82,6 +78,16 @@ if __name__ == "__main__":
     bytes = method.generate_bytes()
     for i in cap_disasm.disasm(bytes, ADDRESS):
         print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
+    uc_emul.mem_map(ADDRESS, 2 * 1024 * 1024)
+    # Fill memory with nops up to BEEC by default
+    for addr in range(ADDRESS, RET_ADDRESS + 4, 4):
+        uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
+    uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
+    # Zero out registers
+    for reg in CALLER_SAVED_REG:
+        uc_emul.reg_write(reg, 0)
+    uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     for addr in range(ADDRESS, RET_ADDRESS + 4, 4):
         uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)

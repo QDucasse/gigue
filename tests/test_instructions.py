@@ -23,8 +23,6 @@ from gigue.instructions import UInstruction
 ADDRESS = 0x1000
 disassembler = Disassembler()
 cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
-uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
-uc_emul.mem_map(ADDRESS, 2 * 1024 * 1024)
 
 
 def imm_str(immediate):
@@ -87,6 +85,8 @@ def test_unicorn_smoke_rinstr(name):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
     bytes = instr.generate_bytes()
+    uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
+    uc_emul.mem_map(ADDRESS, 2 * 1024 * 1024)
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, ADDRESS + len(bytes))
     uc_emul.emu_stop()
