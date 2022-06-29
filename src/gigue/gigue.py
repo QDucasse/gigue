@@ -1,23 +1,24 @@
 import random
 
 from gigue.builder import InstructionBuilder
+from gigue.constants import CALLER_SAVED_REG
+from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.method import PIC
 from gigue.method import Method
 
 
 class Gigue:
     MAX_CODE_SIZE = 2 * 1024 * 1024  # 2mb
-    CALLER_SAVED_REG = [
-        5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31
-    ]
     BIN_DIR = "bin/"
 
     def __init__(self, jit_start_address, interpreter_start_address,
                  jit_elements_nb, method_max_size, method_max_calls,
                  pics_method_max_size, pics_max_cases, pics_ratio=0.2,
-                 registers=CALLER_SAVED_REG,
+                 registers=None,
                  output_jit_file=BIN_DIR+"jit.out",
                  output_interpret_file=BIN_DIR+"interpret.out",):
+        if registers is None:
+            self.registers = CALLER_SAVED_REG
         self.jit_start_address = jit_start_address
         self.interpreter_start_address = interpreter_start_address
         # Methods parameters
@@ -40,25 +41,30 @@ class Gigue:
         self.interpreter_bytes = []
         self.output_jit_bin = b''
         self.output_interpreter_bin = b''
+        self.output_jit_file = output_jit_file
+        self.output_interpreter_file = output_interpret_file
 
-    def flatten_list(self, nested_list):
+    @staticmethod
+    def flatten_list(nested_list):
         return [item for sublist in nested_list for item in sublist]
 
     def add_method(self, address):
         size = random.randint(3, self.method_max_size)
         call_nb = random.randint(0, min(self.method_max_calls, size // 2 - 1))
-        method = Method(size, call_nb, address, Gigue.CALLER_SAVED_REG)
+        method = Method(size, call_nb, address, CALLER_SAVED_REG)
         self.jit_methods.append(method)
         return method
 
     def add_pic(self, address):
         method_size = random.randint(1, self.pics_method_max_size)
         cases_nb = random.randint(2, self.pics_max_cases)
-        pic = PIC(cases_nb, method_size, address, Gigue.CALLER_SAVED_REG)
+        pic = PIC(cases_nb, method_size, address, CALLER_SAVED_REG)
         self.jit_pics.append(pic)
         return pic
 
-    def fill_jit_code(self, weights=[35, 40, 10, 5, 10]):
+    def fill_jit_code(self, weights=None):
+        if weights is None:
+            weights = INSTRUCTION_WEIGHTS
         current_address = self.jit_start_address
         current_element_count = 0
         while current_element_count < self.jit_elements_nb:
@@ -108,10 +114,10 @@ class Gigue:
 
     def write_binaries(self):
         jit_bin = open(self.output_jit_file, "wb")
-        jit_bin.write(self.jit_bytes)
+        jit_bin.write(self.output_jit_bin)
         jit_bin.close()
-        interpreter_bin = open(self.output_interpret_file, "wb")
-        interpreter_bin.write(self.interpreter_bytes)
+        interpreter_bin = open(self.output_interpreter_file, "wb")
+        interpreter_bin.write(self.output_interpreter_bin)
         interpreter_bin.close()
 
     def generate_gigue(self):
@@ -119,10 +125,13 @@ class Gigue:
         self.fill_jit_code()
         self.fill_interpretation_loop()
         # Generate the machine code
-        self.generate_jit_code()
-        self.generate_interpretation_loop_code()
+        self.generate_jit_machine_code()
+        self.generate_interpreter_machine_code()
         # Generate bytes
         self.generate_jit_bytes()
         self.generate_interpreter_bytes()
+        # Generate binaries
+        self.generate_jit_binary()
+        self.generate_interpreter_binary()
         # Write binaries
-        self.output_binaries()
+        self.write_binaries()

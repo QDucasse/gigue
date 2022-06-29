@@ -1,4 +1,9 @@
-# TODO: Doc
+
+# [R, I, U, J, B]
+INSTRUCTION_WEIGHTS = [35, 40, 10, 5, 10]
+CALLER_SAVED_REG = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31]
+
+
 class InstructionInfo:
 
     def __init__(self, name, opcode7, opcode3, instr_type, top7=0):
@@ -9,15 +14,13 @@ class InstructionInfo:
         self.instr_type = instr_type
 
 
-# TODO: Another data structure?
 def find_instr_for_opcode(opcode):
-    for info in instructions_info.values():
+    for info in INSTRUCTIONS_INFO.values():
         if info.opcode7 == opcode:
             return info
 
 
-# TODO: Recheck
-instructions_info = {
+INSTRUCTIONS_INFO = {
     # Adds
     "add":    InstructionInfo("add",    0b0110011, 0b000, "R"),
     "addi":   InstructionInfo("addi",   0b0010011, 0b000, "I"),
@@ -92,4 +95,4 @@ instructions_info = {
 
 
 if __name__ == "__main__":
-    print(instructions_info["addi"].opcode3)
+    print(INSTRUCTIONS_INFO["addi"].opcode3)

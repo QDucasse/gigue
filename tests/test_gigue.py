@@ -3,6 +3,7 @@ from unicorn import Uc
 from unicorn.unicorn_const import UC_ARCH_RISCV
 from unicorn.unicorn_const import UC_MODE_RISCV64
 
+from gigue.constants import CALLER_SAVED_REG
 from gigue.disassembler import Disassembler
 from gigue.gigue import Gigue
 from gigue.instructions import IInstruction
@@ -131,7 +132,7 @@ def test_execute_generated_binaries(jit_elements_nb, method_max_size, pics_ratio
     jit_binary = gigue.generate_jit_binary()
     interpreter_binary = gigue.generate_interpreter_binary()
     # Zero out registers
-    for reg in Gigue.CALLER_SAVED_REG:
+    for reg in CALLER_SAVED_REG:
         uc_emul.reg_write(reg, 0)
     uc_emul.mem_write(JIT_START_ADDRESS, jit_binary)
     uc_emul.mem_write(INTERPRETER_START_ADDRESS, interpreter_binary)

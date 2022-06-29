@@ -6,7 +6,7 @@ from unicorn import Uc
 from unicorn.unicorn_const import UC_ARCH_RISCV
 from unicorn.unicorn_const import UC_MODE_RISCV64
 
-from gigue.constants import instructions_info
+from gigue.constants import INSTRUCTIONS_INFO
 from gigue.disassembler import Disassembler
 from gigue.instructions import BInstruction
 from gigue.instructions import IInstruction
@@ -48,8 +48,8 @@ def test_correct_encoding_rinstr(name):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
     mc_instr = instr.generate()
-    assert instr.opcode7 == instructions_info[name].opcode7
-    assert instr.opcode3 == instructions_info[name].opcode3
+    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
+    assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
     assert instr.rd == disassembler.extract_rd(mc_instr)
     assert instr.rs1 == disassembler.extract_rs1(mc_instr)
     assert instr.rs2 == disassembler.extract_rs2(mc_instr)
@@ -106,8 +106,8 @@ def test_correct_encoding_iinstr(name, imm):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
     mc_instr = instr.generate()
-    assert instr.opcode7 == instructions_info[name].opcode7
-    assert instr.opcode3 == instructions_info[name].opcode3
+    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
+    assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
     assert instr.rd == disassembler.extract_rd(mc_instr)
     assert instr.rs1 == disassembler.extract_rs1(mc_instr)
     assert instr.imm == disassembler.extract_imm_i(mc_instr)
@@ -122,8 +122,8 @@ def test_correct_encoding_iinstr_shifts(name, imm):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
     mc_instr = instr.generate()
-    assert instr.opcode7 == instructions_info[name].opcode7
-    assert instr.opcode3 == instructions_info[name].opcode3
+    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
+    assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
     assert instr.rd == disassembler.extract_rd(mc_instr)
     assert instr.rs1 == disassembler.extract_rs1(mc_instr)
     imm_disasm = disassembler.extract_imm_i(mc_instr)
@@ -184,7 +184,7 @@ def test_correct_encoding_uinstr(name, imm):
     constr = getattr(UInstruction, name)
     instr = constr(rd=5, imm=imm)
     mc_instr = instr.generate()
-    assert instr.opcode7 == instructions_info[name].opcode7
+    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
     assert instr.rd == disassembler.extract_rd(mc_instr)
     assert instr.imm & 0xFFFFF000 == disassembler.extract_imm_u(mc_instr)
 
@@ -225,7 +225,7 @@ def test_correct_encoding_jinstr(name, imm):
     constr = getattr(JInstruction, name)
     instr = constr(rd=5, imm=imm)
     mc_instr = instr.generate()
-    assert instr.opcode7 == instructions_info[name].opcode7
+    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
     assert instr.rd == disassembler.extract_rd(mc_instr)
     assert instr.imm & 0x1FFFFE == disassembler.extract_imm_j(mc_instr)
 
@@ -253,8 +253,8 @@ def test_correct_encoding_sinstr(name, imm):
     constr = getattr(SInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
     mc_instr = instr.generate()
-    assert instr.opcode7 == instructions_info[name].opcode7
-    assert instr.opcode3 == instructions_info[name].opcode3
+    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
+    assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
     assert instr.rs1 == disassembler.extract_rs1(mc_instr)
     assert instr.rs2 == disassembler.extract_rs2(mc_instr)
     assert instr.imm & 0xFFF == disassembler.extract_imm_s(mc_instr)
@@ -283,8 +283,8 @@ def test_correct_encoding_binstr(name, imm):
     constr = getattr(BInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
     mc_instr = instr.generate()
-    assert instr.opcode7 == instructions_info[name].opcode7
-    assert instr.opcode3 == instructions_info[name].opcode3
+    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
+    assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
     assert instr.rs1 == disassembler.extract_rs1(mc_instr)
     assert instr.rs2 == disassembler.extract_rs2(mc_instr)
     assert instr.imm & 0x1FFE == disassembler.extract_imm_b(mc_instr)

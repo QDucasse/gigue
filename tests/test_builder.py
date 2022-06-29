@@ -101,8 +101,7 @@ def test_builder_random_instruction_disassembly_smoke(execution_number):
     getattr(InstructionBuilder, "build_random_u_instruction"),
 ])
 def test_random_riu_disassembly_execution_smoke(execution_number, build_method):
-    instr_builder = InstructionBuilder()
-    instr = build_method(instr_builder, CALLER_SAVED_REG)
+    instr = build_method(CALLER_SAVED_REG)
     bytes = instr.generate_bytes()
     next(cap_disasm.disasm(bytes, ADDRESS))
     uc_emul.mem_write(ADDRESS, bytes)

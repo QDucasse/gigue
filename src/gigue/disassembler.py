@@ -4,13 +4,19 @@ from gigue.constants import find_instr_for_opcode
 # TODO: Doc
 class Disassembler:
 
-    def sign_extend(self, value, bits):
+    @staticmethod
+    def sign_extend(value, bits):
         sign_bit = 1 << (bits - 1)
         return (value & (sign_bit - 1)) - (value & sign_bit)
 
-    def extract_info(self, instruction, size, shift):
+    @staticmethod
+    def extract_info(instruction, size, shift):
         mask = (1 << size) - 1
         return (instruction & (mask << shift)) >> shift
+
+    @staticmethod
+    def get_instruction_type(instruction):
+        return find_instr_for_opcode(instruction & 0x3F).type
 
     def extract_opcode7(self, instruction):
         return self.extract_info(instruction, 7, 0)
@@ -88,9 +94,6 @@ class Disassembler:
             return self.disassemble_s_instruction(instruction)
         else:
             raise NotImplementedError("Instruction type not recognized.")
-
-    def get_instruction_type(self, instruction):
-        return find_instr_for_opcode(instruction & 0x3F).type
 
     def disassemble_r_instruction(self, instruction):
         disa_instr = "Disassembled R instruction:\n"

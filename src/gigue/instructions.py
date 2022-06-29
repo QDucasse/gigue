@@ -1,4 +1,4 @@
-from gigue.constants import instructions_info
+from gigue.constants import INSTRUCTIONS_INFO
 
 
 # TODO: Doc
@@ -36,9 +36,9 @@ class RInstruction(Instruction):
 
     @classmethod
     def r_instr(cls, name, rd, rs1, rs2):
-        return cls(name, instructions_info[name].opcode7,
-                   instructions_info[name].opcode3, rd, rs1, rs2,
-                   instructions_info[name].top7)
+        return cls(name, INSTRUCTIONS_INFO[name].opcode7,
+                   INSTRUCTIONS_INFO[name].opcode3, rd, rs1, rs2,
+                   INSTRUCTIONS_INFO[name].top7)
 
     # TODO: Autogenerate?
     @classmethod
@@ -142,9 +142,9 @@ class IInstruction(Instruction):
 
     @classmethod
     def i_instr(cls, name, rd, rs1, imm):
-        return cls(name, instructions_info[name].opcode7,
-                   instructions_info[name].opcode3, rd, rs1, imm,
-                   instructions_info[name].top7)
+        return cls(name, INSTRUCTIONS_INFO[name].opcode7,
+                   INSTRUCTIONS_INFO[name].opcode3, rd, rs1, imm,
+                   INSTRUCTIONS_INFO[name].top7)
 
     # TODO: Autogenerate
     @classmethod
@@ -254,7 +254,7 @@ class UInstruction(Instruction):
 
     @classmethod
     def u_instr(cls, name, rd, imm):
-        return cls(name, instructions_info[name].opcode7, rd, imm)
+        return cls(name, INSTRUCTIONS_INFO[name].opcode7, rd, imm)
 
     # TODO: Autogenerate
     @classmethod
@@ -289,7 +289,7 @@ class JInstruction(Instruction):
 
     @classmethod
     def j_instr(cls, name, rd, imm):
-        return cls(name, instructions_info[name].opcode7, rd, imm)
+        return cls(name, INSTRUCTIONS_INFO[name].opcode7, rd, imm)
 
     # TODO: Autogenerate
     @classmethod
@@ -317,8 +317,8 @@ class SInstruction(Instruction):
 
     @classmethod
     def s_instr(cls, name, rs1, rs2, imm):
-        return cls(name, instructions_info[name].opcode7,
-                   instructions_info[name].opcode3, rs1, rs2, imm)
+        return cls(name, INSTRUCTIONS_INFO[name].opcode7,
+                   INSTRUCTIONS_INFO[name].opcode3, rs1, rs2, imm)
 
     # TODO: Autogenerate
     @classmethod
@@ -368,8 +368,8 @@ class BInstruction(Instruction):
 
     @classmethod
     def b_instr(cls, name, rs1, rs2, imm):
-        return cls(name, instructions_info[name].opcode7,
-                   instructions_info[name].opcode3, rs1, rs2, imm)
+        return cls(name, INSTRUCTIONS_INFO[name].opcode7,
+                   INSTRUCTIONS_INFO[name].opcode3, rs1, rs2, imm)
 
     @classmethod
     def beq(cls, rs1, rs2, imm):

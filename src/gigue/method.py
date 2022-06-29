@@ -1,4 +1,5 @@
 from gigue.builder import InstructionBuilder
+from gigue.constants import INSTRUCTION_WEIGHTS
 
 
 class Method:
@@ -29,8 +30,10 @@ class Method:
         for current_address in range(self.address, self.address + self.size * 4, 4):
             self.instructions.append(self.builder.build_nop())
 
-    def add_instructions(self, weights=[35, 40, 10, 5, 10]):
+    def add_instructions(self, weights=None):
         # Weights = [R, I, U, J, B]
+        if weights is None:
+            weights = INSTRUCTION_WEIGHTS
         for current_address in range(self.address, self.address + (self.size - 1) * 4, 4):
             # Add random instructions
             max_offset = self.address + self.size * 4 - current_address
