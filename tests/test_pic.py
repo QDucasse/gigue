@@ -9,8 +9,8 @@ from unicorn.unicorn_const import UC_ARCH_RISCV
 from unicorn.unicorn_const import UC_MODE_RISCV64
 
 from gigue.constants import CALLER_SAVED_REG
-from gigue.instructions import IInstruction
 from gigue.disassembler import Disassembler
+from gigue.instructions import IInstruction
 from gigue.pic import PIC
 
 # =================================
