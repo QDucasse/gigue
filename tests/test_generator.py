@@ -8,7 +8,7 @@ from unicorn.unicorn_const import UC_MODE_RISCV64
 
 from gigue.constants import CALLER_SAVED_REG
 from gigue.disassembler import Disassembler
-from gigue.gigue import Gigue
+from gigue.generator import Generator
 from gigue.instructions import IInstruction
 
 # =================================
@@ -30,30 +30,30 @@ cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
 @pytest.mark.parametrize("pics_ratio", [0])
 def test_fill_jit_code(jit_elements_nb, method_max_size, pics_ratio):
-    gigue = Gigue(
+    generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
         pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
     )
-    gigue.fill_jit_code()
-    assert len(gigue.jit_methods) == jit_elements_nb
+    generator.fill_jit_code()
+    assert len(generator.jit_methods) == jit_elements_nb
 
 
 @pytest.mark.parametrize("jit_elements_nb", [8, 10, 20, 30, 50, 100])
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
 @pytest.mark.parametrize("pics_ratio", [0])
 def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
-    gigue = Gigue(
+    generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
         pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
     )
-    gigue.fill_jit_code()
-    gigue.fill_interpretation_loop()
-    assert len(gigue.interpreter_calls) == jit_elements_nb
-    for i, (jit_element, call_instruction) in enumerate(zip(gigue.jit_elements, gigue.interpreter_calls)):
+    generator.fill_jit_code()
+    generator.fill_interpretation_loop()
+    assert len(generator.interpreter_calls) == jit_elements_nb
+    for i, (jit_element, call_instruction) in enumerate(zip(generator.jit_elements, generator.interpreter_calls)):
         assert call_instruction[0].name == "auipc"
         assert call_instruction[1].name == "jalr"
 
@@ -66,18 +66,18 @@ def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
 @pytest.mark.parametrize("pics_ratio", [0, 0.1, 0.2, 0.5])
 def test_generate_jit_machine_code(jit_elements_nb, method_max_size, pics_ratio):
-    gigue = Gigue(
+    generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
         pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
     )
-    gigue.fill_jit_code()
-    gigue.fill_interpretation_loop()
-    gigue.generate_jit_machine_code()
-    assert len(gigue.jit_machine_code) == jit_elements_nb
+    generator.fill_jit_code()
+    generator.fill_interpretation_loop()
+    generator.generate_jit_machine_code()
+    assert len(generator.jit_machine_code) == jit_elements_nb
     # Add another assertion for PICs
-    # for method in gigue.jit_machine_code:
+    # for method in generator.jit_machine_code:
     #     assert len(method) <= method_max_size
 
 
@@ -85,42 +85,42 @@ def test_generate_jit_machine_code(jit_elements_nb, method_max_size, pics_ratio)
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
 @pytest.mark.parametrize("pics_ratio", [0, 0.1, 0.2, 0.5])
 def test_generate_interpreter_machine_code(jit_elements_nb, method_max_size, pics_ratio):
-    gigue = Gigue(
+    generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
         pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
     )
-    gigue.fill_jit_code()
-    gigue.fill_interpretation_loop()
-    gigue.generate_jit_machine_code()
-    gigue.generate_interpreter_machine_code()
-    assert len(gigue.interpreter_calls) == jit_elements_nb
-    for i, (jit_element, call_instruction) in enumerate(zip(gigue.jit_elements, gigue.interpreter_machine_code)):
+    generator.fill_jit_code()
+    generator.fill_interpretation_loop()
+    generator.generate_jit_machine_code()
+    generator.generate_interpreter_machine_code()
+    assert len(generator.interpreter_calls) == jit_elements_nb
+    for i, (jit_element, call_instruction) in enumerate(zip(generator.jit_elements, generator.interpreter_machine_code)):
         # print("{}: {} | {}".format(i, jit_element, call_instruction))
         # print("higho: {}, lowo: {}".format(hex(call_instruction[0].imm), hex(call_instruction[1].imm)))
         call_offset = disassembler.extract_call_offset(call_instruction)
-        assert (gigue.interpreter_start_address + i * 8) + call_offset == jit_element.address
+        assert (generator.interpreter_start_address + i * 8) + call_offset == jit_element.address
 
 
 @pytest.mark.parametrize("jit_elements_nb", [8, 10, 20, 30, 50, 100])
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
 @pytest.mark.parametrize("pics_ratio", [0, 0.1, 0.2, 0.5])
 def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
-    gigue = Gigue(
+    generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
         pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
     )
-    gigue.fill_jit_code()
-    gigue.fill_interpretation_loop()
-    gigue.generate_jit_machine_code()
-    gigue.generate_interpreter_machine_code()
-    gigue.generate_jit_bytes()
-    gigue.generate_interpreter_bytes()
-    assert len(gigue.jit_bytes) == len(gigue.jit_machine_code)
-    assert len(gigue.interpreter_bytes) == len(gigue.interpreter_machine_code)
+    generator.fill_jit_code()
+    generator.fill_interpretation_loop()
+    generator.generate_jit_machine_code()
+    generator.generate_interpreter_machine_code()
+    generator.generate_jit_bytes()
+    generator.generate_interpreter_bytes()
+    assert len(generator.jit_bytes) == len(generator.jit_machine_code)
+    assert len(generator.interpreter_bytes) == len(generator.interpreter_machine_code)
 
 # =================================
 #         Execution tests
@@ -131,19 +131,19 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
 @pytest.mark.parametrize("method_max_size", [5, 10, 20, 50, 100, 200])
 @pytest.mark.parametrize("pics_ratio", [0, 0.1, 0.2, 0.5])
 def test_execute_generated_binaries(jit_elements_nb, method_max_size, pics_ratio):
-    gigue = Gigue(
+    generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
         pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
     )
-    gigue.fill_jit_code()
-    gigue.fill_interpretation_loop()
-    gigue.generate_jit_machine_code()
-    gigue.generate_interpreter_machine_code()
-    gigue.generate_jit_bytes()
-    gigue.generate_interpreter_bytes()
-    interpreter_binary = gigue.generate_interpreter_binary()
+    generator.fill_jit_code()
+    generator.fill_interpretation_loop()
+    generator.generate_jit_machine_code()
+    generator.generate_interpreter_machine_code()
+    generator.generate_jit_bytes()
+    generator.generate_interpreter_bytes()
+    interpreter_binary = generator.generate_interpreter_binary()
     # cap_disasm.disasm(interpreter_binary, INTERPRETER_START_ADDRESS)
     # Binary infos:
     # print("Interpreter binary: from {} to {} (length {})".format(
@@ -154,7 +154,7 @@ def test_execute_generated_binaries(jit_elements_nb, method_max_size, pics_ratio
     # Capstone disasm:
     # for i in cap_disasm.disasm(interpreter_binary, INTERPRETER_START_ADDRESS):
     #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-    jit_binary = gigue.generate_jit_binary()
+    jit_binary = generator.generate_jit_binary()
     # Binary infos:
     # print("JIT binary: from {} to {} (length {})".format(
     #     hex(JIT_START_ADDRESS),

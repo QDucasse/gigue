@@ -7,7 +7,7 @@ from gigue.method import Method
 from gigue.pic import PIC
 
 
-class Gigue:
+class Generator:
     MAX_CODE_SIZE = 2 * 1024 * 1024  # 2mb
     BIN_DIR = "bin/"
 
@@ -16,7 +16,7 @@ class Gigue:
                  pics_method_max_size, pics_max_cases, pics_methods_max_calls,
                  pics_temp_reg=6, pics_ratio=0.2, registers=None,
                  output_jit_file=BIN_DIR+"jit.out",
-                 output_interpret_file=BIN_DIR+"interpret.out",):
+                 output_interpret_file=BIN_DIR+"interpret.out"):
         if registers is None:
             self.registers = CALLER_SAVED_REG
         self.jit_start_address = jit_start_address
@@ -71,7 +71,7 @@ class Gigue:
         current_element_count = 0
         while current_element_count < self.jit_elements_nb:
             code_type = random.choices(["method", "pic"], [1 - self.pics_ratio, self.pics_ratio])[0]
-            adder_function = getattr(Gigue, "add_" + code_type)
+            adder_function = getattr(Generator, "add_" + code_type)
             current_element = adder_function(self, current_address)
             current_element.add_instructions(weights)
             current_address += len(current_element.generate()) * 4
@@ -122,7 +122,7 @@ class Gigue:
         interpreter_bin.write(self.output_interpreter_bin)
         interpreter_bin.close()
 
-    def generate_gigue(self):
+    def main(self):
         # Fill
         self.fill_jit_code()
         self.fill_interpretation_loop()
@@ -137,3 +137,12 @@ class Gigue:
         self.generate_interpreter_binary()
         # Write binaries
         self.write_binaries()
+
+
+if __name__ == "__main__":
+    g = Generator(
+        jit_start_address=0x1000, interpreter_start_address=0xF000,
+        jit_elements_nb=200, method_max_size=50, method_max_calls=5,
+        pics_method_max_size=20, pics_max_cases=5, pics_methods_max_calls=2
+    )
+    g.main()
