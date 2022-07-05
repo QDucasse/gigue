@@ -51,8 +51,8 @@ class PIC:
 
     def add_switch_instructions(self):
         # The switch instructions consist of:
-        #   1 - Loading the value to compare in x6
-        #   2 - Compare to the current case (should be in x5)
+        #   1 - Loading the value to compare in cmp_reg (x6)
+        #   2 - Compare to the current case that should be in hit_case_reg (x5)
         #   3 - Jump to the corresponding method if equal
         #   4 - Go to the next case if not
         #   5 - Repeat (1/2/3/4)

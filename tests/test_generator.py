@@ -28,7 +28,7 @@ cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
 
 @pytest.mark.parametrize("jit_elements_nb", [8, 10, 20, 30, 50, 100])
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
-@pytest.mark.parametrize("pics_ratio", [0])
+@pytest.mark.parametrize("pics_ratio", [0, 0.1, 0.2, 0.5])
 def test_fill_jit_code(jit_elements_nb, method_max_size, pics_ratio):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
@@ -37,7 +37,7 @@ def test_fill_jit_code(jit_elements_nb, method_max_size, pics_ratio):
         pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
     )
     generator.fill_jit_code()
-    assert len(generator.jit_methods) == jit_elements_nb
+    assert len(generator.jit_methods + generator.jit_pics) == jit_elements_nb
 
 
 @pytest.mark.parametrize("jit_elements_nb", [8, 10, 20, 30, 50, 100])
