@@ -14,7 +14,7 @@ pip install gigue
 
 ## Documentation
 
-Gigue (*french for jitter*) consists of a machine code generator for RISC-V that mimics the execution of JIT code in concordance with an interpretation loop. The objective is to compare memory isolation memory on a simple model and easily (re-)generate the corresponding machine code parts for both the interpretation loop and JITed code. Parameters that can be tuned through a simple API/GUI are: 
+Gigue (*french for jitter*) consists of a machine code generator for RISC-V that mimics the execution of JIT code in concordance with an interpretation loop. The objective is to compare memory isolation memory on a simple model and easily (re-)generate the corresponding machine code parts for both the interpretation loop and JITed code. Parameters that can be tuned through a simple API/GUI are:
 
 - number of JITed methods
 - size of the JITed methods
@@ -24,18 +24,34 @@ Gigue (*french for jitter*) consists of a machine code generator for RISC-V that
 
 The project consists of three main parts:
 
-- **Instruction generator:** An random instruction and method builder to generate RISC-V instructions. 
+- **Instruction generator:** An random instruction and method builder to generate RISC-V instructions.
 
-  > in `src/instructions.py` and `src/method.py`
+  > in `src/instructions.py`, `src/method.py` and `src/generator.py`
 
 - **Parameter tuning:** A GUI and API to tune the parameters of generated code and methods.
 
-  > in `src/gigue` and `src/gui`
+  > in `src/gigue` and `src/gui.py`
 
 - **Testing Infrastructure:** Using [Unicorn](https://github.com/unicorn-engine/unicorn) and [Capstone](https://github.com/capstone-engine/capstone) along with the developed disassembler to write all the tests in the`tests` folder.
 
-  > in `src/disassembler` and `tests/*`
+  > in `src/disassembler.py` and `tests/*`
 
+
+## Binary Generation
+
+> Note: a RISC-V compilation toolchain needs to be installed
+
+Once the binaries are generated in the `bin/` directory, they can be transformed to ELF files using:
+```
+riscv64-unknown-linux-gnu-objcopy --input-target=binary --output-target=elf32-little jit.bin jit.elf
+riscv64-unknown-linux-gnu-readelf -a jit.elf  
+```
+
+They can be disassembled with either of the following:
+```
+riscv64-unknown-linux-gnu-objdump -m riscv -b binary --adjust-vma=0x1000 -D jit.out
+riscv64-unknown-linux-gnu-objdump -m riscv  --adjust-vma=0x1000 -D jit.elf
+```
 
 
 ## Development
@@ -46,6 +62,10 @@ To run all the tests run:
 tox
 ```
 
+To run only one tox environment (e.g. `check`) run:
+```
+tox -e check
+```
 
 
 ## License
@@ -62,4 +82,3 @@ Redistribution and use in source and binary forms, with or without modification,
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
-
