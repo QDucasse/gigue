@@ -96,11 +96,23 @@ def test_generate_interpreter_machine_code(jit_elements_nb, method_max_size, pic
     generator.generate_jit_machine_code()
     generator.generate_interpreter_machine_code()
     assert len(generator.interpreter_calls) == jit_elements_nb
-    for i, (jit_element, call_instruction) in enumerate(zip(generator.jit_elements, generator.interpreter_machine_code)):
+    # TODO: Cleanup counts
+    pic_count = 0
+    method_count = 0
+    for jit_element, call_instruction in zip(generator.jit_elements, generator.interpreter_machine_code):
         # print("{}: {} | {}".format(i, jit_element, call_instruction))
         # print("higho: {}, lowo: {}".format(hex(call_instruction[0].imm), hex(call_instruction[1].imm)))
+        is_pic = False
+        if len(call_instruction) == 3:  # pic with 3 instructions
+            call_instruction = call_instruction[1:]
+            is_pic = True
         call_offset = disassembler.extract_call_offset(call_instruction)
-        assert (generator.interpreter_start_address + i * 8) + call_offset == jit_element.address
+        assert (generator.interpreter_start_address + method_count * 8 + pic_count * 12) + call_offset == jit_element.address
+
+        if is_pic:
+            pic_count += 1
+        else:
+            method_count += 1
 
 
 @pytest.mark.parametrize("jit_elements_nb", [8, 10, 20, 30, 50, 100])

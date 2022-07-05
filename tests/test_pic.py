@@ -34,7 +34,7 @@ cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
 def test_method_adding(case_nb, method_max_size):
     pic = PIC(case_number=case_nb, address=ADDRESS,
               method_max_size=method_max_size, method_max_calls=10,
-              temp_reg=6, registers=CALLER_SAVED_REG)
+              hit_case_reg=6, cmp_reg=5, registers=CALLER_SAVED_REG)
     pic.add_case_methods()
     assert len(pic.methods) == case_nb
     for method in pic.methods:
@@ -46,7 +46,7 @@ def test_method_adding(case_nb, method_max_size):
 def test_switch_instructions_adding(case_nb, method_max_size):
     pic = PIC(case_number=case_nb, address=ADDRESS,
               method_max_size=method_max_size, method_max_calls=10,
-              temp_reg=6, registers=CALLER_SAVED_REG)
+              hit_case_reg=6, cmp_reg=5, registers=CALLER_SAVED_REG)
     pic.add_case_methods()
     pic.add_switch_instructions()
     # for i in cap_disasm.disasm(bytes, ADDRESS):
@@ -73,7 +73,7 @@ def test_switch_instructions_adding(case_nb, method_max_size):
 def test_disassembly_execution(case_nb, method_max_size, hit_case):
     pic = PIC(case_number=case_nb, address=ADDRESS,
               method_max_size=method_max_size, method_max_calls=10,
-              temp_reg=6, registers=CALLER_SAVED_REG)
+              hit_case_reg=6, cmp_reg=5, registers=CALLER_SAVED_REG)
     pic.add_case_methods()
     pic.add_switch_instructions()
     pic.generate()

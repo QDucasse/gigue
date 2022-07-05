@@ -7,13 +7,17 @@ from gigue.method import Method
 
 
 class PIC:
-    def __init__(self, address, case_number, method_max_size, method_max_calls, temp_reg, registers):
+    def __init__(self, address, case_number, method_max_size, method_max_calls,
+                 hit_case_reg, cmp_reg, registers):
+        # hit_case_reg: register in which the case_nb that should be ran is loaded
+        # cmp_reg: register in which the
         self.case_number = case_number
         self.address = address
         self.registers = registers
         self.method_max_size = method_max_size
         self.method_max_calls = method_max_calls
-        self.temp_reg = temp_reg
+        self.hit_case_reg = hit_case_reg
+        self.cmp_reg = cmp_reg
 
         self.builder = InstructionBuilder()
         self.switch_instructions = []
@@ -42,7 +46,7 @@ class PIC:
             case_method = Method(size, call_nb, method_address, CALLER_SAVED_REG)
             case_method.add_instructions(weights)
             self.methods.append(case_method)
-            print(hex(case_method.address))
+            # print(hex(case_method.address))
             method_address += case_method.size * 4
 
     def add_switch_instructions(self):
@@ -57,8 +61,12 @@ class PIC:
             # method_offset = method.address - self.address + (case_nb * 3 - 1) * 4
             current_address = self.address + (case_nb * 3) * 4
             method_offset = method.address - current_address
-            print(method_offset)
-            switch_case = self.builder.build_switch_case(case_nb + 1, method_offset, self.temp_reg)
+            # print(method_offset)
+            switch_case = self.builder.build_switch_case(
+                case_number=case_nb + 1,
+                method_offset=method_offset,
+                hit_case_reg=self.hit_case_reg,
+                cmp_reg=self.cmp_reg)
             self.switch_instructions.append(switch_case)
         self.switch_instructions.append([self.builder.build_ret()])
 
@@ -80,3 +88,6 @@ class PIC:
         for method in self.methods:
             self.bytes += method.generate_bytes()
         return self.bytes
+
+    def accept_build(self, generator, method_offset):
+        return generator.build_pic_call(self, method_offset)

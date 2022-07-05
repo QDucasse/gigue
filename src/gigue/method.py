@@ -50,6 +50,9 @@ class Method:
             self.bytes += instruction.generate_bytes()
         return self.bytes
 
+    def accept_build(self, generator, method_offset):
+        return generator.build_method_call(self, method_offset)
+
     # def patch_calls(self, callees):
     #     # Replace random parts of the
     #     self.callees = callees

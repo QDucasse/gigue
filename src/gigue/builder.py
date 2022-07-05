@@ -84,7 +84,7 @@ class InstructionBuilder:
         return IInstruction.ret()
 
     @staticmethod
-    def build_call(offset):
+    def build_method_call(offset):
         offset_low = offset & 0xFFF
         # The right part handles the low offset sign extension (that should be mitigated)
         offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
@@ -94,17 +94,37 @@ class InstructionBuilder:
         #     hex(offset_low),
         #     hex(offset_high)
         # ))
-        return [UInstruction.auipc(1, offset_high), IInstruction.jalr(1, 1, offset_low)]
+        return [
+            UInstruction.auipc(1, offset_high),
+            IInstruction.jalr(1, 1, offset_low)
+        ]
 
     @staticmethod
-    def build_switch_case(case_number, method_offset, temp_register=6):
+    def build_pic_call(offset, hit_case, hit_case_reg):
+        offset_low = offset & 0xFFF
+        # The right part handles the low offset sign extension (that should be mitigated)
+        offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
+        # print("offset: {}/{} -> olow: {} + ohigh: {}".format(
+        #     hex(offset),
+        #     hex(offset & 0xFFFFFFFF),
+        #     hex(offset_low),
+        #     hex(offset_high)
+        # ))
+        return [
+            IInstruction.addi(rd=hit_case_reg, rs1=0, imm=hit_case),
+            UInstruction.auipc(rd=1, imm=offset_high),
+            IInstruction.jalr(rd=1, rs1=1, imm=offset_low)
+        ]
+
+    @staticmethod
+    def build_switch_case(case_number, method_offset, hit_case_reg, cmp_reg):
         # Switch for one case:
         #   1 - Loading the value to compare in x6
         #   2 - Compare to the current case (should be in x5)
         #   3 - Jump to the corresponding method if equal
         #   4 - Go to the next case if not
         return [
-            IInstruction.addi(rd=6, rs1=0, imm=case_number),
-            BInstruction.bne(rs1=5, rs2=6, imm=8),
+            IInstruction.addi(rd=hit_case_reg, rs1=0, imm=case_number),
+            BInstruction.bne(rs1=cmp_reg, rs2=hit_case_reg, imm=8),
             JInstruction.jal(rd=0, imm=method_offset)
         ]
