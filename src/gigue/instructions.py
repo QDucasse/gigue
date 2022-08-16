@@ -404,16 +404,19 @@ if __name__ == "__main__":
     code = add.generate().to_bytes(4, 'little')
     print(code)
     md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+
+    # code = b'\x01\x02\x92\xbb'
+    code = b'\xbb\x92\x02\x01'
     for i in md.disasm(code, 0x1000):
         print(i.address)
         print(i.mnemonic)
         print(i.op_str)
 
-    print(add)
-    print(add.__dict__)
-
-    addi = IInstruction.addi(rd=5, rs1=6, imm=1234)
-    addi.generate()
-    print(addi)
-    print(addi.__dict__)
+    # print(add)
+    # print(add.__dict__)
+    #
+    # addi = IInstruction.addi(rd=5, rs1=6, imm=1234)
+    # addi.generate()
+    # print(addi)
+    # print(addi.__dict__)
     # print(hex(instr.machine_instruction))

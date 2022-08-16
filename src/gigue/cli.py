@@ -14,20 +14,104 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
+import argparse
 import sys
+
+from gigue.constants import BIN_DIR
+from gigue.constants import CALLER_SAVED_REG
+from gigue.generator import Generator
+
+
+class Parser(argparse.ArgumentParser):
+    def __init__(self):
+        super(Parser, self).__init__(description="Gigue, JIT code generator")
+        self.add_parse_arguments()
+
+    def add_parse_arguments(self):
+        # Addresses
+        self.add_argument("--jitaddr", type=int, default=0xF000,
+                          help="Start address of the JIT code")
+        self.add_argument("--intaddr", type=int, default=0x0000,
+                          help="Start address of the interpretation loop")
+        # General
+        self.add_argument("--jitnb", type=int, default=200,
+                          help="Number of JIT code elements (methods/pics)")
+        self.add_argument("--regs", type=int, default=CALLER_SAVED_REG,
+                          help="Registers that can be used freely by the generated code")
+        # Method info
+        self.add_argument("--metmaxsize", type=int, default=50,
+                          help="Maximum size of a method (in nb of instructions)")
+        self.add_argument("--metmaxcalls", type=int, default=5,
+                          help="Maximum calls in a method (< msize/2 - 1)")
+        # PICs info
+        self.add_argument("--picratio", type=int, default=0.2,
+                          help="PIC to method ratio")
+        self.add_argument("--picmetmaxsize", type=int, default=20,
+                          help="PIC methods max size")
+        self.add_argument("--picmaxcases", type=int, default=5,
+                          help="PIC max number of cases")
+        self.add_argument("--picmetmaxcalls", type=int, default=2,
+                          help="PIC methods max number of calls")
+        self.add_argument("--piccmpreg", type=int, default=6,
+                          help="PIC register to store current comparison case")
+        self.add_argument("--pichitcasereg", type=int, default=5,
+                          help="PIC register to store the case to be run")
+        # Output files
+        self.add_argument("--outjitbin", type=str, default=BIN_DIR+"jit.bin",
+                          help="Name of the binary file for the JIT code")
+        self.add_argument("--outintbin", type=str, default=BIN_DIR+"interpret.bin",
+                          help="Name of the binary file for the interpretation loop")
+
+    def parse(self, args):
+        return self.parse_args(args)
+
+
+class ObjDict(dict):
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+    def __delattr__(self, name):
+        if name in self:
+            del self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
 
 
 def main(argv=None):
-    """
-    Args:
-        argv (list): List of arguments
-
-    Returns:
-        int: A return code
-
-    Does stuff.
-    """
     if argv is None:
         argv = sys.argv
+
+    parser = Parser()
+    parsed_args = parser.parse(argv)
+    args = ObjDict(parsed_args.__dict__)
+
     print(argv)
+    g = Generator(
+        # Addresses
+        jit_start_address=args.jitaddr,
+        interpreter_start_address=args.intaddr,
+        # General
+        jit_elements_nb=args.jitnb,
+        registers=args.regs,
+        # Methods
+        method_max_size=args.metmaxsize,
+        method_max_calls=args.metmaxcalls,
+        # PICs
+        pics_ratio=args.picratio,
+        pics_method_max_size=args.picmetmaxsize,
+        pics_max_cases=args.picmaxcases,
+        pics_methods_max_calls=args.picmetmaxcalls,
+        pics_cmp_reg=args.piccmpreg,
+        pics_hit_case_reg=args.pichitcasereg,
+        # Files
+        output_jit_file=args.outjitbin,
+        output_interpret_file=args.outintbin
+    )
+    g.main()
     return 0

@@ -10,7 +10,7 @@ class PIC:
     def __init__(self, address, case_number, method_max_size, method_max_calls,
                  hit_case_reg, cmp_reg, registers):
         # hit_case_reg: register in which the case_nb that should be ran is loaded
-        # cmp_reg: register in which the
+        # cmp_reg: register in which the running case nb is stored before comparison
         self.case_number = case_number
         self.address = address
         self.registers = registers

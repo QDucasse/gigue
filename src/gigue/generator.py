@@ -1,6 +1,7 @@
 import random
 
 from gigue.builder import InstructionBuilder
+from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.method import Method
@@ -9,14 +10,13 @@ from gigue.pic import PIC
 
 class Generator:
     MAX_CODE_SIZE = 2 * 1024 * 1024  # 2mb
-    BIN_DIR = "bin/"
 
     def __init__(self, jit_start_address, interpreter_start_address,
                  jit_elements_nb, method_max_size, method_max_calls,
                  pics_method_max_size, pics_max_cases, pics_methods_max_calls,
                  pics_cmp_reg=6, pics_hit_case_reg=5, pics_ratio=0.2, registers=None,
-                 output_jit_file=BIN_DIR+"jit.out",
-                 output_interpret_file=BIN_DIR+"interpret.out"):
+                 output_jit_file=BIN_DIR+"jit.bin",
+                 output_interpret_file=BIN_DIR+"interpret.bin"):
         if registers is None:
             self.registers = CALLER_SAVED_REG
         self.jit_start_address = jit_start_address
@@ -160,7 +160,7 @@ class Generator:
 
 if __name__ == "__main__":
     g = Generator(
-        jit_start_address=0x1000, interpreter_start_address=0xF000,
+        jit_start_address=0xF000, interpreter_start_address=0x000,
         jit_elements_nb=200, method_max_size=50, method_max_calls=5,
         pics_method_max_size=20, pics_max_cases=5, pics_methods_max_calls=2
     )

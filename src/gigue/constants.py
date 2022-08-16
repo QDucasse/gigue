@@ -2,6 +2,7 @@
 # [R, I, U, J, B]
 INSTRUCTION_WEIGHTS = [35, 40, 10, 5, 10]
 CALLER_SAVED_REG = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31]
+BIN_DIR = "bin/"
 
 
 class InstructionInfo:
