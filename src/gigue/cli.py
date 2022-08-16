@@ -15,6 +15,7 @@ Why does this file exist, and why not put this in __main__?
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 import argparse
+import os
 import sys
 
 from gigue.constants import BIN_DIR
@@ -92,6 +93,10 @@ def main(argv=None):
     args = ObjDict(parsed_args.__dict__)
 
     print(argv)
+
+    if not os.path.exists(BIN_DIR):
+        os.makedirs(BIN_DIR)
+
     g = Generator(
         # Addresses
         jit_start_address=args.jitaddr,
