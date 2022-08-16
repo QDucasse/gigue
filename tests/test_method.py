@@ -32,6 +32,16 @@ def test_initialization():
     assert method.call_number == 15
 
 
+def test_error_initialization():
+    try:
+        Method(size=28, address=0x7FFFFF, call_number=15, registers=[])
+    except Exception as e:
+        assert type(e) == ValueError
+        assert str(e) == "ValueError: Call number should be <= 13 and is 15."\
+            + "\n  Number of calls in a method cannot be greater than (size - 1) // 2 "\
+            + "\n  (note: '-1' for ret and '//2' because a call is composed of two instructions)."
+
+
 @pytest.mark.parametrize("execution_number", range(5))
 def test_instructions_adding(execution_number):
     method = Method(size=32, address=0x1000, call_number=15, registers=CALLER_SAVED_REG)
@@ -49,7 +59,7 @@ def test_instructions_adding(execution_number):
     [35, 40, 10, 5, 10],
 ])
 def test_instructions_disassembly_execution_smoke(execution_number, weights):
-    method = Method(size=10, address=0x1000, call_number=15, registers=CALLER_SAVED_REG)
+    method = Method(size=10, address=0x1000, call_number=3, registers=CALLER_SAVED_REG)
     method.add_instructions(weights)
     bytes = method.generate_bytes()
     # for i in cap_disasm.disasm(bytes, ADDRESS):
