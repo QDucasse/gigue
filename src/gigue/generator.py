@@ -4,6 +4,7 @@ from gigue.builder import InstructionBuilder
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.helpers import flatten_list
 from gigue.method import Method
 from gigue.pic import PIC
 
@@ -48,10 +49,6 @@ class Generator:
         self.output_interpreter_bin = b''
         self.output_jit_file = output_jit_file
         self.output_interpreter_file = output_interpret_file
-
-    @staticmethod
-    def flatten_list(nested_list):
-        return [item for sublist in nested_list for item in sublist]
 
     # TODO: Visitor
     def add_method(self, address):
@@ -130,7 +127,7 @@ class Generator:
         return self.output_jit_bin
 
     def generate_interpreter_binary(self):
-        self.output_interpreter_bin = b''.join(self.flatten_list(self.interpreter_bytes))
+        self.output_interpreter_bin = b''.join(flatten_list(self.interpreter_bytes))
         return self.output_interpreter_bin
 
     def write_binaries(self):
@@ -156,12 +153,3 @@ class Generator:
         self.generate_interpreter_binary()
         # Write binaries
         self.write_binaries()
-
-
-if __name__ == "__main__":
-    g = Generator(
-        jit_start_address=0xF000, interpreter_start_address=0x000,
-        jit_elements_nb=200, method_max_size=50, method_max_calls=5,
-        pics_method_max_size=20, pics_max_cases=5, pics_methods_max_calls=2
-    )
-    g.main()

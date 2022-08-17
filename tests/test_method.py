@@ -42,6 +42,14 @@ def test_error_initialization():
             + "\n  (note: '-1' for ret and '//2' because a call is composed of two instructions)."
 
 
+def test_fill_with_nops():
+    method = Method(size=32, address=0x7FFFFF, call_number=15, registers=[])
+    method.fill_with_nops()
+    bytes = method.generate_bytes()
+    for i in cap_disasm.disasm(bytes, ADDRESS):
+        assert i.mnemonic == "nop"
+
+
 @pytest.mark.parametrize("execution_number", range(5))
 def test_instructions_adding(execution_number):
     method = Method(size=32, address=0x1000, call_number=15, registers=CALLER_SAVED_REG)

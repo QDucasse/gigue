@@ -188,3 +188,12 @@ def test_execute_generated_binaries(jit_elements_nb, method_max_size, pics_ratio
     uc_emul.mem_write(JIT_START_ADDRESS, jit_binary)
     uc_emul.emu_start(INTERPRETER_START_ADDRESS, INTERPRETER_START_ADDRESS + len(interpreter_binary))
     uc_emul.emu_stop()
+
+
+if __name__ == "__main__":
+    g = Generator(
+        jit_start_address=0xF000, interpreter_start_address=0x000,
+        jit_elements_nb=200, method_max_size=50, method_max_calls=5,
+        pics_method_max_size=20, pics_max_cases=5, pics_methods_max_calls=2
+    )
+    g.main()

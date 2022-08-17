@@ -10,6 +10,7 @@ from gigue.constants import INSTRUCTIONS_INFO
 from gigue.disassembler import Disassembler
 from gigue.instructions import BInstruction
 from gigue.instructions import IInstruction
+from gigue.instructions import Instruction
 from gigue.instructions import JInstruction
 from gigue.instructions import RInstruction
 from gigue.instructions import SInstruction
@@ -30,6 +31,17 @@ def imm_str(immediate):
         return str(immediate)
     else:
         return hex(immediate)
+
+
+# =================================
+#         R Instructions
+# =================================
+
+
+def test_instruction_superclass():
+    with pytest.raises(NotImplementedError):
+        instr = Instruction("test", 0b0101010)
+        instr.generate()
 
 
 # =================================
@@ -300,3 +312,20 @@ def test_capstone_binstr(name, imm):
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, t1, " + imm_str(imm)
+
+
+if __name__ == "__main__":
+    from capstone import CS_ARCH_RISCV
+    from capstone import CS_MODE_RISCV64
+    from capstone import Cs
+    add = RInstruction.add(rd=5, rs1=6, rs2=7)
+    code = add.generate().to_bytes(4, 'little')
+    print(code)
+    md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+
+    # code = b'\x01\x02\x92\xbb'
+    code = b'\xbb\x92\x02\x01'
+    for i in md.disasm(code, 0x1000):
+        print(i.address)
+        print(i.mnemonic)
+        print(i.op_str)

@@ -29,13 +29,6 @@ for addr in range(ADDRESS, RET_ADDRESS, 4):
 uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
 
 
-def setup_function():
-    # Zero out registers
-    for reg in CALLER_SAVED_REG:
-        uc_emul.reg_write(reg, 0)
-    uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
-
-
 # =================================
 #       Instruction Builder
 # =================================
@@ -84,6 +77,25 @@ def test_builder_random_b_instruction(execution_number):
     assert instr.rs2 in CALLER_SAVED_REG
     assert 0 <= instr.imm <= 0xFFF
     assert instr.imm % 2 == 0
+
+
+def test_builder_nop():
+    instr_builder = InstructionBuilder()
+    instr = instr_builder.build_nop()
+    bytes = instr.generate_bytes()
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
+    assert instr_disasm.mnemonic == "nop"
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.emu_start(ADDRESS, ADDRESS + len(bytes))
+    uc_emul.emu_stop()
+
+
+def test_builder_ret():
+    instr_builder = InstructionBuilder()
+    instr = instr_builder.build_ret()
+    bytes = instr.generate_bytes()
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
+    assert instr_disasm.mnemonic == "ret"
 
 
 @pytest.mark.parametrize("execution_number", range(30))
