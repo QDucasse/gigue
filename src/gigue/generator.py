@@ -97,8 +97,17 @@ class Generator:
 
     def patch_jit_calls(self):
         # Patch methods
+        # TODO:
+        # [ ] 1. Change the call building in methods
+        # [ ]   1.1 Add a frame creation -> save ra
+        # [ ]   1.1 Add a frame creation -> restore ra
+        # [ ] 2. Change the order of instruction generation
+        # [ ]   2.1 First generate random instructions (no jumps or branches)
+        # [ ]   2.2 Generate patched calls
+        # [ ]   2.3 Add jumps and branches and avoid calls
         for method in self.jit_methods:
             callees = random.sample(self.jit_methods, k=method.call_number)
+            # Remove recursivity
             if method in callees:
                 callees.remove(method)
             method.patch_calls(callees)
