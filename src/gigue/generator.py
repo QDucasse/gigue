@@ -95,6 +95,15 @@ class Generator:
             current_address += len(current_element.generate()) * 4
             current_element_count += 1
 
+    def patch_jit_calls(self):
+        # Patch methods
+        for method in self.jit_methods:
+            callees = random.sample(self.jit_methods, k=method.call_number)
+            if method in callees:
+                callees.remove(method)
+            method.patch_calls(callees)
+        # Patch pics methods
+
     def fill_interpretation_loop(self):
         current_address = self.interpreter_start_address
         # for all addresses in methods and pics, generate a call
@@ -141,6 +150,7 @@ class Generator:
     def main(self):
         # Fill
         self.fill_jit_code()
+        # self.patch_jit_calls()
         self.fill_interpretation_loop()
         # Generate the machine code
         self.generate_jit_machine_code()

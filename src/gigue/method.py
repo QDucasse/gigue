@@ -1,3 +1,5 @@
+import random
+
 from gigue.builder import InstructionBuilder
 from gigue.constants import INSTRUCTION_WEIGHTS
 
@@ -7,6 +9,10 @@ def raise_call_number_value_error(call_number, size):
     raise ValueError("ValueError: Call number should be <= {} and is {}.".format(max_call_number, call_number)
                      + "\n  Number of calls in a method cannot be greater than (size - 1) // 2 "
                      + "\n  (note: '-1' for ret and '//2' because a call is composed of two instructions).")
+
+
+def raise_call_patch_recursive_error(method, callees):
+    raise ValueError("ValueError: infinite call loop as {} is in {}".format(method, callees))
 
 
 class Method:
@@ -61,6 +67,27 @@ class Method:
         return generator.build_method_call(self, method_offset)
 
     def patch_calls(self, callees):
-        # Replace random parts of the method with calls to chosen callees
+        # Check for recursive call
+        if self in callees:
+            raise_call_patch_recursive_error(self, callees)
+        # Check for mutual call
         self.callees = callees
-        self.builder.build_method_c
+        for callee in callees:
+            if self in callee.callees:
+                print("removing callee")
+                self.callees.remove(callee)
+
+        replacement_nb = min(len(callees), self.call_number)
+        # Replace random parts of the method with calls to chosen callees
+        indexes = random.sample(range(0, self.size - 1, 2), replacement_nb)
+        for ind, callee in zip(indexes, self.callees):
+            # Compute the offset:
+            #    address + (ind + 1) * 4
+            #                 ^   ^
+            #  compute index /    \ call takes two instructions offset computed from the second
+            offset = callee.address - (self.address + ind * 4)
+            call_instructions = self.builder.build_method_call(offset)
+            # Add the two instructions for the call
+            self.instructions[ind] = call_instructions[0]
+            self.instructions[ind+1] = call_instructions[1]
+        # print("{} calls to patch with {} (addr {})".format(self.call_number, callees, self.address))

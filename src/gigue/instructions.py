@@ -25,6 +25,9 @@ class RInstruction(Instruction):
         self.rs1 = rs1
         self.rs2 = rs2
 
+    def __str__(self):
+        return "<{}, {} {} {}>".format(self.name, self.rd, self.rs1, self.rs2)
+
     def generate(self):
         self.machine_instruction = self.opcode7
         self.machine_instruction |= self.rd << 7
