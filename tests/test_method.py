@@ -163,9 +163,7 @@ if __name__ == "__main__":
     callee2 = Method(size=2, address=0x1200, call_number=0, registers=CALLER_SAVED_REG)
     callee3 = Method(size=2, address=0x1300, call_number=0, registers=CALLER_SAVED_REG)
     method.add_instructions(weights=[35, 40, 10, 5, 10])
-    # method.add_instructions(weights=[100, 0, 0, 0, 0])
     method.patch_calls([callee1, callee2, callee3])
-    # jal_instr = JInstruction.jal(0, )
     bytes = method.generate_bytes()
     for i in cap_disasm.disasm(bytes, ADDRESS):
         print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
