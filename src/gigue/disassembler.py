@@ -3,7 +3,6 @@ from gigue.constants import find_instr_for_opcode
 
 # TODO: Doc
 class Disassembler:
-
     @staticmethod
     def sign_extend(value, bits):
         sign_bit = 1 << (bits - 1)
@@ -27,10 +26,10 @@ class Disassembler:
     def extract_imm_b(self, instruction):
         # imm[12|10:5] << 25
         # imm[4:1|11]  << 7
-        immediate = (self.extract_info(instruction, 4, 8) << 1)
-        immediate |= (self.extract_info(instruction, 6, 25) << 5)
-        immediate |= (self.extract_info(instruction, 1, 7) << 11)
-        immediate |= (self.extract_info(instruction, 1, 31) << 12)
+        immediate = self.extract_info(instruction, 4, 8) << 1
+        immediate |= self.extract_info(instruction, 6, 25) << 5
+        immediate |= self.extract_info(instruction, 1, 7) << 11
+        immediate |= self.extract_info(instruction, 1, 31) << 12
         return immediate
 
     def extract_imm_i(self, instruction):
@@ -38,15 +37,15 @@ class Disassembler:
 
     def extract_imm_j(self, instruction):
         # imm[20 | 10:1 | 11 | 19:12]
-        immediate = (self.extract_info(instruction, 10, 21) << 1)
-        immediate |= (self.extract_info(instruction, 1, 20) << 11)
-        immediate |= (self.extract_info(instruction, 8, 12) << 12)
-        immediate |= (self.extract_info(instruction, 1, 31) << 20)
+        immediate = self.extract_info(instruction, 10, 21) << 1
+        immediate |= self.extract_info(instruction, 1, 20) << 11
+        immediate |= self.extract_info(instruction, 8, 12) << 12
+        immediate |= self.extract_info(instruction, 1, 31) << 20
         return immediate
 
     def extract_imm_s(self, instruction):
         immediate = self.extract_info(instruction, 5, 7)
-        immediate |= (self.extract_info(instruction, 7, 25) << 5)
+        immediate |= self.extract_info(instruction, 7, 25) << 5
         return immediate
 
     def extract_imm_u(self, instruction):
@@ -97,8 +96,12 @@ class Disassembler:
 
     def disassemble_r_instruction(self, instruction):
         disa_instr = "Disassembled R instruction:\n"
-        disa_instr += "opcode7: {}\n".format(str(bin(self.extract_opcode7(instruction))))
-        disa_instr += "opcode3: {}\n".format(str(bin(self.extract_opcode3(instruction))))
+        disa_instr += "opcode7: {}\n".format(
+            str(bin(self.extract_opcode7(instruction)))
+        )
+        disa_instr += "opcode3: {}\n".format(
+            str(bin(self.extract_opcode3(instruction)))
+        )
         disa_instr += "rd: {}\n".format(str(self.extract_rd(instruction)))
         disa_instr += "rs1: {}\n".format(str(self.extract_rs1(instruction)))
         disa_instr += "rs2: {}".format(str(self.extract_rs2(instruction)))
@@ -106,8 +109,12 @@ class Disassembler:
 
     def disassemble_i_instruction(self, instruction):
         disa_instr = "Disassembled I instruction:\n"
-        disa_instr += "opcode7: {}\n".format(str(bin(self.extract_opcode7(instruction))))
-        disa_instr += "opcode3: {}\n".format(str(bin(self.extract_opcode3(instruction))))
+        disa_instr += "opcode7: {}\n".format(
+            str(bin(self.extract_opcode7(instruction)))
+        )
+        disa_instr += "opcode3: {}\n".format(
+            str(bin(self.extract_opcode3(instruction)))
+        )
         disa_instr += "rd: {}\n".format(str(self.extract_rd(instruction)))
         disa_instr += "rs1: {}\n".format(str(self.extract_rs1(instruction)))
         disa_instr += "imm: {}".format(str(self.extract_imm_i(instruction)))
@@ -115,22 +122,30 @@ class Disassembler:
 
     def disassemble_u_instruction(self, instruction):
         disa_instr = "Disassembled U instruction:\n"
-        disa_instr += "opcode7: {}\n".format(str(bin(self.extract_opcode7(instruction))))
+        disa_instr += "opcode7: {}\n".format(
+            str(bin(self.extract_opcode7(instruction)))
+        )
         disa_instr += "rd: {}\n".format(str(self.extract_rd(instruction)))
         disa_instr += "imm: {}".format(str(self.extract_imm_u(instruction)))
         return disa_instr
 
     def disassemble_j_instruction(self, instruction):
         disa_instr = "Disassembled  instruction:\n"
-        disa_instr += "opcode7: {}\n".format(str(bin(self.extract_opcode7(instruction))))
+        disa_instr += "opcode7: {}\n".format(
+            str(bin(self.extract_opcode7(instruction)))
+        )
         disa_instr += "rd: {}\n".format(str(self.extract_rd(instruction)))
         disa_instr += "imm: {}".format(str(self.extract_imm_j(instruction)))
         return disa_instr
 
     def disassemble_s_instruction(self, instruction):
         disa_instr = "Disassembled S instruction:\n"
-        disa_instr += "opcode7: {}\n".format(str(bin(self.extract_opcode7(instruction))))
-        disa_instr += "opcode3: {}\n".format(str(bin(self.extract_opcode3(instruction))))
+        disa_instr += "opcode7: {}\n".format(
+            str(bin(self.extract_opcode7(instruction)))
+        )
+        disa_instr += "opcode3: {}\n".format(
+            str(bin(self.extract_opcode3(instruction)))
+        )
         disa_instr += "rs1: {}\n".format(str(self.extract_rs1(instruction)))
         disa_instr += "rs2: {}\n".format(str(self.extract_rs2(instruction)))
         disa_instr += "imm: {}".format(str(self.extract_imm_s(instruction)))
@@ -138,8 +153,12 @@ class Disassembler:
 
     def disassemble_b_instruction(self, instruction):
         disa_instr = "Disassembled B instruction:\n"
-        disa_instr += "opcode7: {}\n".format(str(bin(self.extract_opcode7(instruction))))
-        disa_instr += "opcode3: {}\n".format(str(bin(self.extract_opcode3(instruction))))
+        disa_instr += "opcode7: {}\n".format(
+            str(bin(self.extract_opcode7(instruction)))
+        )
+        disa_instr += "opcode3: {}\n".format(
+            str(bin(self.extract_opcode3(instruction)))
+        )
         disa_instr += "rs1: {}\n".format(str(self.extract_rs1(instruction)))
         disa_instr += "rs2: {}\n".format(str(self.extract_rs2(instruction)))
         disa_instr += "imm: {}".format(str(self.extract_imm_b(instruction)))
@@ -148,7 +167,7 @@ class Disassembler:
 
 if __name__ == "__main__":
     # addi 5, 6, 255
-    instr = 0xff30293
+    instr = 0xFF30293
     disa = Disassembler()
     print(disa.get_instruction_type(instr))
     print(disa.disassemble(instr))

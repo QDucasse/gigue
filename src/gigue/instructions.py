@@ -39,9 +39,15 @@ class RInstruction(Instruction):
 
     @classmethod
     def r_instr(cls, name, rd, rs1, rs2):
-        return cls(name, INSTRUCTIONS_INFO[name].opcode7,
-                   INSTRUCTIONS_INFO[name].opcode3, rd, rs1, rs2,
-                   INSTRUCTIONS_INFO[name].top7)
+        return cls(
+            name,
+            INSTRUCTIONS_INFO[name].opcode7,
+            INSTRUCTIONS_INFO[name].opcode3,
+            rd,
+            rs1,
+            rs2,
+            INSTRUCTIONS_INFO[name].top7,
+        )
 
     # TODO: Autogenerate?
     @classmethod
@@ -145,9 +151,15 @@ class IInstruction(Instruction):
 
     @classmethod
     def i_instr(cls, name, rd, rs1, imm):
-        return cls(name, INSTRUCTIONS_INFO[name].opcode7,
-                   INSTRUCTIONS_INFO[name].opcode3, rd, rs1, imm,
-                   INSTRUCTIONS_INFO[name].top7)
+        return cls(
+            name,
+            INSTRUCTIONS_INFO[name].opcode7,
+            INSTRUCTIONS_INFO[name].opcode3,
+            rd,
+            rs1,
+            imm,
+            INSTRUCTIONS_INFO[name].top7,
+        )
 
     # TODO: Autogenerate
     @classmethod
@@ -278,10 +290,10 @@ class JInstruction(Instruction):
 
     def shuffle_imm(self):
         # imm[20 | 10:1 | 11 | 19:12]
-        shuffle = ((self.imm >> 20) & 0x1) << 19   # 20th bit
+        shuffle = ((self.imm >> 20) & 0x1) << 19  # 20th bit
         shuffle |= ((self.imm >> 1) & 0x3FF) << 9  # 10th to 1st
-        shuffle |= ((self.imm >> 11) & 0x1) << 8    # 11th bit
-        shuffle |= ((self.imm >> 12) & 0xFF)        # 12th to 19th
+        shuffle |= ((self.imm >> 11) & 0x1) << 8  # 11th bit
+        shuffle |= (self.imm >> 12) & 0xFF  # 12th to 19th
         return shuffle
 
     def generate(self):
@@ -320,8 +332,14 @@ class SInstruction(Instruction):
 
     @classmethod
     def s_instr(cls, name, rs1, rs2, imm):
-        return cls(name, INSTRUCTIONS_INFO[name].opcode7,
-                   INSTRUCTIONS_INFO[name].opcode3, rs1, rs2, imm)
+        return cls(
+            name,
+            INSTRUCTIONS_INFO[name].opcode7,
+            INSTRUCTIONS_INFO[name].opcode3,
+            rs1,
+            rs2,
+            imm,
+        )
 
     # TODO: Autogenerate
     @classmethod
@@ -352,11 +370,11 @@ class BInstruction(Instruction):
 
     def shuffle_imm(self):
         # imm1: imm[12|10:5]
-        shuffle1 = ((self.imm >> 12) & 0x1) << 6   # 12th bit
-        shuffle1 |= ((self.imm >> 5) & 0x3F)       # 10th to 5th
+        shuffle1 = ((self.imm >> 12) & 0x1) << 6  # 12th bit
+        shuffle1 |= (self.imm >> 5) & 0x3F  # 10th to 5th
         # imm2: imm[4:1|11]
-        shuffle2 = ((self.imm >> 1) & 0xF) << 1   # 4th to 1st
-        shuffle2 |= ((self.imm >> 11) & 0x1)       # 11th
+        shuffle2 = ((self.imm >> 1) & 0xF) << 1  # 4th to 1st
+        shuffle2 |= (self.imm >> 11) & 0x1  # 11th
         return shuffle1, shuffle2
 
     def generate(self):
@@ -371,8 +389,14 @@ class BInstruction(Instruction):
 
     @classmethod
     def b_instr(cls, name, rs1, rs2, imm):
-        return cls(name, INSTRUCTIONS_INFO[name].opcode7,
-                   INSTRUCTIONS_INFO[name].opcode3, rs1, rs2, imm)
+        return cls(
+            name,
+            INSTRUCTIONS_INFO[name].opcode7,
+            INSTRUCTIONS_INFO[name].opcode3,
+            rs1,
+            rs2,
+            imm,
+        )
 
     @classmethod
     def beq(cls, rs1, rs2, imm):

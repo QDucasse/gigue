@@ -1,22 +1,30 @@
 import random
 
+from typing import List
+
 from gigue.builder import InstructionBuilder
+from gigue.instructions import Instruction
 from gigue.constants import INSTRUCTION_WEIGHTS
 
 
 def raise_call_number_value_error(call_number, size):
     max_call_number = (size - 1) // 2
-    raise ValueError("ValueError: Call number should be <= {} and is {}.".format(max_call_number, call_number)
-                     + "\n  Number of calls in a method cannot be greater than (size - 1) // 2 "
-                     + "\n  (note: '-1' for ret and '//2' because a call is composed of two instructions).")
+    raise ValueError(
+        "ValueError: Call number should be <= {} and is {}.".format(
+            max_call_number, call_number
+        )
+        + "\n  Number of calls in a method cannot be greater than (size - 1) // 2 "
+        + "\n  (note: '-1' for ret and '//2' because a call is composed of two instructions)."
+    )
 
 
 def raise_call_patch_recursive_error(method, callees):
-    raise ValueError("ValueError: infinite call loop as {} is in {}".format(method, callees))
+    raise ValueError(
+        "ValueError: infinite call loop as {} is in {}".format(method, callees)
+    )
 
 
 class Method:
-
     def __init__(self, size: int, call_number: int, address: int, registers: list):
         self.address = address
         self.size = size
@@ -32,20 +40,22 @@ class Method:
         self.registers = registers
 
         self.builder = InstructionBuilder()
-        self.instructions = []
-        self.callees = []
-        self.machine_code = []
-        self.bytes = b''
+        self.instructions: List[Instruction] = []
+        self.callees: List[Method] = []
+        self.machine_code: List[int] = []
+        self.bytes = b""
 
     def fill_with_nops(self):
-        for current_address in range(self.address, self.address + self.size * 4, 4):
+        for _ in range(self.address, self.address + self.size * 4, 4):
             self.instructions.append(self.builder.build_nop())
 
     def add_instructions(self, weights=None):
         # Weights = [R, I, U, J, B]
         if weights is None:
             weights = INSTRUCTION_WEIGHTS
-        for current_address in range(self.address, self.address + (self.size - 1) * 4, 4):
+        for current_address in range(
+            self.address, self.address + (self.size - 1) * 4, 4
+        ):
             # Add random instructions
             max_offset = self.address + self.size * 4 - current_address
             instruction = self.builder.build_random_instruction(
@@ -55,7 +65,9 @@ class Method:
         self.instructions.append(self.builder.build_ret())
 
     def generate(self):
-        self.machine_code = [instruction.generate() for instruction in self.instructions]
+        self.machine_code = [
+            instruction.generate() for instruction in self.instructions
+        ]
         return self.machine_code
 
     def generate_bytes(self):
@@ -89,5 +101,5 @@ class Method:
             call_instructions = self.builder.build_method_call(offset)
             # Add the two instructions for the call
             self.instructions[ind] = call_instructions[0]
-            self.instructions[ind+1] = call_instructions[1]
+            self.instructions[ind + 1] = call_instructions[1]
         # print("{} calls to patch with {} (addr {})".format(self.call_number, callees, self.address))

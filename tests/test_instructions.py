@@ -50,10 +50,31 @@ def test_instruction_superclass():
 
 
 # TODO: Check
-@pytest.mark.parametrize("name", [
-    "add", "addw", "andr", "mul", "mulh", "mulhsu", "mulhu", "mulw", "orr", "sll",
-    "sllw", "slt", "sltu", "sra", "sraw", "srl", "srlw", "sub", "subw", "xor"
-])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "add",
+        "addw",
+        "andr",
+        "mul",
+        "mulh",
+        "mulhsu",
+        "mulhu",
+        "mulw",
+        "orr",
+        "sll",
+        "sllw",
+        "slt",
+        "sltu",
+        "sra",
+        "sraw",
+        "srl",
+        "srlw",
+        "sub",
+        "subw",
+        "xor",
+    ],
+)
 def test_correct_encoding_rinstr(name):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
@@ -66,10 +87,29 @@ def test_correct_encoding_rinstr(name):
     assert instr.top7 == disassembler.extract_top7(mc_instr)
 
 
-@pytest.mark.parametrize("name", [
-    "add", "addw", "mul", "mulh", "mulhsu", "mulhu", "mulw", "sll", "sllw",
-    "slt", "sltu", "sra", "sraw", "srl", "srlw", "sub", "subw", "xor"
-])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "add",
+        "addw",
+        "mul",
+        "mulh",
+        "mulhsu",
+        "mulhu",
+        "mulw",
+        "sll",
+        "sllw",
+        "slt",
+        "sltu",
+        "sra",
+        "sraw",
+        "srl",
+        "srlw",
+        "sub",
+        "subw",
+        "xor",
+    ],
+)
 def test_capstone_rinstr(name):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
@@ -89,10 +129,31 @@ def test_capstone_rinstr_special_cases(name):
     assert instr_disasm.op_str == "t0, t1, t2"
 
 
-@pytest.mark.parametrize("name", [
-    "add", "addw", "andr", "mul", "mulh", "mulhsu", "mulhu", "mulw", "orr", "sll",
-    "sllw", "slt", "sltu", "sra", "sraw", "srl", "srlw", "sub", "subw", "xor"
-])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "add",
+        "addw",
+        "andr",
+        "mul",
+        "mulh",
+        "mulhsu",
+        "mulhu",
+        "mulw",
+        "orr",
+        "sll",
+        "sllw",
+        "slt",
+        "sltu",
+        "sra",
+        "sraw",
+        "srl",
+        "srlw",
+        "sub",
+        "subw",
+        "xor",
+    ],
+)
 def test_unicorn_smoke_rinstr(name):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
@@ -103,16 +164,31 @@ def test_unicorn_smoke_rinstr(name):
     uc_emul.emu_start(ADDRESS, ADDRESS + len(bytes))
     uc_emul.emu_stop()
 
+
 # =================================
 #         I Instructions
 # =================================
 
 
 # TODO: Check
-@pytest.mark.parametrize("name", [
-    "addi", "addiw", "andi", "jalr", "lb", "lbu", "ld", "lh", "lhu", "ori",
-    "slti", "sltiu", "xori"
-])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "addi",
+        "addiw",
+        "andi",
+        "jalr",
+        "lb",
+        "lbu",
+        "ld",
+        "lh",
+        "lhu",
+        "ori",
+        "slti",
+        "sltiu",
+        "xori",
+    ],
+)
 @pytest.mark.parametrize("imm", [0x00, 0x01, 0x1C, 0xFF, 0xFFF])
 def test_correct_encoding_iinstr(name, imm):
     constr = getattr(IInstruction, name)
@@ -126,9 +202,7 @@ def test_correct_encoding_iinstr(name, imm):
 
 
 # TODO: Check
-@pytest.mark.parametrize("name", [
-    "slli", "slliw", "srai", "sraiw", "srli", "srliw"
-])
+@pytest.mark.parametrize("name", ["slli", "slliw", "srai", "sraiw", "srli", "srliw"])
 @pytest.mark.parametrize("imm", [0x00, 0x01, 0x1C, 0xFF, 0xFFF])
 def test_correct_encoding_iinstr_shifts(name, imm):
     constr = getattr(IInstruction, name)
@@ -146,9 +220,9 @@ def test_correct_encoding_iinstr_shifts(name, imm):
     assert instr.imm == masked_imm
 
 
-@pytest.mark.parametrize("name", [
-    "addi", "addiw", "andi", "jalr", "ori", "slti", "sltiu", "xori"
-])
+@pytest.mark.parametrize(
+    "name", ["addi", "addiw", "andi", "jalr", "ori", "slti", "sltiu", "xori"]
+)
 @pytest.mark.parametrize("imm", [0x1C, 0xFF, 0x7FF])
 def test_capstone_iinstr(name, imm):
     constr = getattr(IInstruction, name)
@@ -159,9 +233,7 @@ def test_capstone_iinstr(name, imm):
     assert instr_disasm.op_str == "t0, t1, " + imm_str(imm)
 
 
-@pytest.mark.parametrize("name", [
-    "slli", "slliw", "srai", "sraiw", "srli", "srliw"
-])
+@pytest.mark.parametrize("name", ["slli", "slliw", "srai", "sraiw", "srli", "srliw"])
 @pytest.mark.parametrize("imm", [0x0, 0x1, 0xF, 0x1F, 0x3F])
 def test_capstone_iinstr_shifts(name, imm):
     constr = getattr(IInstruction, name)
@@ -217,13 +289,16 @@ def test_capstone_uinstr(name, imm):
 # =================================
 
 
-@pytest.mark.parametrize("imm,res", [
-    (0x7FFFFFFF, 0xFFFFF),
-    (0x7FFFF000, 0x800FF),
-    (0x00001FFF, 0x7FF01),
-    (0x000001FF, 0x1FE00),
-    (0x001FFFFE, 0xFFFFF)
-])
+@pytest.mark.parametrize(
+    "imm,res",
+    [
+        (0x7FFFFFFF, 0xFFFFF),
+        (0x7FFFF000, 0x800FF),
+        (0x00001FFF, 0x7FF01),
+        (0x000001FF, 0x1FE00),
+        (0x001FFFFE, 0xFFFFF),
+    ],
+)
 def test_immediate_shuffle(imm, res):
     instr = JInstruction("rand", 0b1111111, 6, imm)
     shuffle = instr.shuffle_imm()
@@ -318,13 +393,14 @@ if __name__ == "__main__":
     from capstone import CS_ARCH_RISCV
     from capstone import CS_MODE_RISCV64
     from capstone import Cs
+
     add = RInstruction.add(rd=5, rs1=6, rs2=7)
-    code = add.generate().to_bytes(4, 'little')
+    code = add.generate().to_bytes(4, "little")
     print(code)
     md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
 
     # code = b'\x01\x02\x92\xbb'
-    code = b'\xbb\x92\x02\x01'
+    code = b"\xbb\x92\x02\x01"
     for i in md.disasm(code, 0x1000):
         print(i.address)
         print(i.mnemonic)

@@ -12,12 +12,23 @@ from gigue.pic import PIC
 class Generator:
     MAX_CODE_SIZE = 2 * 1024 * 1024  # 2mb
 
-    def __init__(self, jit_start_address, interpreter_start_address,
-                 jit_elements_nb, method_max_size, method_max_calls,
-                 pics_method_max_size, pics_max_cases, pics_methods_max_calls,
-                 pics_cmp_reg=6, pics_hit_case_reg=5, pics_ratio=0.2, registers=None,
-                 output_jit_file=BIN_DIR+"jit.bin",
-                 output_interpret_file=BIN_DIR+"interpret.bin"):
+    def __init__(
+        self,
+        jit_start_address,
+        interpreter_start_address,
+        jit_elements_nb,
+        method_max_size,
+        method_max_calls,
+        pics_method_max_size,
+        pics_max_cases,
+        pics_methods_max_calls,
+        pics_cmp_reg=6,
+        pics_hit_case_reg=5,
+        pics_ratio=0.2,
+        registers=None,
+        output_jit_file=BIN_DIR + "jit.bin",
+        output_interpret_file=BIN_DIR + "interpret.bin",
+    ):
         if registers is None:
             self.registers = CALLER_SAVED_REG
         self.jit_start_address = jit_start_address
@@ -45,8 +56,8 @@ class Generator:
         self.interpreter_calls = []
         self.interpreter_machine_code = []
         self.interpreter_bytes = []
-        self.output_jit_bin = b''
-        self.output_interpreter_bin = b''
+        self.output_jit_bin = b""
+        self.output_interpreter_bin = b""
         self.output_jit_file = output_jit_file
         self.output_interpreter_file = output_interpret_file
 
@@ -61,9 +72,15 @@ class Generator:
 
     def add_pic(self, address):
         cases_nb = random.randint(2, self.pics_max_cases)
-        pic = PIC(address, cases_nb, self.pics_method_max_size,
-                  self.pics_methods_max_calls, self.pics_hit_case_reg,
-                  self.pics_cmp_reg, CALLER_SAVED_REG)
+        pic = PIC(
+            address,
+            cases_nb,
+            self.pics_method_max_size,
+            self.pics_methods_max_calls,
+            self.pics_hit_case_reg,
+            self.pics_cmp_reg,
+            CALLER_SAVED_REG,
+        )
         self.jit_pics.append(pic)
         self.pic_count += 1
         return pic
@@ -78,7 +95,9 @@ class Generator:
 
     def build_pic_call(self, pic, offset):
         hit_case = random.randint(1, pic.case_number)
-        call_instructions = self.builder.build_pic_call(offset, hit_case, pic.hit_case_reg)
+        call_instructions = self.builder.build_pic_call(
+            offset, hit_case, pic.hit_case_reg
+        )
         self.interpreter_calls.append(call_instructions)
         return len(call_instructions) * 4
 
@@ -88,7 +107,9 @@ class Generator:
         current_address = self.jit_start_address
         current_element_count = 0
         while current_element_count < self.jit_elements_nb:
-            code_type = random.choices(["method", "pic"], [1 - self.pics_ratio, self.pics_ratio])[0]
+            code_type = random.choices(
+                ["method", "pic"], [1 - self.pics_ratio, self.pics_ratio]
+            )[0]
             adder_function = getattr(Generator, "add_" + code_type)
             current_element = adder_function(self, current_address)
             current_element.add_instructions(weights)
@@ -141,11 +162,11 @@ class Generator:
         return self.interpreter_bytes
 
     def generate_jit_binary(self):
-        self.output_jit_bin = b''.join(self.jit_bytes)
+        self.output_jit_bin = b"".join(self.jit_bytes)
         return self.output_jit_bin
 
     def generate_interpreter_binary(self):
-        self.output_interpreter_bin = b''.join(flatten_list(self.interpreter_bytes))
+        self.output_interpreter_bin = b"".join(flatten_list(self.interpreter_bytes))
         return self.output_interpreter_bin
 
     def write_binaries(self):

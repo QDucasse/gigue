@@ -107,11 +107,14 @@ def test_builder_random_instruction_disassembly_smoke(execution_number):
 
 
 @pytest.mark.parametrize("execution_number", range(30))
-@pytest.mark.parametrize("build_method", [
-    getattr(InstructionBuilder, "build_random_r_instruction"),
-    getattr(InstructionBuilder, "build_random_i_instruction"),
-    getattr(InstructionBuilder, "build_random_u_instruction"),
-])
+@pytest.mark.parametrize(
+    "build_method",
+    [
+        getattr(InstructionBuilder, "build_random_r_instruction"),
+        getattr(InstructionBuilder, "build_random_i_instruction"),
+        getattr(InstructionBuilder, "build_random_u_instruction"),
+    ],
+)
 def test_random_riu_disassembly_execution_smoke(execution_number, build_method):
     instr = build_method(CALLER_SAVED_REG)
     bytes = instr.generate_bytes()
@@ -127,7 +130,9 @@ def test_random_j_disassembly_execution_smoke(execution_number):
     for addr in range(ADDRESS, RET_ADDRESS, 4):
         uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
     instr_builder = InstructionBuilder()
-    instr = instr_builder.build_random_j_instruction(CALLER_SAVED_REG, (RET_ADDRESS - ADDRESS) & 0xFFFFF)
+    instr = instr_builder.build_random_j_instruction(
+        CALLER_SAVED_REG, (RET_ADDRESS - ADDRESS) & 0xFFFFF
+    )
     bytes = instr.generate_bytes()
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, 0, count=1)
@@ -140,7 +145,9 @@ def test_random_b_disassembly_execution_smoke(execution_number):
     for addr in range(ADDRESS, RET_ADDRESS, 4):
         uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
     instr_builder = InstructionBuilder()
-    instr = instr_builder.build_random_b_instruction(CALLER_SAVED_REG, (RET_ADDRESS - ADDRESS) & 0x7FF)
+    instr = instr_builder.build_random_b_instruction(
+        CALLER_SAVED_REG, (RET_ADDRESS - ADDRESS) & 0x7FF
+    )
     bytes = instr.generate_bytes()
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, 0, count=1)

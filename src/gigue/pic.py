@@ -7,8 +7,16 @@ from gigue.method import Method
 
 
 class PIC:
-    def __init__(self, address, case_number, method_max_size, method_max_calls,
-                 hit_case_reg, cmp_reg, registers):
+    def __init__(
+        self,
+        address,
+        case_number,
+        method_max_size,
+        method_max_calls,
+        hit_case_reg,
+        cmp_reg,
+        registers,
+    ):
         # hit_case_reg: register in which the case_nb that should be ran is loaded
         # cmp_reg: register in which the running case nb is stored before comparison
         self.case_number = case_number
@@ -23,7 +31,7 @@ class PIC:
         self.switch_instructions = []
         self.methods = []
         self.machine_code = []
-        self.bytes = b''
+        self.bytes = b""
 
     def get_switch_size(self):
         # switch corresponds to:
@@ -66,7 +74,8 @@ class PIC:
                 case_number=case_nb + 1,
                 method_offset=method_offset,
                 hit_case_reg=self.hit_case_reg,
-                cmp_reg=self.cmp_reg)
+                cmp_reg=self.cmp_reg,
+            )
             self.switch_instructions.append(switch_case)
         self.switch_instructions.append([self.builder.build_ret()])
 

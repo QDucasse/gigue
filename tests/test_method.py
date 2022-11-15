@@ -99,14 +99,17 @@ def test_patch_calls_check_mutual_loop_call():
 
 
 @pytest.mark.parametrize("execution_number", range(30))
-@pytest.mark.parametrize("weights", [
-    [100, 0, 0, 0, 0],  # Only R Instructions
-    [0, 100, 0, 0, 0],  # Only I Instructions
-    [0, 0, 100, 0, 0],  # Only U Instructions
-    [0, 0, 0, 100, 0],  # Only J Instructions
-    [0, 0, 0, 0, 100],  # Only B Instructions
-    [35, 40, 10, 5, 10],
-])
+@pytest.mark.parametrize(
+    "weights",
+    [
+        [100, 0, 0, 0, 0],  # Only R Instructions
+        [0, 100, 0, 0, 0],  # Only I Instructions
+        [0, 0, 100, 0, 0],  # Only U Instructions
+        [0, 0, 0, 100, 0],  # Only J Instructions
+        [0, 0, 0, 0, 100],  # Only B Instructions
+        [35, 40, 10, 5, 10],
+    ],
+)
 def test_instructions_disassembly_execution_smoke(execution_number, weights):
     method = Method(size=10, address=0x1000, call_number=3, registers=CALLER_SAVED_REG)
     method.add_instructions(weights)

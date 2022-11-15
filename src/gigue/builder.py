@@ -10,9 +10,26 @@ from gigue.instructions import UInstruction
 
 class InstructionBuilder:
     R_INSTRUCTIONS = [
-        "add", "addw", "andr", "mul", "mulh", "mulhsu", "mulhu", "mulw",
-        "orr", "sll", "sllw", "slt", "sltu", "sra", "sraw", "srl", "srlw",
-        "sub", "subw", "xor"
+        "add",
+        "addw",
+        "andr",
+        "mul",
+        "mulh",
+        "mulhsu",
+        "mulhu",
+        "mulw",
+        "orr",
+        "sll",
+        "sllw",
+        "slt",
+        "sltu",
+        "sra",
+        "sraw",
+        "srl",
+        "srlw",
+        "sub",
+        "subw",
+        "xor",
     ]
     I_INSTRUCTIONS = ["addi", "addiw", "andi", "ori", "slti", "sltiu", "xori"]
     I_INSTRUCTIONS_LOAD = ["lb", "lbu", "ld", "lh", "lhu"]
@@ -64,15 +81,20 @@ class InstructionBuilder:
     def build_random_instruction(self, registers, max_offset, weights=None):
         if weights is None:
             weights = INSTRUCTION_WEIGHTS
-        method_name, needs_max_offset = random.choices([
-            ("build_random_r_instruction", False),
-            ("build_random_i_instruction", False),
-            ("build_random_u_instruction", False),
-            ("build_random_j_instruction", True),
-            ("build_random_b_instruction", True)
-        ], weights)[0]
+        method_name, needs_max_offset = random.choices(
+            [
+                ("build_random_r_instruction", False),
+                ("build_random_i_instruction", False),
+                ("build_random_u_instruction", False),
+                ("build_random_j_instruction", True),
+                ("build_random_b_instruction", True),
+            ],
+            weights,
+        )[0]
         method = getattr(InstructionBuilder, method_name)
-        instruction = method(registers, max_offset) if needs_max_offset else method(registers)
+        instruction = (
+            method(registers, max_offset) if needs_max_offset else method(registers)
+        )
         return instruction
 
     @staticmethod
@@ -94,10 +116,7 @@ class InstructionBuilder:
         #     hex(offset_low),
         #     hex(offset_high)
         # ))
-        return [
-            UInstruction.auipc(1, offset_high),
-            IInstruction.jalr(1, 1, offset_low)
-        ]
+        return [UInstruction.auipc(1, offset_high), IInstruction.jalr(1, 1, offset_low)]
 
     @staticmethod
     def build_pic_call(offset, hit_case, hit_case_reg):
@@ -113,7 +132,7 @@ class InstructionBuilder:
         return [
             IInstruction.addi(rd=hit_case_reg, rs1=0, imm=hit_case),
             UInstruction.auipc(rd=1, imm=offset_high),
-            IInstruction.jalr(rd=1, rs1=1, imm=offset_low)
+            IInstruction.jalr(rd=1, rs1=1, imm=offset_low),
         ]
 
     @staticmethod
@@ -126,5 +145,5 @@ class InstructionBuilder:
         return [
             IInstruction.addi(rd=hit_case_reg, rs1=0, imm=case_number),
             BInstruction.bne(rs1=cmp_reg, rs2=hit_case_reg, imm=8),
-            JInstruction.jal(rd=0, imm=method_offset)
+            JInstruction.jal(rd=0, imm=method_offset),
         ]

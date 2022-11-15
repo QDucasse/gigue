@@ -33,8 +33,13 @@ def test_fill_jit_code(jit_elements_nb, method_max_size, pics_ratio):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
-        pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
+        jit_elements_nb=jit_elements_nb,
+        method_max_size=method_max_size,
+        method_max_calls=5,
+        pics_method_max_size=30,
+        pics_max_cases=5,
+        pics_methods_max_calls=5,
+        pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
     assert len(generator.jit_methods + generator.jit_pics) == jit_elements_nb
@@ -47,13 +52,20 @@ def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
-        pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
+        jit_elements_nb=jit_elements_nb,
+        method_max_size=method_max_size,
+        method_max_calls=5,
+        pics_method_max_size=30,
+        pics_max_cases=5,
+        pics_methods_max_calls=5,
+        pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
     generator.fill_interpretation_loop()
     assert len(generator.interpreter_calls) == jit_elements_nb
-    for i, (jit_element, call_instruction) in enumerate(zip(generator.jit_elements, generator.interpreter_calls)):
+    for i, (jit_element, call_instruction) in enumerate(
+        zip(generator.jit_elements, generator.interpreter_calls)
+    ):
         assert call_instruction[0].name == "auipc"
         assert call_instruction[1].name == "jalr"
     # TODO: Add Tests for pics (addi, auipc jalr)
@@ -66,8 +78,13 @@ def test_patch_calls(jit_elements_nb, method_max_size, pics_ratio):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
-        pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
+        jit_elements_nb=jit_elements_nb,
+        method_max_size=method_max_size,
+        method_max_calls=5,
+        pics_method_max_size=30,
+        pics_max_cases=5,
+        pics_methods_max_calls=5,
+        pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
     generator.patch_jit_calls()
@@ -86,8 +103,13 @@ def test_generate_jit_machine_code(jit_elements_nb, method_max_size, pics_ratio)
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
-        pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
+        jit_elements_nb=jit_elements_nb,
+        method_max_size=method_max_size,
+        method_max_calls=5,
+        pics_method_max_size=30,
+        pics_max_cases=5,
+        pics_methods_max_calls=5,
+        pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
     generator.fill_interpretation_loop()
@@ -101,12 +123,19 @@ def test_generate_jit_machine_code(jit_elements_nb, method_max_size, pics_ratio)
 @pytest.mark.parametrize("jit_elements_nb", [8, 10, 20, 30, 50, 100])
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
 @pytest.mark.parametrize("pics_ratio", [0, 0.1, 0.2, 0.5])
-def test_generate_interpreter_machine_code(jit_elements_nb, method_max_size, pics_ratio):
+def test_generate_interpreter_machine_code(
+    jit_elements_nb, method_max_size, pics_ratio
+):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
-        pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
+        jit_elements_nb=jit_elements_nb,
+        method_max_size=method_max_size,
+        method_max_calls=5,
+        pics_method_max_size=30,
+        pics_max_cases=5,
+        pics_methods_max_calls=5,
+        pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
     generator.fill_interpretation_loop()
@@ -116,7 +145,9 @@ def test_generate_interpreter_machine_code(jit_elements_nb, method_max_size, pic
     # TODO: Cleanup counts
     pic_count = 0
     method_count = 0
-    for jit_element, call_instruction in zip(generator.jit_elements, generator.interpreter_machine_code):
+    for jit_element, call_instruction in zip(
+        generator.jit_elements, generator.interpreter_machine_code
+    ):
         # print("{}: {} | {}".format(i, jit_element, call_instruction))
         # print("higho: {}, lowo: {}".format(hex(call_instruction[0].imm), hex(call_instruction[1].imm)))
         is_pic = False
@@ -124,7 +155,9 @@ def test_generate_interpreter_machine_code(jit_elements_nb, method_max_size, pic
             call_instruction = call_instruction[1:]
             is_pic = True
         call_offset = disassembler.extract_call_offset(call_instruction)
-        assert (generator.interpreter_start_address + method_count * 8 + pic_count * 12) + call_offset == jit_element.address
+        assert (
+            generator.interpreter_start_address + method_count * 8 + pic_count * 12
+        ) + call_offset == jit_element.address
 
         if is_pic:
             pic_count += 1
@@ -139,8 +172,13 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
-        pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
+        jit_elements_nb=jit_elements_nb,
+        method_max_size=method_max_size,
+        method_max_calls=5,
+        pics_method_max_size=30,
+        pics_max_cases=5,
+        pics_methods_max_calls=5,
+        pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
     generator.fill_interpretation_loop()
@@ -150,6 +188,7 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
     generator.generate_interpreter_bytes()
     assert len(generator.jit_bytes) == len(generator.jit_machine_code)
     assert len(generator.interpreter_bytes) == len(generator.interpreter_machine_code)
+
 
 # =================================
 #         Execution tests
@@ -163,8 +202,13 @@ def test_execute_generated_binaries(jit_elements_nb, method_max_size, pics_ratio
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb, method_max_size=method_max_size, method_max_calls=5,
-        pics_method_max_size=30, pics_max_cases=5, pics_methods_max_calls=5, pics_ratio=pics_ratio
+        jit_elements_nb=jit_elements_nb,
+        method_max_size=method_max_size,
+        method_max_calls=5,
+        pics_method_max_size=30,
+        pics_max_cases=5,
+        pics_methods_max_calls=5,
+        pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
     generator.fill_interpretation_loop()
@@ -202,14 +246,22 @@ def test_execute_generated_binaries(jit_elements_nb, method_max_size, pics_ratio
         uc_emul.reg_write(reg, 0)
     uc_emul.mem_write(INTERPRETER_START_ADDRESS, interpreter_binary)
     uc_emul.mem_write(JIT_START_ADDRESS, jit_binary)
-    uc_emul.emu_start(INTERPRETER_START_ADDRESS, INTERPRETER_START_ADDRESS + len(interpreter_binary) - 4)
+    uc_emul.emu_start(
+        INTERPRETER_START_ADDRESS,
+        INTERPRETER_START_ADDRESS + len(interpreter_binary) - 4,
+    )
     uc_emul.emu_stop()
 
 
 if __name__ == "__main__":
     g = Generator(
-        jit_start_address=0xF000, interpreter_start_address=0x000,
-        jit_elements_nb=200, method_max_size=50, method_max_calls=5,
-        pics_method_max_size=20, pics_max_cases=5, pics_methods_max_calls=2
+        jit_start_address=0xF000,
+        interpreter_start_address=0x000,
+        jit_elements_nb=200,
+        method_max_size=50,
+        method_max_calls=5,
+        pics_method_max_size=20,
+        pics_max_cases=5,
+        pics_methods_max_calls=2,
     )
     g.main()
