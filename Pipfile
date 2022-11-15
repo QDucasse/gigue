@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-gigue = {path = "."}
+gigue = {editable = true, path = "."}
 
 [dev-packages]
 capstone = "*"
