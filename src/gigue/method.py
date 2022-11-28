@@ -25,7 +25,7 @@ def raise_call_patch_recursive_error(method, callees):
 
 
 class Method:
-    def __init__(self, size: int, call_number: int, address: int, registers: list):
+    def __init__(self, size: int, call_number: int, address: int, registers: List[int]):
         self.address = address
         self.size = size
 

@@ -44,14 +44,7 @@ setup(
         # 'Programming Language :: Python :: Implementation :: Stackless',
         "Topic :: Utilities",
     ],
-    project_urls={
-        "Changelog": "https://github.com/qducasse/gigue/blob/master/CHANGELOG.rst",
-        "Issue Tracker": "https://github.com/qducasse/gigue/issues",
-    },
-    keywords=[
-        # eg: 'keyword1', 'keyword2', 'keyword3',
-    ],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=["capstone==5.0.0rc2", "unicorn==2.0.0rc7"],
     entry_points={
         "console_scripts": [
