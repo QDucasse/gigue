@@ -1,6 +1,9 @@
 # [R, I, U, J, B]
 INSTRUCTION_WEIGHTS = [35, 40, 10, 5, 10]
 CALLER_SAVED_REG = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31]
+CALLEE_SAVED_REG = [8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+RA = 1
+SP = 2
 BIN_DIR = "bin/"
 
 
@@ -46,6 +49,7 @@ INSTRUCTIONS_INFO = {
     "ld": InstructionInfo("ld", 0b0000011, 0b011, "I"),
     "lh": InstructionInfo("lh", 0b0000011, 0b001, "I"),
     "lhu": InstructionInfo("lhu", 0b0000011, 0b101, "I"),
+    "lw": InstructionInfo("lw", 0b0000011, 0b010, "I"),
     # Load upper immediate
     "lui": InstructionInfo("lui", 0b0110111, 0b000, "U"),
     # Muls

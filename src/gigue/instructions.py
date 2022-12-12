@@ -179,6 +179,11 @@ class IInstruction(Instruction):
         return cls.i_instr("jalr", rd, rs1, imm)
 
     @classmethod
+    def jr(cls, rs1):
+        # jr expands to jalr x0, 0(rs1)
+        return cls.i_instr("jalr", 0, rs1, 0)
+
+    @classmethod
     def ret(cls):
         # ret expands to jalr x0, 0(x1)
         return cls.i_instr("jalr", 0, 1, 0)

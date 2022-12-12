@@ -1,10 +1,9 @@
 import random
-
 from typing import List
 
 from gigue.builder import InstructionBuilder
-from gigue.instructions import Instruction
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.instructions import Instruction
 
 
 def raise_call_number_value_error(call_number, size):

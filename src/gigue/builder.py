@@ -1,10 +1,14 @@
 import random
 
+from gigue.constants import CALLEE_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.constants import RA
+from gigue.constants import SP
 from gigue.instructions import BInstruction
 from gigue.instructions import IInstruction
 from gigue.instructions import JInstruction
 from gigue.instructions import RInstruction
+from gigue.instructions import SInstruction
 from gigue.instructions import UInstruction
 
 
@@ -69,6 +73,7 @@ class InstructionBuilder:
 
     # TODO: stores
     # TODO: loads
+    # TODO: 
 
     @staticmethod
     def build_random_b_instruction(registers, max_offset):
@@ -147,3 +152,31 @@ class InstructionBuilder:
             BInstruction.bne(rs1=cmp_reg, rs2=hit_case_reg, imm=8),
             JInstruction.jal(rd=0, imm=method_offset),
         ]
+
+    @staticmethod
+    def build_prologue(used_s_regs, local_var_nb, contains_call):
+        instructions = []
+        stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+        # Decrement sp by number of s registers + local variable space
+        instructions.append(IInstruction.addi(rd=SP, rs1=SP, imm=-stack_space))
+        # Store any saved registers used
+        for i in range(used_s_regs):
+            instructions.append(SInstruction.sw(rs1=CALLEE_SAVED_REG[i], rs2=SP, imm=i*4))
+        # Store ra is a function call is made
+        if contains_call:
+            instructions.append(SInstruction.sw(rs1=RA, rs2=SP, imm=used_s_regs*4))
+
+    @staticmethod
+    def build_epilogue(used_s_regs, local_var_nb, contains_call):     
+        instructions = []
+        stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+        # Reload saved registers used
+        for i in range(used_s_regs):
+            instructions.append(IInstruction.lw(rs1=CALLEE_SAVED_REG[i], rs2=SP, imm=i*4))
+        # Reload ra (if necessary)
+        if contains_call:
+            instructions.append(SInstruction.lw(rs1=RA, rs2=SP, imm=used_s_regs*4))
+        # Increment sp to previous value
+        instructions.append(IInstruction.addi(rd=SP, rs1=SP, imm=stack_space))
+        # Jump back to return address
+        instructions.append(JInstruction.jr(rs1=RA))
