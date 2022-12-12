@@ -72,6 +72,25 @@ def test_builder_pic_call(offset):
     assert offset == disassembler.extract_call_offset([instr.generate() for instr in instrs[1:]])
 
 
+@pytest.mark.parametrize("offset", [0x4, 0x800, 0xFFE, 0x80000, 0x1FFFE])
+def test_builder_switch_pic(offset):
+    instr_builder = InstructionBuilder()
+    instrs = instr_builder.build_switch_case(case_number=3, method_offset=offset, hit_case_reg=6, cmp_reg=5)
+    gen_instrs = [instr.generate() for instr in instrs]
+    # Load the value in x6
+    assert instrs[0].name == "addi"
+    assert disassembler.extract_rd(gen_instrs[0]) == 6
+    assert disassembler.extract_imm_i(gen_instrs[0]) == 3
+    # Compare and branch i
+    assert instrs[1].name == "bne"
+    assert disassembler.extract_imm_b(gen_instrs[1]) == 8
+    assert disassembler.extract_rs1(gen_instrs[1]) == 5
+    assert disassembler.extract_rs2(gen_instrs[1]) == 6
+    # Compare and branch i
+    assert instrs[2].name == "jal"
+    assert offset == disassembler.extract_imm_j(gen_instrs[2])
+
+
 @pytest.mark.parametrize("execution_number", range(30))
 def test_builder_random_r_instruction(execution_number):
     instr_builder = InstructionBuilder()

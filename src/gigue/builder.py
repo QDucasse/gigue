@@ -42,6 +42,14 @@ class InstructionBuilder:
     B_INSTRUCTIONS = ["beq", "bge", "bgeu", "blt", "bltu", "bne"]
 
     @staticmethod
+    def build_nop():
+        return IInstruction.nop()
+
+    @staticmethod
+    def build_ret():
+        return IInstruction.ret()
+
+    @staticmethod
     def build_random_r_instruction(registers):
         name = random.choice(InstructionBuilder.R_INSTRUCTIONS)
         constr = getattr(RInstruction, name)
@@ -73,7 +81,6 @@ class InstructionBuilder:
 
     # TODO: stores
     # TODO: loads
-    # TODO: 
 
     @staticmethod
     def build_random_b_instruction(registers, max_offset):
@@ -101,14 +108,6 @@ class InstructionBuilder:
             method(registers, max_offset) if needs_max_offset else method(registers)
         )
         return instruction
-
-    @staticmethod
-    def build_nop():
-        return IInstruction.nop()
-
-    @staticmethod
-    def build_ret():
-        return IInstruction.ret()
 
     @staticmethod
     def build_method_call(offset):
@@ -147,6 +146,7 @@ class InstructionBuilder:
         #   2 - Compare to the current case (should be in x5)
         #   3 - Jump to the corresponding method if equal
         #   4 - Go to the next case if not
+        # TODO: REPLACE WITH BEQ!!!!!
         return [
             IInstruction.addi(rd=hit_case_reg, rs1=0, imm=case_number),
             BInstruction.bne(rs1=cmp_reg, rs2=hit_case_reg, imm=8),
@@ -167,7 +167,7 @@ class InstructionBuilder:
             instructions.append(SInstruction.sw(rs1=RA, rs2=SP, imm=used_s_regs*4))
 
     @staticmethod
-    def build_epilogue(used_s_regs, local_var_nb, contains_call):     
+    def build_epilogue(used_s_regs, local_var_nb, contains_call):
         instructions = []
         stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
         # Reload saved registers used

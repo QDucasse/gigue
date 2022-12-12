@@ -316,6 +316,10 @@ class JInstruction(Instruction):
     def jal(cls, rd, imm):
         return cls.j_instr("jal", rd, imm)
 
+    @classmethod
+    def j(cls, imm):
+        return cls.j_instr("jal", 0, imm)
+
 
 # TODO: Doc
 class SInstruction(Instruction):
