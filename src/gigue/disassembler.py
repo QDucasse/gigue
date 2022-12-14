@@ -30,10 +30,11 @@ class Disassembler:
         immediate |= self.extract_info(instruction, 6, 25) << 5
         immediate |= self.extract_info(instruction, 1, 7) << 11
         immediate |= self.extract_info(instruction, 1, 31) << 12
-        return immediate
+        return self.sign_extend(immediate, 13)
 
     def extract_imm_i(self, instruction):
-        return self.extract_info(instruction, 12, 20)
+        immediate = self.extract_info(instruction, 12, 20)
+        return self.sign_extend(immediate, 12)
 
     def extract_imm_j(self, instruction):
         # imm[20 | 10:1 | 11 | 19:12]
@@ -41,16 +42,16 @@ class Disassembler:
         immediate |= self.extract_info(instruction, 1, 20) << 11
         immediate |= self.extract_info(instruction, 8, 12) << 12
         immediate |= self.extract_info(instruction, 1, 31) << 20
-        return immediate
+        return self.sign_extend(immediate, 21)
 
     def extract_imm_s(self, instruction):
         immediate = self.extract_info(instruction, 5, 7)
         immediate |= self.extract_info(instruction, 7, 25) << 5
-        return immediate
+        return self.sign_extend(immediate, 12)
 
     def extract_imm_u(self, instruction):
-        upper20 = self.extract_info(instruction, 20, 12)
-        return upper20 << 12
+        immediate = self.extract_info(instruction, 20, 12) << 12
+        return self.sign_extend(immediate, 32)
 
     def extract_rd(self, instruction):
         return self.extract_info(instruction, 5, 7)
@@ -70,13 +71,15 @@ class Disassembler:
         offset_high = self.extract_imm_u(instructions[0])
         signed_offset_low = self.sign_extend(offset_low, 12)
         signed_offset_high = self.sign_extend(offset_high, 32)
-        print("Disassembler:\nlowo {}\nhigho {}\nsignlowo {}\nsignhigho {}\nsum {}\n__________".format(
-            hex(offset_low),
-            hex(offset_high),
-            hex(signed_offset_low),
-            hex(signed_offset_high),
-            hex(signed_offset_low + signed_offset_high)
-        ))
+        print(
+            "Disassembler:\nlowo {}\nhigho {}\nsignlowo {}\nsignhigho {}\nsum {}\n__________".format(
+                hex(offset_low),
+                hex(offset_high),
+                hex(signed_offset_low),
+                hex(signed_offset_high),
+                hex(signed_offset_low + signed_offset_high),
+            )
+        )
         return signed_offset_low + signed_offset_high
 
     def disassemble(self, instruction):
