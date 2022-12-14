@@ -155,6 +155,12 @@ class InstructionBuilder:
 
     @staticmethod
     def build_prologue(used_s_regs, local_var_nb, contains_call):
+        # An example prologue would be:
+        # addi sp sp -16
+        # sw s0 0(sp)
+        # sw s1 4(sp)
+        # sw s2 8(sp)
+        # sw ra 12(sp)
         instructions = []
         stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
         # Decrement sp by number of s registers + local variable space
@@ -171,18 +177,25 @@ class InstructionBuilder:
 
     @staticmethod
     def build_epilogue(used_s_regs, local_var_nb, contains_call):
+        # An example epilogue would be:
+        # lw s0 0(sp)
+        # lw s1 4(sp
+        # lw s2 8(sp
+        # lw ra 12(sp)
+        # addi sp sp 16
+        # jr ra
         instructions = []
         stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
         # Reload saved registers used
         for i in range(used_s_regs):
             instructions.append(
-                IInstruction.lw(rs1=CALLEE_SAVED_REG[i], rs2=SP, imm=i * 4)
+                IInstruction.lw(rd=CALLEE_SAVED_REG[i], rs1=SP, imm=i * 4)
             )
         # Reload ra (if necessary)
         if contains_call:
-            instructions.append(SInstruction.lw(rs1=RA, rs2=SP, imm=used_s_regs * 4))
+            instructions.append(IInstruction.lw(rd=RA, rs1=SP, imm=used_s_regs * 4))
         # Increment sp to previous value
         instructions.append(IInstruction.addi(rd=SP, rs1=SP, imm=stack_space))
         # Jump back to return address
-        instructions.append(JInstruction.jr(rs1=RA))
+        instructions.append(IInstruction.ret())
         return instructions

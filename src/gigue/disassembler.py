@@ -3,6 +3,8 @@ from gigue.constants import find_instr_for_opcode
 
 # TODO: Doc
 class Disassembler:
+    DEFAULT_SIGN_EXTENSION = False
+
     @staticmethod
     def sign_extend(value, bits):
         sign_bit = 1 << (bits - 1)
@@ -23,35 +25,45 @@ class Disassembler:
     def extract_opcode3(self, instruction):
         return self.extract_info(instruction, 3, 12)
 
-    def extract_imm_b(self, instruction):
+    def extract_imm_b(self, instruction, sign_extend=DEFAULT_SIGN_EXTENSION):
         # imm[12|10:5] << 25
         # imm[4:1|11]  << 7
         immediate = self.extract_info(instruction, 4, 8) << 1
         immediate |= self.extract_info(instruction, 6, 25) << 5
         immediate |= self.extract_info(instruction, 1, 7) << 11
         immediate |= self.extract_info(instruction, 1, 31) << 12
-        return self.sign_extend(immediate, 13)
+        if sign_extend:
+            return self.sign_extend(immediate, 13)
+        return immediate
 
-    def extract_imm_i(self, instruction):
+    def extract_imm_i(self, instruction, sign_extend=DEFAULT_SIGN_EXTENSION):
         immediate = self.extract_info(instruction, 12, 20)
-        return self.sign_extend(immediate, 12)
+        if sign_extend:
+            return self.sign_extend(immediate, 12)
+        return immediate
 
-    def extract_imm_j(self, instruction):
+    def extract_imm_j(self, instruction, sign_extend=DEFAULT_SIGN_EXTENSION):
         # imm[20 | 10:1 | 11 | 19:12]
         immediate = self.extract_info(instruction, 10, 21) << 1
         immediate |= self.extract_info(instruction, 1, 20) << 11
         immediate |= self.extract_info(instruction, 8, 12) << 12
         immediate |= self.extract_info(instruction, 1, 31) << 20
-        return self.sign_extend(immediate, 21)
+        if sign_extend:
+            return self.sign_extend(immediate, 21)
+        return immediate
 
-    def extract_imm_s(self, instruction):
+    def extract_imm_s(self, instruction, sign_extend=DEFAULT_SIGN_EXTENSION):
         immediate = self.extract_info(instruction, 5, 7)
         immediate |= self.extract_info(instruction, 7, 25) << 5
-        return self.sign_extend(immediate, 12)
+        if sign_extend:
+            return self.sign_extend(immediate, 12)
+        return immediate
 
-    def extract_imm_u(self, instruction):
+    def extract_imm_u(self, instruction, sign_extend=DEFAULT_SIGN_EXTENSION):
         immediate = self.extract_info(instruction, 20, 12) << 12
-        return self.sign_extend(immediate, 32)
+        if sign_extend:
+            return self.sign_extend(immediate, 32)
+        return immediate
 
     def extract_rd(self, instruction):
         return self.extract_info(instruction, 5, 7)

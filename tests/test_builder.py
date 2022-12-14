@@ -8,9 +8,11 @@ from unicorn.unicorn_const import UC_ARCH_RISCV
 from unicorn.unicorn_const import UC_MODE_RISCV64
 
 from gigue.builder import InstructionBuilder
-from gigue.instructions import IInstruction
-from gigue.disassembler import Disassembler
 from gigue.constants import CALLER_SAVED_REG
+from gigue.constants import RA
+from gigue.constants import SP
+from gigue.disassembler import Disassembler
+from gigue.instructions import IInstruction
 
 # =================================
 #            Constants
@@ -114,7 +116,7 @@ def test_build_prologue(used_s_regs, local_var_nb, contains_call):
     # Space on top of the stack
     assert instrs[0].name == "addi"
     assert (
-        disassembler.extract_imm_i(gen_instrs[0])
+        disassembler.extract_imm_i(gen_instrs[0], sign_extend=True)
         == -(used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
     )
     # Filling of the stack
@@ -126,6 +128,37 @@ def test_build_prologue(used_s_regs, local_var_nb, contains_call):
         assert instrs[-1].name == "sw"
         assert disassembler.extract_imm_s(gen_instrs[-1]) == used_s_regs * 4
         assert disassembler.extract_rs1(instrs[-1].generate()) == 1
+
+
+@pytest.mark.parametrize("used_s_regs", [0, 5, 10])
+@pytest.mark.parametrize("local_var_nb", [0, 5, 10])
+@pytest.mark.parametrize("contains_call", [True, False])
+def test_build_epilogue(used_s_regs, local_var_nb, contains_call):
+    instr_builder = InstructionBuilder()
+    instrs = instr_builder.build_epilogue(
+        used_s_regs=used_s_regs, local_var_nb=local_var_nb, contains_call=contains_call
+    )
+    gen_instrs = [instr.generate() for instr in instrs]
+    # Restore saved regs
+    for i, (instr, generated) in enumerate(zip(instrs[:-2], gen_instrs[:-2])):
+        assert instr.name == "lw"
+        assert disassembler.extract_imm_i(generated) == i * 4
+    # RA check and restore
+    if contains_call:
+        assert instrs[used_s_regs].name == "lw"
+        assert disassembler.extract_imm_i(gen_instrs[used_s_regs]) == used_s_regs * 4
+        assert disassembler.extract_rd(gen_instrs[used_s_regs]) == RA
+        assert disassembler.extract_rs1(gen_instrs[used_s_regs]) == SP
+    # Restore SP
+    assert instrs[-2].name == "addi"
+    assert (
+        disassembler.extract_imm_i(gen_instrs[-2])
+        == (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+    )
+    # Jump check
+    assert instrs[-1].name == "jalr"
+    assert instrs[-1].rd == 0
+    assert instrs[-1].rs1 == 1
 
 
 # =================================
