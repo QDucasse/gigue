@@ -1,15 +1,14 @@
 import pytest
+from conftest import ADDRESS
+from conftest import RET_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_PC
-from unicorn.riscv_const import UC_RISCV_REG_T0
 from unicorn.riscv_const import UC_RISCV_REG_RA
+from unicorn.riscv_const import UC_RISCV_REG_T0
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import RA
 from gigue.constants import SP
-
-from conftest import ADDRESS
-from conftest import RET_ADDRESS
 
 # =================================
 #        Specific structures
@@ -24,9 +23,7 @@ def test_build_method_call(offset, disasm_setup):
     assert instrs[1].name == "jalr"
     # Disassembly
     disasm = disasm_setup
-    assert offset == disasm.extract_call_offset(
-        [instr.generate() for instr in instrs]
-    )
+    assert offset == disasm.extract_call_offset([instr.generate() for instr in instrs])
 
 
 @pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFF, 0x80000, 0xFFFFFF])

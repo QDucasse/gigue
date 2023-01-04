@@ -1,13 +1,11 @@
 import pytest
-
+from conftest import ADDRESS
+from conftest import RET_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_RA
 from unicorn.riscv_const import UC_RISCV_REG_T1
 
 from gigue.constants import CALLER_SAVED_REG
 from gigue.pic import PIC
-
-from conftest import ADDRESS
-from conftest import RET_ADDRESS
 
 # =================================
 #              PIC
@@ -73,7 +71,9 @@ def test_switch_instructions_adding(case_nb, method_max_size, disasm_setup):
 @pytest.mark.parametrize("case_nb", range(1, 10))
 @pytest.mark.parametrize("hit_case", range(1, 10))
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
-def test_disassembly_execution(case_nb, method_max_size, hit_case, cap_disasm_setup, uc_emul_full_setup):
+def test_disassembly_execution(
+    case_nb, method_max_size, hit_case, cap_disasm_setup, uc_emul_full_setup
+):
     pic = PIC(
         case_number=case_nb,
         address=ADDRESS,

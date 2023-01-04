@@ -1,10 +1,10 @@
 import pytest
+from conftest import ADDRESS
+from conftest import RET_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_RA
 
 from gigue.constants import CALLER_SAVED_REG
 from gigue.method import Method
-from conftest import ADDRESS
-from conftest import RET_ADDRESS
 
 # =================================
 #             Method
