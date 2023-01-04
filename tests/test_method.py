@@ -123,7 +123,6 @@ def test_instructions_disassembly_execution_smoke(execution_number, weights):
     uc_emul.emu_stop()
 
 
-# TODO
 @pytest.mark.parametrize("execution_number", range(30))
 def test_patch_calls_disassembly_execution(execution_number):
     method = Method(size=7, address=ADDRESS, call_number=3, registers=CALLER_SAVED_REG)
@@ -136,8 +135,8 @@ def test_patch_calls_disassembly_execution(execution_number):
     callee3.add_instructions()
     method.patch_calls([callee1, callee2, callee3])
     bytes_method = method.generate_bytes()
-    for i in cap_disasm.disasm(bytes_method, ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # for i in cap_disasm.disasm(bytes_method, ADDRESS):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     bytes_callee1 = callee1.generate_bytes()
     bytes_callee2 = callee2.generate_bytes()
     bytes_callee3 = callee3.generate_bytes()
@@ -155,7 +154,7 @@ def test_patch_calls_disassembly_execution(execution_number):
     uc_emul.mem_write(0x1100, bytes_callee1)
     uc_emul.mem_write(0x1200, bytes_callee2)
     uc_emul.mem_write(0x1300, bytes_callee3)
-    print(ADDRESS + len(bytes_method))
+    # print(ADDRESS + len(bytes_method))
     uc_emul.emu_start(ADDRESS, ADDRESS + len(bytes_method) - 4)
     uc_emul.emu_stop()
 

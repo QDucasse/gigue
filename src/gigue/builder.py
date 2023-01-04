@@ -111,6 +111,8 @@ class InstructionBuilder:
 
     @staticmethod
     def build_method_call(offset):
+        if offset < 0x8:
+            raise Exception
         offset_low = offset & 0xFFF
         # The right part handles the low offset sign extension (that should be mitigated)
         offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
@@ -124,6 +126,8 @@ class InstructionBuilder:
 
     @staticmethod
     def build_pic_call(offset, hit_case, hit_case_reg):
+        if offset < 0x8:
+            raise Exception
         offset_low = offset & 0xFFF
         # The right part handles the low offset sign extension (that should be mitigated)
         offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
@@ -133,6 +137,8 @@ class InstructionBuilder:
         #     hex(offset_low),
         #     hex(offset_high)
         # ))
+        # 1. Needed case hit
+        # 2/3. Jump to the PC-related PIC location
         return [
             IInstruction.addi(rd=hit_case_reg, rs1=0, imm=hit_case),
             UInstruction.auipc(rd=1, imm=offset_high),
@@ -146,7 +152,7 @@ class InstructionBuilder:
         #   2 - Compare to the current case (should be in x5)
         #   3 - Jump to the corresponding method if equal
         #   4 - Go to the next case if not
-        # TODO: REPLACE WITH BEQ!!!!!
+        # Note: beq is not used to cover a wider range (2Mb rather than 8kb)
         return [
             IInstruction.addi(rd=hit_case_reg, rs1=0, imm=case_number),
             BInstruction.bne(rs1=cmp_reg, rs2=hit_case_reg, imm=8),
@@ -199,3 +205,7 @@ class InstructionBuilder:
         # Jump back to return address
         instructions.append(IInstruction.ret())
         return instructions
+
+    @staticmethod
+    def consolidate_bytes(instructions):
+        return b"".join([instr.generate_bytes() for instr in instructions])
