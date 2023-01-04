@@ -1,13 +1,7 @@
 import pytest
-from capstone import CS_ARCH_RISCV
-from capstone import CS_MODE_RISCV64
-from capstone import Cs
-from unicorn import Uc
-from unicorn.unicorn_const import UC_ARCH_RISCV
-from unicorn.unicorn_const import UC_MODE_RISCV64
+from conftest import ADDRESS
 
 from gigue.constants import INSTRUCTIONS_INFO
-from gigue.disassembler import Disassembler
 from gigue.instructions import BInstruction
 from gigue.instructions import IInstruction
 from gigue.instructions import Instruction
@@ -17,13 +11,8 @@ from gigue.instructions import SInstruction
 from gigue.instructions import UInstruction
 
 # =================================
-#         Disassemblers
+#            Helpers
 # =================================
-
-
-ADDRESS = 0x1000
-disassembler = Disassembler()
-cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
 
 
 def imm_str(immediate):
@@ -75,16 +64,18 @@ def test_instruction_superclass():
         "xor",
     ],
 )
-def test_correct_encoding_rinstr(name):
+def test_correct_encoding_rinstr(name, disasm_setup):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
     mc_instr = instr.generate()
     assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
     assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
-    assert instr.rd == disassembler.extract_rd(mc_instr)
-    assert instr.rs1 == disassembler.extract_rs1(mc_instr)
-    assert instr.rs2 == disassembler.extract_rs2(mc_instr)
-    assert instr.top7 == disassembler.extract_top7(mc_instr)
+    # Disassembly
+    disasm = disasm_setup
+    assert instr.rd == disasm.extract_rd(mc_instr)
+    assert instr.rs1 == disasm.extract_rs1(mc_instr)
+    assert instr.rs2 == disasm.extract_rs2(mc_instr)
+    assert instr.top7 == disasm.extract_top7(mc_instr)
 
 
 @pytest.mark.parametrize(
@@ -110,20 +101,24 @@ def test_correct_encoding_rinstr(name):
         "xor",
     ],
 )
-def test_capstone_rinstr(name):
+def test_capstone_rinstr(name, cap_disasm_setup):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
     bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, t1, t2"
 
 
 @pytest.mark.parametrize("name", ["andr", "orr"])
-def test_capstone_rinstr_special_cases(name):
+def test_capstone_rinstr_special_cases(name, cap_disasm_setup):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
     bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic + "r" == name
     assert instr_disasm.op_str == "t0, t1, t2"
@@ -154,12 +149,12 @@ def test_capstone_rinstr_special_cases(name):
         "xor",
     ],
 )
-def test_unicorn_smoke_rinstr(name):
+def test_unicorn_smoke_rinstr(name, uc_emul_setup):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
     bytes = instr.generate_bytes()
-    uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
-    uc_emul.mem_map(ADDRESS, 2 * 1024 * 1024)
+    # Emulation
+    uc_emul = uc_emul_setup
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, ADDRESS + len(bytes))
     uc_emul.emu_stop()
@@ -190,29 +185,33 @@ def test_unicorn_smoke_rinstr(name):
     ],
 )
 @pytest.mark.parametrize("imm", [0x00, 0x01, 0x1C, 0xFF, 0xFFF])
-def test_correct_encoding_iinstr(name, imm):
+def test_correct_encoding_iinstr(name, imm, disasm_setup):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
     mc_instr = instr.generate()
+    # Disassembly
+    disasm = disasm_setup
     assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
     assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
-    assert instr.rd == disassembler.extract_rd(mc_instr)
-    assert instr.rs1 == disassembler.extract_rs1(mc_instr)
-    assert instr.imm == disassembler.extract_imm_i(mc_instr)
+    assert instr.rd == disasm.extract_rd(mc_instr)
+    assert instr.rs1 == disasm.extract_rs1(mc_instr)
+    assert instr.imm == disasm.extract_imm_i(mc_instr)
 
 
 # TODO: Check
 @pytest.mark.parametrize("name", ["slli", "slliw", "srai", "sraiw", "srli", "srliw"])
 @pytest.mark.parametrize("imm", [0x00, 0x01, 0x1C, 0xFF, 0xFFF])
-def test_correct_encoding_iinstr_shifts(name, imm):
+def test_correct_encoding_iinstr_shifts(name, imm, disasm_setup):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
     mc_instr = instr.generate()
     assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
     assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
-    assert instr.rd == disassembler.extract_rd(mc_instr)
-    assert instr.rs1 == disassembler.extract_rs1(mc_instr)
-    imm_disasm = disassembler.extract_imm_i(mc_instr)
+    # Disassembly
+    disasm = disasm_setup
+    assert instr.rd == disasm.extract_rd(mc_instr)
+    assert instr.rs1 == disasm.extract_rs1(mc_instr)
+    imm_disasm = disasm.extract_imm_i(mc_instr)
     if name.endswith("w"):
         masked_imm = imm_disasm & 0x1F
     else:
@@ -224,10 +223,12 @@ def test_correct_encoding_iinstr_shifts(name, imm):
     "name", ["addi", "addiw", "andi", "jalr", "ori", "slti", "sltiu", "xori"]
 )
 @pytest.mark.parametrize("imm", [0x1C, 0xFF, 0x7FF])
-def test_capstone_iinstr(name, imm):
+def test_capstone_iinstr(name, imm, cap_disasm_setup):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
     bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, t1, " + imm_str(imm)
@@ -235,10 +236,12 @@ def test_capstone_iinstr(name, imm):
 
 @pytest.mark.parametrize("name", ["slli", "slliw", "srai", "sraiw", "srli", "srliw"])
 @pytest.mark.parametrize("imm", [0x0, 0x1, 0xF, 0x1F, 0x3F])
-def test_capstone_iinstr_shifts(name, imm):
+def test_capstone_iinstr_shifts(name, imm, cap_disasm_setup):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
     bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     imm = (imm & 0x1F) if name.endswith("w") else (imm & 0x2F)
@@ -247,10 +250,11 @@ def test_capstone_iinstr_shifts(name, imm):
 
 @pytest.mark.parametrize("name", ["lb", "lbu", "ld", "lh", "lhu"])
 @pytest.mark.parametrize("imm", [0x7FF, 0x1F, 0x7C0])
-def test_capstone_iinstr_loads(name, imm):
+def test_capstone_iinstr_loads(name, imm, cap_disasm_setup):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
     bytes = instr.generate_bytes()
+    cap_disasm = cap_disasm_setup
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, " + imm_str(imm) + "(t1)"
@@ -264,21 +268,25 @@ def test_capstone_iinstr_loads(name, imm):
 # TODO: Check
 @pytest.mark.parametrize("name", ["auipc", "lui"])
 @pytest.mark.parametrize("imm", [0x7FFFFFFF, 0x7FFFF000, 0x00001FFF])
-def test_correct_encoding_uinstr(name, imm):
+def test_correct_encoding_uinstr(name, imm, disasm_setup):
     constr = getattr(UInstruction, name)
     instr = constr(rd=5, imm=imm)
     mc_instr = instr.generate()
     assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
-    assert instr.rd == disassembler.extract_rd(mc_instr)
-    assert instr.imm & 0xFFFFF000 == disassembler.extract_imm_u(mc_instr)
+    # Disassembly
+    disasm = disasm_setup
+    assert instr.rd == disasm.extract_rd(mc_instr)
+    assert instr.imm & 0xFFFFF000 == disasm.extract_imm_u(mc_instr)
 
 
 @pytest.mark.parametrize("name", ["auipc", "lui"])
 @pytest.mark.parametrize("imm", [0x7FFFFFFF, 0x7FFFF000, 0x00001FFF])
-def test_capstone_uinstr(name, imm):
+def test_capstone_uinstr(name, imm, cap_disasm_setup):
     constr = getattr(UInstruction, name)
     instr = constr(rd=5, imm=imm)
     bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, " + imm_str((imm & 0xFFFFF000) >> 12)
@@ -308,21 +316,25 @@ def test_immediate_shuffle(imm, res):
 # TODO: Check
 @pytest.mark.parametrize("name", ["jal"])
 @pytest.mark.parametrize("imm", [0x1FE, 0x1FFE, 0x01FFFE, 0xFFFFE])
-def test_correct_encoding_jinstr(name, imm):
+def test_correct_encoding_jinstr(name, imm, disasm_setup):
     constr = getattr(JInstruction, name)
     instr = constr(rd=5, imm=imm)
     mc_instr = instr.generate()
     assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
-    assert instr.rd == disassembler.extract_rd(mc_instr)
-    assert instr.imm & 0x1FFFFE == disassembler.extract_imm_j(mc_instr)
+    # Disassembly
+    disasm = disasm_setup
+    assert instr.rd == disasm.extract_rd(mc_instr)
+    assert instr.imm & 0x1FFFFE == disasm.extract_imm_j(mc_instr)
 
 
 @pytest.mark.parametrize("name", ["jal"])
 @pytest.mark.parametrize("imm", [0x1FE, 0x1FFE, 0x01FFFE, 0xFFFFE])
-def test_capstone_jinstr(name, imm):
+def test_capstone_jinstr(name, imm, cap_disasm_setup):
     constr = getattr(JInstruction, name)
     instr = constr(rd=5, imm=imm)
     bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, " + imm_str(imm)
@@ -336,23 +348,27 @@ def test_capstone_jinstr(name, imm):
 # TODO: Check
 @pytest.mark.parametrize("name", ["sb", "sd", "sh", "sw"])
 @pytest.mark.parametrize("imm", [0x7FF, 0x1F, 0x7C0])
-def test_correct_encoding_sinstr(name, imm):
+def test_correct_encoding_sinstr(name, imm, disasm_setup):
     constr = getattr(SInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
     mc_instr = instr.generate()
     assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
     assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
-    assert instr.rs1 == disassembler.extract_rs1(mc_instr)
-    assert instr.rs2 == disassembler.extract_rs2(mc_instr)
-    assert instr.imm & 0xFFF == disassembler.extract_imm_s(mc_instr)
+    # Disassembly
+    disasm = disasm_setup
+    assert instr.rs1 == disasm.extract_rs1(mc_instr)
+    assert instr.rs2 == disasm.extract_rs2(mc_instr)
+    assert instr.imm & 0xFFF == disasm.extract_imm_s(mc_instr)
 
 
 @pytest.mark.parametrize("name", ["sb", "sd", "sh", "sw"])
 @pytest.mark.parametrize("imm", [0x7FF, 0x1F, 0x7C0])
-def test_capstone_sinstr(name, imm):
+def test_capstone_sinstr(name, imm, cap_disasm_setup):
     constr = getattr(SInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
     bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t1, " + imm_str(imm) + "(t0)"
@@ -366,24 +382,28 @@ def test_capstone_sinstr(name, imm):
 # Note: Accesses aligned (bit 0 ignored)
 @pytest.mark.parametrize("name", ["beq", "bge", "bgeu", "blt", "bltu", "bne"])
 @pytest.mark.parametrize("imm", [0x7FE, 0x1E, 0x7C0])
-def test_correct_encoding_binstr(name, imm):
+def test_correct_encoding_binstr(name, imm, disasm_setup):
     constr = getattr(BInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
     mc_instr = instr.generate()
     assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
     assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
-    assert instr.rs1 == disassembler.extract_rs1(mc_instr)
-    assert instr.rs2 == disassembler.extract_rs2(mc_instr)
-    assert instr.imm & 0x1FFE == disassembler.extract_imm_b(mc_instr)
+    # Disassembly
+    disasm = disasm_setup
+    assert instr.rs1 == disasm.extract_rs1(mc_instr)
+    assert instr.rs2 == disasm.extract_rs2(mc_instr)
+    assert instr.imm & 0x1FFE == disasm.extract_imm_b(mc_instr)
 
 
 # Note: Accesses aligned (bit 0 ignored)
 @pytest.mark.parametrize("name", ["beq", "bge", "bgeu", "blt", "bltu", "bne"])
 @pytest.mark.parametrize("imm", [0x7FE, 0x1E, 0x7C0])
-def test_capstone_binstr(name, imm):
+def test_capstone_binstr(name, imm, cap_disasm_setup):
     constr = getattr(BInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
     bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, t1, " + imm_str(imm)
