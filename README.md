@@ -49,7 +49,7 @@ riscv64-unknown-linux-gnu-readelf -a jit.elf
 
 They can be disassembled with either of the following:
 ```
-riscv64-unknown-linux-gnu-objdump -m riscv -b binary --adjust-vma=0x1000 -D jit.out
+riscv64-unknown-linux-gnu-objdump -m riscv -b binary --adjust-vma=0x1000 -D jit.elf
 riscv64-unknown-linux-gnu-objdump -m riscv  --adjust-vma=0x1000 -D jit.elf
 ```
 
