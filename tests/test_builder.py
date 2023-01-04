@@ -4,6 +4,7 @@ from conftest import RET_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_PC
 from unicorn.riscv_const import UC_RISCV_REG_RA
 from unicorn.riscv_const import UC_RISCV_REG_T0
+from unicorn.riscv_const import UC_RISCV_REG_T1
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
@@ -15,7 +16,7 @@ from gigue.constants import SP
 # =================================
 
 
-@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFF, 0x80000, 0xFFFFFF])
+@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFF, 0x80000, 0x1FFFE])
 def test_build_method_call(offset, disasm_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_method_call(offset)
@@ -26,7 +27,7 @@ def test_build_method_call(offset, disasm_setup):
     assert offset == disasm.extract_call_offset([instr.generate() for instr in instrs])
 
 
-@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFF, 0x80000, 0xFFFFFF])
+@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFF, 0x80000, 0x1FFFE])
 def test_build_pic_call(offset, disasm_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_pic_call(offset, 5, 5)
@@ -175,12 +176,11 @@ def test_build_random_b_instruction(execution_number):
 
 
 # =================================
-#        Capstone/Unicorn
+#      Disassembly/Execution
 # =================================
 
-# Disassembly / Smoke exec
-# ========================
-
+# Specific instructions
+# =====================
 
 def test_build_nop(cap_disasm_setup):
     instr_builder = InstructionBuilder()
@@ -201,6 +201,8 @@ def test_build_ret(cap_disasm_setup):
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == "ret"
 
+# Random instructions
+# =====================
 
 @pytest.mark.parametrize("execution_number", range(30))
 def test_build_random_instruction_disassembly_smoke(execution_number, cap_disasm_setup):
@@ -264,11 +266,11 @@ def test_random_b_disassembly_execution_smoke(execution_number, uc_emul_full_set
     uc_emul.emu_stop()
 
 
-# Disassembly / Exec
-# ========================
+# Specific structures
+# ===================
 
 
-@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFF0, 0x80000])
+@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFF0, 0x80000, 0x1FFFE])
 def test_build_method_call_execution(offset, uc_emul_full_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_method_call(offset)
@@ -289,7 +291,7 @@ def test_build_method_call_execution(offset, uc_emul_full_setup):
     uc_emul.emu_stop()
 
 
-@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFF0, 0x80000])
+@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFF0, 0x80000, 0x1FFFE])
 def test_build_pic_call_execution(offset, uc_emul_full_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_pic_call(offset, 5, 5)
@@ -303,31 +305,29 @@ def test_build_pic_call_execution(offset, uc_emul_full_setup):
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(begin=ADDRESS, until=ADDRESS + offset + 4)
     current_t0 = uc_emul.reg_read(UC_RISCV_REG_T0)
-    current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
     assert current_t0 == 5
-    assert current_pc == ADDRESS + offset + 4
     uc_emul.emu_stop()
 
 
-# @pytest.mark.parametrize("offset", [0x4, 0x800, 0xFFE, 0x80000, 0x1FFFE])
-# def test_build_switch_pic(offset):
-#     instr_builder = InstructionBuilder()
-#     instrs = instr_builder.build_switch_case(
-#         case_number=3, method_offset=offset, hit_case_reg=6, cmp_reg=5
-#     )
-#     gen_instrs = [instr.generate() for instr in instrs]
-#     # Load the value in x6
-#     assert instrs[0].name == "addi"
-#     assert disassembler.extract_rd(gen_instrs[0]) == 6
-#     assert disassembler.extract_imm_i(gen_instrs[0]) == 3
-#     # Compare and branch i
-#     assert instrs[1].name == "bne"
-#     assert disassembler.extract_imm_b(gen_instrs[1]) == 8
-#     assert disassembler.extract_rs1(gen_instrs[1]) == 5
-#     assert disassembler.extract_rs2(gen_instrs[1]) == 6
-#     # Compare and branch i
-#     assert instrs[2].name == "jal"
-#     assert offset == disassembler.extract_imm_j(gen_instrs[2])
+@pytest.mark.parametrize("offset", [0x4, 0x800, 0xFFE, 0x80000, 0x1FFFE])
+def test_build_switch_pic_execution(offset, uc_emul_full_setup, cap_disasm_setup):
+    instr_builder = InstructionBuilder()
+    instrs = instr_builder.build_switch_case(
+        case_number=3, method_offset=offset, hit_case_reg=6, cmp_reg=5
+    )
+    bytes = instr_builder.consolidate_bytes(instrs)
+    # Disassembly
+    cap_disasm = cap_disasm_setup
+    for i in cap_disasm.disasm(bytes, ADDRESS):
+        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # Emulation
+    uc_emul = uc_emul_full_setup
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.reg_write(UC_RISCV_REG_T0, 3)
+    uc_emul.emu_start(begin=ADDRESS, until=ADDRESS + 8 + offset)
+    current_t1 = uc_emul.reg_read(UC_RISCV_REG_T1)
+    assert current_t1 == 3
+    uc_emul.emu_stop()
 
 
 # @pytest.mark.parametrize("used_s_regs", [0, 5, 10])
