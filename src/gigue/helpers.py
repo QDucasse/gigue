@@ -1,5 +1,41 @@
+# List manipulation
+# =================
+
 def flatten_list(nested_list):
     return [item for sublist in nested_list for item in sublist]
+
+
+# Sign extension
+# ==============
+
+
+def to_signed(value, size):
+    sign_mask = 1 << (size - 1)  # 0b100000...
+    mask = (1 << size) - 1  # 0b01111111...
+    return ((value & mask) ^ sign_mask) - sign_mask
+
+
+def to_unsigned(value, size):
+    if value >= 0:
+        return value
+    mask = (1 << size) - 1  # 0b01111111...
+    return (mask - abs(value) + 1)
+
+
+# Format
+# ======
+
+
+def format_to(value, size):
+    return abs(value) & ((1 << size) - 1)
+
+
+def format_to_aligned(value, size):
+    return abs(value) & ((1 << size) - 2)
+
+
+# Object Dictionary
+# =================
 
 
 class ObjDict(dict):

@@ -1,4 +1,5 @@
 from gigue.constants import find_instr_for_opcode
+from gigue.helpers import to_signed
 
 
 # TODO: Doc
@@ -33,13 +34,13 @@ class Disassembler:
         immediate |= self.extract_info(instruction, 1, 7) << 11
         immediate |= self.extract_info(instruction, 1, 31) << 12
         if sign_extend:
-            return self.sign_extend(immediate, 13)
+            return to_signed(immediate, 13)
         return immediate
 
     def extract_imm_i(self, instruction, sign_extend=DEFAULT_SIGN_EXTENSION):
         immediate = self.extract_info(instruction, 12, 20)
         if sign_extend:
-            return self.sign_extend(immediate, 12)
+            return to_signed(immediate, 12)
         return immediate
 
     def extract_imm_j(self, instruction, sign_extend=DEFAULT_SIGN_EXTENSION):
@@ -49,20 +50,20 @@ class Disassembler:
         immediate |= self.extract_info(instruction, 8, 12) << 12
         immediate |= self.extract_info(instruction, 1, 31) << 20
         if sign_extend:
-            return self.sign_extend(immediate, 21)
+            return to_signed(immediate, 21)
         return immediate
 
     def extract_imm_s(self, instruction, sign_extend=DEFAULT_SIGN_EXTENSION):
         immediate = self.extract_info(instruction, 5, 7)
         immediate |= self.extract_info(instruction, 7, 25) << 5
         if sign_extend:
-            return self.sign_extend(immediate, 12)
+            return to_signed(immediate, 12)
         return immediate
 
     def extract_imm_u(self, instruction, sign_extend=DEFAULT_SIGN_EXTENSION):
         immediate = self.extract_info(instruction, 20, 12) << 12
         if sign_extend:
-            return self.sign_extend(immediate, 32)
+            return to_signed(immediate, 32)
         return immediate
 
     def extract_rd(self, instruction):

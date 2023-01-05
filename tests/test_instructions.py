@@ -9,6 +9,8 @@ from gigue.instructions import JInstruction
 from gigue.instructions import RInstruction
 from gigue.instructions import SInstruction
 from gigue.instructions import UInstruction
+from gigue.helpers import to_unsigned
+from gigue.helpers import to_signed
 
 # =================================
 #            Helpers
@@ -16,14 +18,38 @@ from gigue.instructions import UInstruction
 
 
 def imm_str(immediate):
-    if immediate < 0xA:
+    if -0xA < immediate < 0xA:
         return str(immediate)
     else:
         return hex(immediate)
 
 
 # =================================
-#         R Instructions
+#         Sign Extension
+# =================================
+
+# TODO: Add more examples!
+@pytest.mark.parametrize("value,size,expected", [
+    (-16, 12, 0xFF0),
+    (16, 12, 0x010),
+    (1, 12, 0x001),
+    (2048, 13, 0x800),
+])
+def test_signed_to_unsigned(value, size, expected):
+    assert expected == to_unsigned(value, size)
+
+
+@pytest.mark.parametrize("value,size,expected", [
+    (0xFF0, 12, -16),
+    (0x010, 12, 16),
+    (0x001, 12, 1),
+    (0x800, 13, 2048),
+])
+def test_unsigned_to_signed(value, size, expected):
+    assert expected == to_signed(value, size)
+
+# =================================
+#           Instruction
 # =================================
 
 
@@ -184,7 +210,7 @@ def test_unicorn_smoke_rinstr(name, uc_emul_setup):
         "xori",
     ],
 )
-@pytest.mark.parametrize("imm", [0x00, 0x01, 0x1C, 0xFF, 0xFFF])
+@pytest.mark.parametrize("imm", [0x00, 0x01, 0x1C, 0xFF, 0x7FF, -0x01, -0x1C, -0xFF, -0x7FF])
 def test_correct_encoding_iinstr(name, imm, disasm_setup):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
@@ -200,7 +226,7 @@ def test_correct_encoding_iinstr(name, imm, disasm_setup):
 
 # TODO: Check
 @pytest.mark.parametrize("name", ["slli", "slliw", "srai", "sraiw", "srli", "srliw"])
-@pytest.mark.parametrize("imm", [0x00, 0x01, 0x1C, 0xFF, 0xFFF])
+@pytest.mark.parametrize("imm", [0x00, 0x01, 0x1C, 0xFF, 0x7FF, -0x01, -0x1C, -0xFF, -0x7FF])
 def test_correct_encoding_iinstr_shifts(name, imm, disasm_setup):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
@@ -219,10 +245,11 @@ def test_correct_encoding_iinstr_shifts(name, imm, disasm_setup):
     assert instr.imm == masked_imm
 
 
+# TODO: Special cases 0x00, 0x01, -0x01
 @pytest.mark.parametrize(
     "name", ["addi", "addiw", "andi", "jalr", "ori", "slti", "sltiu", "xori"]
 )
-@pytest.mark.parametrize("imm", [0x1C, 0xFF, 0x7FF])
+@pytest.mark.parametrize("imm", [0x1C, 0xFF, 0x7FF, -0x1C, -0xFF, -0x7FF])
 def test_capstone_iinstr(name, imm, cap_disasm_setup):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
@@ -235,7 +262,7 @@ def test_capstone_iinstr(name, imm, cap_disasm_setup):
 
 
 @pytest.mark.parametrize("name", ["slli", "slliw", "srai", "sraiw", "srli", "srliw"])
-@pytest.mark.parametrize("imm", [0x0, 0x1, 0xF, 0x1F, 0x3F])
+@pytest.mark.parametrize("imm", [0x0, 0x1, 0xF, 0x1F, 0x3F, -0x1, -0xF, -0x1F, -0x3F])
 def test_capstone_iinstr_shifts(name, imm, cap_disasm_setup):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
@@ -249,7 +276,7 @@ def test_capstone_iinstr_shifts(name, imm, cap_disasm_setup):
 
 
 @pytest.mark.parametrize("name", ["lb", "lbu", "ld", "lh", "lhu"])
-@pytest.mark.parametrize("imm", [0x7FF, 0x1F, 0x7C0])
+@pytest.mark.parametrize("imm", [0x0, 0x1, 0xF, 0x1F, 0x7FF, -0x1, -0xF, -0x1F, -0x7FF])
 def test_capstone_iinstr_loads(name, imm, cap_disasm_setup):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
@@ -267,7 +294,7 @@ def test_capstone_iinstr_loads(name, imm, cap_disasm_setup):
 
 # TODO: Check
 @pytest.mark.parametrize("name", ["auipc", "lui"])
-@pytest.mark.parametrize("imm", [0x7FFFFFFF, 0x7FFFF000, 0x00001FFF])
+@pytest.mark.parametrize("imm", [0x00001FFF, 0x7FFFF000, 0x7FFFFFFF, -0x00001FFF, -0x7FFFF000, -0x7FFFFFFF])
 def test_correct_encoding_uinstr(name, imm, disasm_setup):
     constr = getattr(UInstruction, name)
     instr = constr(rd=5, imm=imm)
@@ -280,7 +307,7 @@ def test_correct_encoding_uinstr(name, imm, disasm_setup):
 
 
 @pytest.mark.parametrize("name", ["auipc", "lui"])
-@pytest.mark.parametrize("imm", [0x7FFFFFFF, 0x7FFFF000, 0x00001FFF])
+@pytest.mark.parametrize("imm", [0x00001FFF, 0x7FFFF000, 0x7FFFFFFF, -0x00001FFF, -0x7FFFF000, -0x7FFFFFFF])
 def test_capstone_uinstr(name, imm, cap_disasm_setup):
     constr = getattr(UInstruction, name)
     instr = constr(rd=5, imm=imm)
@@ -315,7 +342,7 @@ def test_immediate_shuffle(imm, res):
 
 # TODO: Check
 @pytest.mark.parametrize("name", ["jal"])
-@pytest.mark.parametrize("imm", [0x1FE, 0x1FFE, 0x01FFFE, 0xFFFFE])
+@pytest.mark.parametrize("imm", [0x0, 0x1, 0x1FF, 0x1FFF, 0x01FFFF, 0xFFFFF, -0x1, -0x1FF, -0x1FFF, -0x01FFFF, -0xFFFFF])
 def test_correct_encoding_jinstr(name, imm, disasm_setup):
     constr = getattr(JInstruction, name)
     instr = constr(rd=5, imm=imm)
@@ -324,11 +351,11 @@ def test_correct_encoding_jinstr(name, imm, disasm_setup):
     # Disassembly
     disasm = disasm_setup
     assert instr.rd == disasm.extract_rd(mc_instr)
-    assert instr.imm & 0x1FFFFE == disasm.extract_imm_j(mc_instr)
+    assert instr.imm == disasm.extract_imm_j(mc_instr)
 
 
 @pytest.mark.parametrize("name", ["jal"])
-@pytest.mark.parametrize("imm", [0x1FE, 0x1FFE, 0x01FFFE, 0xFFFFE])
+@pytest.mark.parametrize("imm", [0x0, 0x1, 0x1FF, 0x1FFF, 0x01FFFF, 0xFFFFF, -0x1, -0x1FF, -0x1FFF, -0x01FFFF, -0xFFFFF])
 def test_capstone_jinstr(name, imm, cap_disasm_setup):
     constr = getattr(JInstruction, name)
     instr = constr(rd=5, imm=imm)
@@ -337,7 +364,8 @@ def test_capstone_jinstr(name, imm, cap_disasm_setup):
     cap_disasm = cap_disasm_setup
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
-    assert instr_disasm.op_str == "t0, " + imm_str(imm)
+    # Ugly way to align the value: pass to unsigned, remove last bit then re-sign the value!
+    assert instr_disasm.op_str == "t0, " + imm_str(to_signed(to_unsigned(imm, 21) & 0x1FFFFE, 21))
 
 
 # =================================
@@ -347,7 +375,7 @@ def test_capstone_jinstr(name, imm, cap_disasm_setup):
 
 # TODO: Check
 @pytest.mark.parametrize("name", ["sb", "sd", "sh", "sw"])
-@pytest.mark.parametrize("imm", [0x7FF, 0x1F, 0x7C0])
+@pytest.mark.parametrize("imm", [0x0, 0x1, 0x1F, 0x7FF, -0x0, -0x1, -0x1F, -0x7FF])
 def test_correct_encoding_sinstr(name, imm, disasm_setup):
     constr = getattr(SInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
@@ -358,7 +386,7 @@ def test_correct_encoding_sinstr(name, imm, disasm_setup):
     disasm = disasm_setup
     assert instr.rs1 == disasm.extract_rs1(mc_instr)
     assert instr.rs2 == disasm.extract_rs2(mc_instr)
-    assert instr.imm & 0xFFF == disasm.extract_imm_s(mc_instr)
+    assert instr.imm == disasm.extract_imm_s(mc_instr)
 
 
 @pytest.mark.parametrize("name", ["sb", "sd", "sh", "sw"])
@@ -381,7 +409,7 @@ def test_capstone_sinstr(name, imm, cap_disasm_setup):
 
 # Note: Accesses aligned (bit 0 ignored)
 @pytest.mark.parametrize("name", ["beq", "bge", "bgeu", "blt", "bltu", "bne"])
-@pytest.mark.parametrize("imm", [0x7FE, 0x1E, 0x7C0])
+@pytest.mark.parametrize("imm", [0x0, 0x1, 0x1F, 0x7FF, -0x1, -0x1F, -0x7FF])
 def test_correct_encoding_binstr(name, imm, disasm_setup):
     constr = getattr(BInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
@@ -392,12 +420,12 @@ def test_correct_encoding_binstr(name, imm, disasm_setup):
     disasm = disasm_setup
     assert instr.rs1 == disasm.extract_rs1(mc_instr)
     assert instr.rs2 == disasm.extract_rs2(mc_instr)
-    assert instr.imm & 0x1FFE == disasm.extract_imm_b(mc_instr)
+    assert instr.imm == disasm.extract_imm_b(mc_instr)
 
 
 # Note: Accesses aligned (bit 0 ignored)
 @pytest.mark.parametrize("name", ["beq", "bge", "bgeu", "blt", "bltu", "bne"])
-@pytest.mark.parametrize("imm", [0x7FE, 0x1E, 0x7C0])
+@pytest.mark.parametrize("imm", [0x0, 0x1, 0x1F, 0x7FF, -0x1, -0x1F, -0x7FF])
 def test_capstone_binstr(name, imm, cap_disasm_setup):
     constr = getattr(BInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
@@ -406,7 +434,7 @@ def test_capstone_binstr(name, imm, cap_disasm_setup):
     cap_disasm = cap_disasm_setup
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
-    assert instr_disasm.op_str == "t0, t1, " + imm_str(imm)
+    assert instr_disasm.op_str == "t0, t1, " + imm_str(to_signed(to_unsigned(imm, 13) & 0x1FFE, 13))
 
 
 if __name__ == "__main__":

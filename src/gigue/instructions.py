@@ -1,12 +1,16 @@
 from gigue.constants import INSTRUCTIONS_INFO
+from gigue.helpers import to_unsigned
+from gigue.helpers import to_signed
+from gigue.helpers import format_to
+from gigue.helpers import format_to_aligned
 
 
 # TODO: Doc
 class Instruction:
     def __init__(self, name, opcode7, top7=0):
         self.name = name
-        self.opcode7 = opcode7
-        self.top7 = top7
+        self.opcode7 = format_to(opcode7, 7)
+        self.top7 = format_to(top7, 7)
         self.machine_instruction = 0
 
     def generate_bytes(self):
@@ -20,10 +24,10 @@ class Instruction:
 class RInstruction(Instruction):
     def __init__(self, name, opcode7, opcode3, rd, rs1, rs2, top7=0):
         super().__init__(name, opcode7, top7)
-        self.opcode3 = opcode3
-        self.rd = rd
-        self.rs1 = rs1
-        self.rs2 = rs2
+        self.opcode3 = format_to(opcode3, 3)
+        self.rd = format_to(rd, 5)
+        self.rs1 = format_to(rs1, 5)
+        self.rs2 = format_to(rs2, 5)
 
     def __str__(self):
         return "<{}, {} {} {}>".format(self.name, self.rd, self.rs1, self.rs2)
@@ -135,10 +139,10 @@ class RInstruction(Instruction):
 class IInstruction(Instruction):
     def __init__(self, name, opcode7, opcode3, rd, rs1, imm, top7=0):
         super().__init__(name, opcode7, top7)
-        self.opcode3 = opcode3
-        self.rd = rd
-        self.rs1 = rs1
-        self.imm = imm
+        self.opcode3 = format_to(opcode3, 3)
+        self.rd = format_to(rd, 5)
+        self.rs1 = format_to(rs1, 5)
+        self.imm = format_to(to_unsigned(imm, 12), 12)
 
     def generate(self):
         self.machine_instruction = self.opcode7
@@ -267,13 +271,13 @@ class IInstruction(Instruction):
 class UInstruction(Instruction):
     def __init__(self, name, opcode7, rd, imm):
         super().__init__(name, opcode7)
-        self.rd = rd
-        self.imm = imm
+        self.rd = format_to(rd, 5)
+        self.imm = format_to(to_unsigned(imm, 32), 32)
 
     def generate(self):
         self.machine_instruction = self.opcode7
         self.machine_instruction |= self.rd << 7
-        self.machine_instruction |= self.imm & 0xFFFFF000
+        self.machine_instruction |= self.imm & 0xFFFFF000  # Keep 20 upper bits
         return self.machine_instruction
 
     @classmethod
@@ -294,8 +298,8 @@ class UInstruction(Instruction):
 class JInstruction(Instruction):
     def __init__(self, name, opcode7, rd, imm):
         super().__init__(name, opcode7)
-        self.rd = rd
-        self.imm = imm
+        self.rd = format_to(rd, 5)
+        self.imm = format_to_aligned(to_unsigned(imm, 21), 21)
 
     def shuffle_imm(self):
         # imm[20 | 10:1 | 11 | 19:12]
@@ -329,18 +333,26 @@ class JInstruction(Instruction):
 class SInstruction(Instruction):
     def __init__(self, name, opcode7, opcode3, rs1, rs2, imm):
         super().__init__(name, opcode7)
-        self.opcode3 = opcode3
-        self.rs1 = rs1
-        self.rs2 = rs2
-        self.imm = imm
+        self.opcode3 = format_to(opcode3, 3)
+        self.rs1 = format_to(rs1, 5)
+        self.rs2 = format_to(rs2, 5)
+        self.imm = format_to(to_unsigned(imm, 12), 12)
+
+    def shuffle_imm(self):
+        # imm1: imm[4:0]
+        shuffle1 = (self.imm & 0x1F) << 7
+        # imm2: imm[11:5]
+        shuffle2 = ((self.imm & 0xFE0) >> 5) << 25
+        return shuffle1, shuffle2
 
     def generate(self):
+        shuffle1, shuffle2 = self.shuffle_imm()
         self.machine_instruction = self.opcode7
-        self.machine_instruction |= (self.imm & 0x1F) << 7
+        self.machine_instruction |= shuffle1
         self.machine_instruction |= self.opcode3 << 12
         self.machine_instruction |= self.rs1 << 15
         self.machine_instruction |= self.rs2 << 20
-        self.machine_instruction |= ((self.imm & 0xFE0) >> 5) << 25
+        self.machine_instruction |= shuffle2
         return self.machine_instruction
 
     @classmethod
@@ -376,10 +388,10 @@ class SInstruction(Instruction):
 class BInstruction(Instruction):
     def __init__(self, name, opcode7, opcode3, rs1, rs2, imm):
         super().__init__(name, opcode7)
-        self.opcode3 = opcode3
-        self.rs1 = rs1
-        self.rs2 = rs2
-        self.imm = imm
+        self.opcode3 = format_to(opcode3, 3)
+        self.rs1 = format_to(rs1, 5)
+        self.rs2 = format_to(rs2, 5)
+        self.imm = format_to_aligned(to_unsigned(imm, 13), 13)
 
     def shuffle_imm(self):
         # imm1: imm[12|10:5]
