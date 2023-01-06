@@ -491,8 +491,10 @@ if __name__ == "__main__":
     from capstone import CS_MODE_RISCV64
     from capstone import Cs
 
+    from gigue.helpers import int_to_bytes
+
     add = RInstruction.add(rd=5, rs1=6, rs2=7)
-    code = add.generate().to_bytes(4, "little")
+    code = int_to_bytes(add.generate())
     print(code)
     md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
 

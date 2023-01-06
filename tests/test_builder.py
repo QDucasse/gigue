@@ -22,6 +22,8 @@ from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import RA
 from gigue.constants import SP
+from gigue.helpers import bytes_to_int
+from gigue.helpers import int_to_bytes
 
 # =================================
 #        Specific structures
@@ -378,10 +380,10 @@ def test_build_prologue_execution(
     current_sp = uc_emul.reg_read(UC_RISCV_REG_SP)
     for i in range(used_s_regs):
         tmp = uc_emul.mem_read(current_sp + i * 4, 4)
-        assert int.from_bytes(tmp, "little") == i + 1
+        assert bytes_to_int(tmp) == i + 1
     if contains_call:
         tmp = uc_emul.mem_read(current_sp + used_s_regs * 4, 4)
-        assert int.from_bytes(tmp, "little") == RET_ADDRESS
+        assert bytes_to_int(tmp) == RET_ADDRESS
     uc_emul.emu_stop()
 
 
@@ -420,19 +422,25 @@ def test_build_epilogue_execution(
         uc_emul.reg_write(reg, 0x0)
     # Write values at addresses
     for i in range(used_s_regs):
-        uc_emul.mem_write(STACK_ADDRESS + i * 4, (i + 1).to_bytes(4, "little"))
+        uc_emul.mem_write(STACK_ADDRESS + i * 4, int_to_bytes(i + 1))
     # Previously saved RA
     called_address = RET_ADDRESS - 24
     if contains_call:
-        uc_emul.mem_write(STACK_ADDRESS + used_s_regs * 4, (called_address).to_bytes(4, "little"))
+        uc_emul.mem_write(STACK_ADDRESS + used_s_regs * 4, int_to_bytes(called_address))
     # Launch emulation
-    uc_emul.emu_start(begin=ADDRESS, until=(called_address if contains_call else RET_ADDRESS))
+    uc_emul.emu_start(
+        begin=ADDRESS, until=(called_address if contains_call else RET_ADDRESS)
+    )
     # Check registers
     for i, reg in enumerate(callee_saved_regs[:used_s_regs]):
         tmp = uc_emul.reg_read(reg)
         assert tmp == i + 1
     current_sp = uc_emul.reg_read(UC_RISCV_REG_SP)
     current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-    assert current_sp == STACK_ADDRESS + (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+    assert (
+        current_sp
+        == STACK_ADDRESS
+        + (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+    )
     assert current_pc == called_address if contains_call else RET_ADDRESS
     uc_emul.emu_stop()

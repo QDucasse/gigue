@@ -1,6 +1,7 @@
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.helpers import format_to
 from gigue.helpers import format_to_aligned
+from gigue.helpers import int_to_bytes
 from gigue.helpers import to_unsigned
 
 
@@ -13,7 +14,7 @@ class Instruction:
         self.machine_instruction = 0
 
     def generate_bytes(self):
-        return self.generate().to_bytes(4, "little")
+        return int_to_bytes(self.generate())
 
     def generate(self):
         raise NotImplementedError("Please Implement this method")
