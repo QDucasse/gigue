@@ -162,7 +162,7 @@ class InstructionBuilder:
     @staticmethod
     def build_prologue(used_s_regs, local_var_nb, contains_call):
         # An example prologue would be:
-        # addi sp sp -16
+        # addi sp sp -16 (+local vars)
         # sw s0 0(sp)
         # sw s1 4(sp)
         # sw s2 8(sp)
@@ -188,7 +188,7 @@ class InstructionBuilder:
         # lw s1 4(sp
         # lw s2 8(sp
         # lw ra 12(sp)
-        # addi sp sp 16
+        # addi sp sp 16 (+local vars)
         # jr ra
         instructions = []
         stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4

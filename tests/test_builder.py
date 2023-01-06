@@ -1,11 +1,9 @@
 import pytest
 from conftest import ADDRESS
 from conftest import RET_ADDRESS
+from conftest import STACK_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_PC
-from unicorn.riscv_const import UC_RISCV_REG_SP
 from unicorn.riscv_const import UC_RISCV_REG_RA
-from unicorn.riscv_const import UC_RISCV_REG_T0
-from unicorn.riscv_const import UC_RISCV_REG_T1
 from unicorn.riscv_const import UC_RISCV_REG_S0
 from unicorn.riscv_const import UC_RISCV_REG_S1
 from unicorn.riscv_const import UC_RISCV_REG_S2
@@ -16,7 +14,9 @@ from unicorn.riscv_const import UC_RISCV_REG_S6
 from unicorn.riscv_const import UC_RISCV_REG_S7
 from unicorn.riscv_const import UC_RISCV_REG_S8
 from unicorn.riscv_const import UC_RISCV_REG_S9
-
+from unicorn.riscv_const import UC_RISCV_REG_SP
+from unicorn.riscv_const import UC_RISCV_REG_T0
+from unicorn.riscv_const import UC_RISCV_REG_T1
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
@@ -378,7 +378,6 @@ def test_build_prologue_execution(
     current_sp = uc_emul.reg_read(UC_RISCV_REG_SP)
     for i in range(used_s_regs):
         tmp = uc_emul.mem_read(current_sp + i * 4, 4)
-        print(tmp)
         assert int.from_bytes(tmp, "little") == i + 1
     if contains_call:
         tmp = uc_emul.mem_read(current_sp + used_s_regs * 4, 4)
@@ -386,32 +385,54 @@ def test_build_prologue_execution(
     uc_emul.emu_stop()
 
 
-# @pytest.mark.parametrize("used_s_regs", [0, 5, 10])
-# @pytest.mark.parametrize("local_var_nb", [0, 5, 10])
-# @pytest.mark.parametrize("contains_call", [True, False])
-# def test_build_epilogue(used_s_regs, local_var_nb, contains_call):
-#     instr_builder = InstructionBuilder()
-#     instrs = instr_builder.build_epilogue(
-#         used_s_regs=used_s_regs, local_var_nb=local_var_nb, contains_call=contains_call
-#     )
-#     gen_instrs = [instr.generate() for instr in instrs]
-#     # Restore saved regs
-#     for i, (instr, generated) in enumerate(zip(instrs[:-2], gen_instrs[:-2])):
-#         assert instr.name == "lw"
-#         assert disassembler.extract_imm_i(generated) == i * 4
-#     # RA check and restore
-#     if contains_call:
-#         assert instrs[used_s_regs].name == "lw"
-#         assert disassembler.extract_imm_i(gen_instrs[used_s_regs]) == used_s_regs * 4
-#         assert disassembler.extract_rd(gen_instrs[used_s_regs]) == RA
-#         assert disassembler.extract_rs1(gen_instrs[used_s_regs]) == SP
-#     # Restore SP
-#     assert instrs[-2].name == "addi"
-#     assert (
-#         disassembler.extract_imm_i(gen_instrs[-2])
-#         == (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
-#     )
-#     # Jump check
-#     assert instrs[-1].name == "jalr"
-#     assert instrs[-1].rd == 0
-#     assert instrs[-1].rs1 == 1
+@pytest.mark.parametrize("used_s_regs", [0, 5, 10])
+@pytest.mark.parametrize("local_var_nb", [0, 5, 10])
+@pytest.mark.parametrize("contains_call", [True, False])
+def test_build_epilogue_execution(
+    used_s_regs, local_var_nb, contains_call, uc_emul_full_setup, cap_disasm_setup
+):
+    instr_builder = InstructionBuilder()
+    instrs = instr_builder.build_epilogue(
+        used_s_regs=used_s_regs, local_var_nb=local_var_nb, contains_call=contains_call
+    )
+    bytes = instr_builder.consolidate_bytes(instrs)
+    # Disassembly
+    cap_disasm = cap_disasm_setup
+    for i in cap_disasm.disasm(bytes, ADDRESS):
+        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # Emulation
+    uc_emul = uc_emul_full_setup
+    uc_emul.mem_write(ADDRESS, bytes)
+    # Zero out callee saved regs
+    callee_saved_regs = [
+        UC_RISCV_REG_S0,
+        UC_RISCV_REG_S1,
+        UC_RISCV_REG_S2,
+        UC_RISCV_REG_S3,
+        UC_RISCV_REG_S4,
+        UC_RISCV_REG_S5,
+        UC_RISCV_REG_S6,
+        UC_RISCV_REG_S7,
+        UC_RISCV_REG_S8,
+        UC_RISCV_REG_S9,
+    ]
+    for reg in callee_saved_regs:
+        uc_emul.reg_write(reg, 0x0)
+    # Write values at addresses
+    for i in range(used_s_regs):
+        uc_emul.mem_write(STACK_ADDRESS + i * 4, (i + 1).to_bytes(4, "little"))
+    # Previously saved RA
+    called_address = RET_ADDRESS - 24
+    if contains_call:
+        uc_emul.mem_write(STACK_ADDRESS + used_s_regs * 4, (called_address).to_bytes(4, "little"))
+    # Launch emulation
+    uc_emul.emu_start(begin=ADDRESS, until=(called_address if contains_call else RET_ADDRESS))
+    # Check registers
+    for i, reg in enumerate(callee_saved_regs[:used_s_regs]):
+        tmp = uc_emul.reg_read(reg)
+        assert tmp == i + 1
+    current_sp = uc_emul.reg_read(UC_RISCV_REG_SP)
+    current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+    assert current_sp == STACK_ADDRESS + (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+    assert current_pc == called_address if contains_call else RET_ADDRESS
+    uc_emul.emu_stop()
