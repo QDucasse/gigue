@@ -4,6 +4,7 @@ from capstone import CS_MODE_RISCV64
 from capstone import Cs
 from unicorn import Uc
 from unicorn.riscv_const import UC_RISCV_REG_RA
+from unicorn.riscv_const import UC_RISCV_REG_SP
 from unicorn.unicorn_const import UC_ARCH_RISCV
 from unicorn.unicorn_const import UC_MODE_RISCV64
 
@@ -12,6 +13,7 @@ from gigue.disassembler import Disassembler
 from gigue.instructions import IInstruction
 
 ADDRESS = 0x1000
+STACK_ADDRESS = 0x9000
 RET_ADDRESS = 0xBEE0
 
 
@@ -45,4 +47,6 @@ def uc_emul_full_setup(uc_emul_setup):
         uc_emul.reg_write(reg, 0)
     # Write RET ADDRESS in RA
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
+    # Write STACK ADDRESS in SP
+    uc_emul.reg_write(UC_RISCV_REG_SP, STACK_ADDRESS)
     return uc_emul

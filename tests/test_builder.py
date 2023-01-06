@@ -2,9 +2,21 @@ import pytest
 from conftest import ADDRESS
 from conftest import RET_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_PC
+from unicorn.riscv_const import UC_RISCV_REG_SP
 from unicorn.riscv_const import UC_RISCV_REG_RA
 from unicorn.riscv_const import UC_RISCV_REG_T0
 from unicorn.riscv_const import UC_RISCV_REG_T1
+from unicorn.riscv_const import UC_RISCV_REG_S0
+from unicorn.riscv_const import UC_RISCV_REG_S1
+from unicorn.riscv_const import UC_RISCV_REG_S2
+from unicorn.riscv_const import UC_RISCV_REG_S3
+from unicorn.riscv_const import UC_RISCV_REG_S4
+from unicorn.riscv_const import UC_RISCV_REG_S5
+from unicorn.riscv_const import UC_RISCV_REG_S6
+from unicorn.riscv_const import UC_RISCV_REG_S7
+from unicorn.riscv_const import UC_RISCV_REG_S8
+from unicorn.riscv_const import UC_RISCV_REG_S9
+
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
@@ -89,7 +101,7 @@ def test_build_prologue(used_s_regs, local_var_nb, contains_call, disasm_setup):
     if contains_call:
         assert instrs[-1].name == "sw"
         assert disasm.extract_imm_s(gen_instrs[-1]) == used_s_regs * 4
-        assert disasm.extract_rs1(instrs[-1].generate()) == 1
+        assert disasm.extract_rs2(instrs[-1].generate()) == 1
 
 
 @pytest.mark.parametrize("used_s_regs", [0, 5, 10])
@@ -182,6 +194,7 @@ def test_build_random_b_instruction(execution_number):
 # Specific instructions
 # =====================
 
+
 def test_build_nop(cap_disasm_setup):
     instr_builder = InstructionBuilder()
     instr = instr_builder.build_nop()
@@ -201,8 +214,10 @@ def test_build_ret(cap_disasm_setup):
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == "ret"
 
+
 # Random instructions
 # =====================
+
 
 @pytest.mark.parametrize("execution_number", range(30))
 def test_build_random_instruction_disassembly_smoke(execution_number, cap_disasm_setup):
@@ -330,30 +345,45 @@ def test_build_switch_pic_execution(offset, uc_emul_full_setup, cap_disasm_setup
     uc_emul.emu_stop()
 
 
-# @pytest.mark.parametrize("used_s_regs", [0, 5, 10])
-# @pytest.mark.parametrize("local_var_nb", [0, 5, 10])
-# @pytest.mark.parametrize("contains_call", [True, False])
-# def test_build_prologue(used_s_regs, local_var_nb, contains_call):
-#     instr_builder = InstructionBuilder()
-#     instrs = instr_builder.build_prologue(
-#         used_s_regs=used_s_regs, local_var_nb=local_var_nb, contains_call=contains_call
-#     )
-#     gen_instrs = [instr.generate() for instr in instrs]
-#     # Space on top of the stack
-#     assert instrs[0].name == "addi"
-#     assert (
-#         disassembler.extract_imm_i(gen_instrs[0], sign_extend=True)
-#         == -(used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
-#     )
-#     # Filling of the stack
-#     for i, (instr, generated) in enumerate(zip(instrs[1:-1], gen_instrs[1:-1])):
-#         assert instr.name == "sw"
-#         assert disassembler.extract_imm_s(generated) == i * 4
-#     # RA check
-#     if contains_call:
-#         assert instrs[-1].name == "sw"
-#         assert disassembler.extract_imm_s(gen_instrs[-1]) == used_s_regs * 4
-#         assert disassembler.extract_rs1(instrs[-1].generate()) == 1
+@pytest.mark.parametrize("used_s_regs", [0, 5, 10])
+@pytest.mark.parametrize("local_var_nb", [0, 5, 10])
+@pytest.mark.parametrize("contains_call", [True, False])
+def test_build_prologue_execution(
+    used_s_regs, local_var_nb, contains_call, uc_emul_full_setup, cap_disasm_setup
+):
+    instr_builder = InstructionBuilder()
+    instrs = instr_builder.build_prologue(
+        used_s_regs=used_s_regs, local_var_nb=local_var_nb, contains_call=contains_call
+    )
+    bytes = instr_builder.consolidate_bytes(instrs)
+    # Disassembly
+    cap_disasm = cap_disasm_setup
+    for i in cap_disasm.disasm(bytes, ADDRESS):
+        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # Emulation
+    uc_emul = uc_emul_full_setup
+    uc_emul.mem_write(ADDRESS, bytes)
+    # Write in callee-saved regs
+    uc_emul.reg_write(UC_RISCV_REG_S0, 0x1)
+    uc_emul.reg_write(UC_RISCV_REG_S1, 0x2)
+    uc_emul.reg_write(UC_RISCV_REG_S2, 0x3)
+    uc_emul.reg_write(UC_RISCV_REG_S3, 0x4)
+    uc_emul.reg_write(UC_RISCV_REG_S4, 0x5)
+    uc_emul.reg_write(UC_RISCV_REG_S5, 0x6)
+    uc_emul.reg_write(UC_RISCV_REG_S6, 0x7)
+    uc_emul.reg_write(UC_RISCV_REG_S7, 0x8)
+    uc_emul.reg_write(UC_RISCV_REG_S8, 0x9)
+    uc_emul.reg_write(UC_RISCV_REG_S9, 0xA)
+    uc_emul.emu_start(begin=ADDRESS, until=ADDRESS + len(bytes))
+    current_sp = uc_emul.reg_read(UC_RISCV_REG_SP)
+    for i in range(used_s_regs):
+        tmp = uc_emul.mem_read(current_sp + i * 4, 4)
+        print(tmp)
+        assert int.from_bytes(tmp, "little") == i + 1
+    if contains_call:
+        tmp = uc_emul.mem_read(current_sp + used_s_regs * 4, 4)
+        assert int.from_bytes(tmp, "little") == RET_ADDRESS
+    uc_emul.emu_stop()
 
 
 # @pytest.mark.parametrize("used_s_regs", [0, 5, 10])

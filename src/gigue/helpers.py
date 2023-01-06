@@ -1,6 +1,7 @@
 # List manipulation
 # =================
 
+
 def flatten_list(nested_list):
     return [item for sublist in nested_list for item in sublist]
 
@@ -19,7 +20,7 @@ def to_unsigned(value, size):
     if value >= 0:
         return value
     mask = (1 << size) - 1  # 0b01111111...
-    return (mask - abs(value) + 1)
+    return mask - abs(value) + 1
 
 
 # Format

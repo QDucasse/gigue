@@ -1,8 +1,7 @@
 from gigue.constants import INSTRUCTIONS_INFO
-from gigue.helpers import to_unsigned
-from gigue.helpers import to_signed
 from gigue.helpers import format_to
 from gigue.helpers import format_to_aligned
+from gigue.helpers import to_unsigned
 
 
 # TODO: Doc

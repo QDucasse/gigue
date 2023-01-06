@@ -174,11 +174,11 @@ class InstructionBuilder:
         # Store any saved registers used
         for i in range(used_s_regs):
             instructions.append(
-                SInstruction.sw(rs1=CALLEE_SAVED_REG[i], rs2=SP, imm=i * 4)
+                SInstruction.sw(rs1=SP, rs2=CALLEE_SAVED_REG[i], imm=i * 4)
             )
         # Store ra is a function call is made
         if contains_call:
-            instructions.append(SInstruction.sw(rs1=RA, rs2=SP, imm=used_s_regs * 4))
+            instructions.append(SInstruction.sw(rs1=SP, rs2=RA, imm=used_s_regs * 4))
         return instructions
 
     @staticmethod
