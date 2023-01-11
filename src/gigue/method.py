@@ -24,17 +24,35 @@ def raise_call_patch_recursive_error(method, callees):
 
 
 class Method:
-    def __init__(self, size: int, call_number: int, address: int, registers: List[int]):
+    def __init__(
+        self,
+        address: int,
+        body_size: int,
+        call_number: int,
+        registers: List[int],
+        call_depth: int = 1,
+        used_s_regs: int = 1,
+        local_vars_nb: int = 2,
+    ):
         self.address = address
-        self.size = size
+        self.body_size = body_size
+        self.call_depth = call_depth
+        self.used_s_regs = used_s_regs
+        self.local_vars_nb = local_vars_nb
 
         # The calls will be added once random instructions are generated to
         # fill the method body. As a call takes two instructions and the method
-        # should end with a ret, the max number of calls is (size -1) // 2 for
-        # a given method size.
-        if call_number > (size - 1) // 2:
-            raise_call_number_value_error(call_number, size)
+        # should end with a ret, the max number of calls is (body_size -1) // 2 for
+        # a given method body size.
+
+        if call_number > (body_size - 1) // 2:
+            raise_call_number_value_error(call_number, body_size)
         self.call_number = call_number
+        self.call_depth = call_depth
+
+        self.is_leaf = self.call_number == 0
+        self.prologue_size = None
+        self.epilogue_size = None
 
         self.registers = registers
 
@@ -44,24 +62,45 @@ class Method:
         self.machine_code: List[int] = []
         self.bytes = b""
 
+    def total_size(self):
+        if self.prologue_size is None or self.epilogue_size is None:
+            raise ValueError
+        return self.body_size + self.prologue_size + self.epilogue_size
+
     def fill_with_nops(self):
-        for _ in range(self.address, self.address + self.size * 4, 4):
+        for _ in range(self.body_size):
             self.instructions.append(self.builder.build_nop())
 
-    def add_instructions(self, weights=None):
+    def fill_with_instructions(self, weights=None):
         # Weights = [R, I, U, J, B]
         if weights is None:
             weights = INSTRUCTION_WEIGHTS
-        for current_address in range(
-            self.address, self.address + (self.size - 1) * 4, 4
-        ):
+        # Generate prologue
+        # print("______________________________")
+        # print("Generating method")
+        # print(f"Initial: {[ins.__class__.__name__ for ins in self.instructions]}")
+        prologue_instructions = self.builder.build_prologue(
+            self.used_s_regs, self.local_vars_nb, not self.is_leaf
+        )
+        self.instructions += prologue_instructions
+        # print(f"+Prologue: {[ins.__class__.__name__ for ins in self.instructions]}")
+        self.prologue_size = len(prologue_instructions)
+        for _ in range(self.body_size):
             # Add random instructions
-            max_offset = self.address + self.size * 4 - current_address
+            max_offset = (self.body_size - len(self.instructions)) * 4
             instruction = self.builder.build_random_instruction(
                 self.registers, max_offset, weights
             )
             self.instructions.append(instruction)
-        self.instructions.append(self.builder.build_ret())
+        # print(f"+Body: {[ins.__class__.__name__ for ins in self.instructions]}")
+        # Generate epilogue
+        epilogue_instructions = self.builder.build_epilogue(
+            self.used_s_regs, self.local_vars_nb, not self.is_leaf
+        )
+        self.instructions += epilogue_instructions
+        # print(f"+Epilogue: {[ins.__class__.__name__ for ins in self.instructions]}")
+        self.epilogue_size = len(epilogue_instructions)
+        # print(f"instr: {len(self.instructions)}, {self.body_size + self.prologue_size + self.epilogue_size} ")
 
     def generate(self):
         self.machine_code = [
@@ -90,7 +129,7 @@ class Method:
 
         replacement_nb = min(len(callees), self.call_number)
         # Replace random parts of the method with calls to chosen callees
-        indexes = random.sample(range(0, self.size - 1, 2), replacement_nb)
+        indexes = random.sample(range(0, self.body_size - 1, 2), replacement_nb)
         for ind, callee in zip(indexes, self.callees):
             # Compute the offset:
             #    address + (ind + 1) * 4

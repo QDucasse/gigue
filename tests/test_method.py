@@ -12,19 +12,19 @@ from gigue.method import Method
 
 
 def test_initialization():
-    method = Method(size=32, address=0x7FFFFF, call_number=15, registers=[])
-    assert method.size == 32
+    method = Method(address=0x7FFFFF, body_size=32, call_number=15, registers=[])
+    assert method.body_size == 32
     assert method.address == 0x7FFFFF
     assert method.call_number == 15
 
 
 def test_error_initialization():
     with pytest.raises(ValueError):
-        Method(size=28, address=0x7FFFFF, call_number=15, registers=[])
+        Method(address=0x7FFFFF, body_size=28, call_number=15, registers=[])
 
 
 def test_fill_with_nops(cap_disasm_setup):
-    method = Method(size=32, address=0x7FFFFF, call_number=15, registers=[])
+    method = Method(address=0x7FFFFF, body_size=32, call_number=15, registers=[])
     method.fill_with_nops()
     bytes = method.generate_bytes()
     # Disassembly
@@ -34,47 +34,96 @@ def test_fill_with_nops(cap_disasm_setup):
 
 
 @pytest.mark.parametrize("execution_number", range(5))
-def test_instructions_adding(execution_number):
-    method = Method(size=32, address=0x1000, call_number=15, registers=CALLER_SAVED_REG)
-    method.add_instructions()
-    assert len(method.instructions) == method.size
+@pytest.mark.parametrize("used_s_regs", [0, 5, 10])
+@pytest.mark.parametrize("call_number", [0, 1, 2])
+def test_instructions_filling(
+    execution_number, used_s_regs, call_number, cap_disasm_setup
+):
+    method = Method(
+        address=0x1000,
+        body_size=6,
+        call_number=call_number,
+        registers=CALLER_SAVED_REG,
+        used_s_regs=used_s_regs,
+    )
+    method.fill_with_instructions()
+    # instructions contain: method body + s_regs load/store + ra load/store if not leaf
+    #                          + stack sizing (allocation) + ret
+    size_expected = (
+        method.body_size
+        + 2 * (method.used_s_regs + (1 if not method.is_leaf else 0))
+        + 2
+        + 1
+    )
+    assert method.total_size() == size_expected
+    assert len(method.instructions) == size_expected
+    assert len(method.generate()) == size_expected
+    assert len(method.generate_bytes()) == size_expected * 4
 
 
-# TODO
+# =================================
+#         Call Patching
+# =================================
+
+
+# TODO:
 def test_patch_calls():
-    method = Method(size=7, address=0x1000, call_number=3, registers=CALLER_SAVED_REG)
-    callee1 = Method(size=2, address=0x1100, call_number=0, registers=CALLER_SAVED_REG)
-    callee2 = Method(size=2, address=0x1200, call_number=0, registers=CALLER_SAVED_REG)
-    callee3 = Method(size=2, address=0x1300, call_number=0, registers=CALLER_SAVED_REG)
-    method.add_instructions()
-    callee1.add_instructions()
-    callee2.add_instructions()
-    callee3.add_instructions()
+    method = Method(
+        address=0x1000, body_size=7, call_number=3, registers=CALLER_SAVED_REG
+    )
+    callee1 = Method(
+        address=0x1100, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+    )
+    callee2 = Method(
+        address=0x1200, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+    )
+    callee3 = Method(
+        address=0x1300, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+    )
+    method.fill_with_instructions()
+    callee1.fill_with_instructions()
+    callee2.fill_with_instructions()
+    callee3.fill_with_instructions()
     method.patch_calls([callee1, callee2, callee3])
 
 
-# TODO
+# TODO:
 def test_patch_calls_check_recursive_loop_call():
-    method = Method(size=7, address=0x1000, call_number=3, registers=CALLER_SAVED_REG)
-    callee1 = Method(size=2, address=0x1100, call_number=0, registers=CALLER_SAVED_REG)
-    callee2 = Method(size=2, address=0x1200, call_number=0, registers=CALLER_SAVED_REG)
-    method.add_instructions()
-    callee1.add_instructions()
-    callee2.add_instructions()
+    method = Method(
+        address=0x1000, body_size=7, call_number=3, registers=CALLER_SAVED_REG
+    )
+    callee1 = Method(
+        address=0x1100, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+    )
+    callee2 = Method(
+        address=0x1200, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+    )
+    method.fill_with_instructions()
+    callee1.fill_with_instructions()
+    callee2.fill_with_instructions()
     with pytest.raises(ValueError):
         method.patch_calls([callee1, callee2, method])
 
 
-# TODO
+# TODO:
 def test_patch_calls_check_mutual_loop_call():
-    method = Method(size=3, address=0x1000, call_number=1, registers=CALLER_SAVED_REG)
-    callee = Method(size=3, address=0x1100, call_number=1, registers=CALLER_SAVED_REG)
-    method.add_instructions()
-    callee.add_instructions()
+    method = Method(
+        address=0x1000, body_size=3, call_number=1, registers=CALLER_SAVED_REG
+    )
+    callee = Method(
+        address=0x1100, body_size=3, call_number=1, registers=CALLER_SAVED_REG
+    )
+    method.fill_with_instructions()
+    callee.fill_with_instructions()
     method.patch_calls([callee])
     callee.patch_calls([method])
     assert method.callees == [callee]
     assert callee.callees == []
+
+
+# =================================
+#         Execution tests
+# =================================
 
 
 @pytest.mark.parametrize("execution_number", range(30))
@@ -90,10 +139,12 @@ def test_patch_calls_check_mutual_loop_call():
     ],
 )
 def test_instructions_disassembly_execution_smoke(
-    execution_number, weights, cap_disasm_setup, uc_emul_setup
+    execution_number, weights, cap_disasm_setup, uc_emul_full_setup
 ):
-    method = Method(size=10, address=0x1000, call_number=3, registers=CALLER_SAVED_REG)
-    method.add_instructions(weights)
+    method = Method(
+        address=0x1000, body_size=10, call_number=3, registers=CALLER_SAVED_REG
+    )
+    method.fill_with_instructions(weights)
     bytes = method.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
@@ -101,7 +152,7 @@ def test_instructions_disassembly_execution_smoke(
     # for i in cap_disasm.disasm(bytes, ADDRESS):
     #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Emulation
-    uc_emul = uc_emul_setup
+    uc_emul = uc_emul_full_setup
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, RET_ADDRESS)
@@ -110,14 +161,22 @@ def test_instructions_disassembly_execution_smoke(
 
 @pytest.mark.parametrize("execution_number", range(30))
 def test_patch_calls_disassembly_execution(execution_number, uc_emul_full_setup):
-    method = Method(size=7, address=ADDRESS, call_number=3, registers=CALLER_SAVED_REG)
-    callee1 = Method(size=2, address=0x1100, call_number=0, registers=CALLER_SAVED_REG)
-    callee2 = Method(size=2, address=0x1200, call_number=0, registers=CALLER_SAVED_REG)
-    callee3 = Method(size=2, address=0x1300, call_number=0, registers=CALLER_SAVED_REG)
-    method.add_instructions()
-    callee1.add_instructions()
-    callee2.add_instructions()
-    callee3.add_instructions()
+    method = Method(
+        address=ADDRESS, body_size=7, call_number=3, registers=CALLER_SAVED_REG
+    )
+    callee1 = Method(
+        address=0x1100, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+    )
+    callee2 = Method(
+        address=0x1200, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+    )
+    callee3 = Method(
+        address=0x1300, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+    )
+    method.fill_with_instructions()
+    callee1.fill_with_instructions()
+    callee2.fill_with_instructions()
+    callee3.fill_with_instructions()
     method.patch_calls([callee1, callee2, callee3])
     bytes_method = method.generate_bytes()
     # Disassembly
@@ -148,11 +207,19 @@ if __name__ == "__main__":
     from gigue.instructions import IInstruction
 
     cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
-    method = Method(size=32, address=0x1000, call_number=3, registers=CALLER_SAVED_REG)
-    callee1 = Method(size=2, address=0x1100, call_number=0, registers=CALLER_SAVED_REG)
-    callee2 = Method(size=2, address=0x1200, call_number=0, registers=CALLER_SAVED_REG)
-    callee3 = Method(size=2, address=0x1300, call_number=0, registers=CALLER_SAVED_REG)
-    method.add_instructions(weights=[35, 40, 10, 5, 10])
+    method = Method(
+        address=0x1000, body_size=32, call_number=3, registers=CALLER_SAVED_REG
+    )
+    callee1 = Method(
+        address=0x1100, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+    )
+    callee2 = Method(
+        address=0x1200, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+    )
+    callee3 = Method(
+        address=0x1300, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+    )
+    method.fill_with_instructions(weights=[35, 40, 10, 5, 10])
     method.patch_calls([callee1, callee2, callee3])
     bytes = method.generate_bytes()
     for i in cap_disasm.disasm(bytes, ADDRESS):

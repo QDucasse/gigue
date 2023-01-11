@@ -30,6 +30,7 @@ class PIC:
         self.builder = InstructionBuilder()
         self.switch_instructions = []
         self.methods = []
+        self.instructions = []
         self.machine_code = []
         self.bytes = b""
 
@@ -44,6 +45,11 @@ class PIC:
         # The size is: instruction size * 3 (addi bne jalr) + 1 (ret)
         return 4 * (3 * self.case_number + 1)
 
+    def total_size(self):
+        return self.get_switch_size() + sum(
+            [method.total_size() for method in self.methods]
+        )
+
     def add_case_methods(self, weights=None):
         if weights is None:
             weights = INSTRUCTION_WEIGHTS
@@ -51,11 +57,16 @@ class PIC:
         for _ in range(self.case_number):
             size = random.randint(3, self.method_max_size)
             call_nb = random.randint(0, min(self.method_max_calls, size // 2 - 1))
-            case_method = Method(size, call_nb, method_address, CALLER_SAVED_REG)
-            case_method.add_instructions(weights)
+            case_method = Method(
+                address=method_address,
+                body_size=size,
+                call_number=call_nb,
+                registers=CALLER_SAVED_REG,
+            )
+            case_method.fill_with_instructions(weights)
             self.methods.append(case_method)
             # print(hex(case_method.address))
-            method_address += case_method.size * 4
+            method_address += case_method.total_size() * 4
 
     def add_switch_instructions(self):
         # The switch instructions consist of:
@@ -79,14 +90,14 @@ class PIC:
             self.switch_instructions.append(switch_case)
         self.switch_instructions.append([self.builder.build_ret()])
 
-    def add_instructions(self, weights=None):
+    def fill_with_instructions(self, weights=None):
         self.add_case_methods(weights)
         self.add_switch_instructions()
 
     def generate(self):
         for case in self.switch_instructions:
-            self.machine_code.append([instr.generate() for instr in case])
-        self.machine_code.extend([method.generate() for method in self.methods])
+            self.machine_code += [instr.generate() for instr in case]
+        self.machine_code += [method.generate() for method in self.methods]
         return self.machine_code
 
     def generate_bytes(self):

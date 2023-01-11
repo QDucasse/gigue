@@ -8,7 +8,7 @@ from gigue.constants import CALLER_SAVED_REG
 from gigue.pic import PIC
 
 # =================================
-#              PIC
+#    Instruction Filling Tests
 # =================================
 
 
@@ -27,7 +27,7 @@ def test_method_adding(case_nb, method_max_size):
     pic.add_case_methods()
     assert len(pic.methods) == case_nb
     for method in pic.methods:
-        assert method.size <= method_max_size
+        assert method.body_size <= method_max_size
 
 
 @pytest.mark.parametrize("case_nb", range(1, 10))
@@ -66,6 +66,11 @@ def test_switch_instructions_adding(case_nb, method_max_size, disasm_setup):
         #     method.address, hex(method.address)
         # ))
         assert current_address + call_offset == method.address
+
+
+# =================================
+#         Execution tests
+# =================================
 
 
 @pytest.mark.parametrize("case_nb", range(1, 10))
