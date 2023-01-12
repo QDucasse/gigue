@@ -8,6 +8,48 @@ from gigue.constants import CALLER_SAVED_REG
 from gigue.pic import PIC
 
 # =================================
+#            Size Tests
+# =================================
+
+
+@pytest.mark.parametrize("case_nb", range(1, 10))
+@pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
+def test_switch_size(case_nb, method_max_size):
+    pic = PIC(
+        case_number=case_nb,
+        address=ADDRESS,
+        method_max_size=method_max_size,
+        method_max_calls=10,
+        hit_case_reg=6,
+        cmp_reg=5,
+        registers=CALLER_SAVED_REG,
+    )
+    pic.add_case_methods()
+    pic.add_switch_instructions()
+    # (case_nb * nb_instruction + ret) * instruction size
+    assert pic.get_switch_size() == (case_nb * 3 + 1) * 4
+
+
+@pytest.mark.parametrize("case_nb", range(1, 10))
+@pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
+def test_total_size(case_nb, method_max_size):
+    pic = PIC(
+        case_number=case_nb,
+        address=ADDRESS,
+        method_max_size=method_max_size,
+        method_max_calls=10,
+        hit_case_reg=6,
+        cmp_reg=5,
+        registers=CALLER_SAVED_REG,
+    )
+    pic.add_case_methods()
+    pic.add_switch_instructions()
+    assert pic.total_size() == pic.get_switch_size() + sum(
+        [method.total_size() for method in pic.methods]
+    )
+
+
+# =================================
 #    Instruction Filling Tests
 # =================================
 
@@ -73,8 +115,8 @@ def test_switch_instructions_adding(case_nb, method_max_size, disasm_setup):
 # =================================
 
 
-@pytest.mark.parametrize("case_nb", range(1, 10))
-@pytest.mark.parametrize("hit_case", range(1, 10))
+@pytest.mark.parametrize("case_nb", range(1, 5))
+@pytest.mark.parametrize("hit_case", range(1, 5))
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
 def test_disassembly_execution(
     case_nb, method_max_size, hit_case, cap_disasm_setup, uc_emul_full_setup

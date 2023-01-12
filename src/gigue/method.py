@@ -76,14 +76,10 @@ class Method:
         if weights is None:
             weights = INSTRUCTION_WEIGHTS
         # Generate prologue
-        # print("______________________________")
-        # print("Generating method")
-        # print(f"Initial: {[ins.__class__.__name__ for ins in self.instructions]}")
         prologue_instructions = self.builder.build_prologue(
             self.used_s_regs, self.local_vars_nb, not self.is_leaf
         )
         self.instructions += prologue_instructions
-        # print(f"+Prologue: {[ins.__class__.__name__ for ins in self.instructions]}")
         self.prologue_size = len(prologue_instructions)
         for _ in range(self.body_size):
             # Add random instructions
@@ -92,15 +88,12 @@ class Method:
                 self.registers, max_offset, weights
             )
             self.instructions.append(instruction)
-        # print(f"+Body: {[ins.__class__.__name__ for ins in self.instructions]}")
         # Generate epilogue
         epilogue_instructions = self.builder.build_epilogue(
             self.used_s_regs, self.local_vars_nb, not self.is_leaf
         )
         self.instructions += epilogue_instructions
-        # print(f"+Epilogue: {[ins.__class__.__name__ for ins in self.instructions]}")
         self.epilogue_size = len(epilogue_instructions)
-        # print(f"instr: {len(self.instructions)}, {self.body_size + self.prologue_size + self.epilogue_size} ")
 
     def generate(self):
         self.machine_code = [
@@ -116,6 +109,7 @@ class Method:
     def accept_build(self, generator, method_offset):
         return generator.build_method_call(self, method_offset)
 
+    # TODO: Rework with new workflow!
     def patch_calls(self, callees):
         # Check for recursive call
         if self in callees:

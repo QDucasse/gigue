@@ -17,6 +17,7 @@ class PIC:
         cmp_reg,
         registers,
     ):
+        # TODO: Store case method call depth
         # hit_case_reg: register in which the case_nb that should be ran is loaded
         # cmp_reg: register in which the running case nb is stored before comparison
         self.case_number = case_number
@@ -101,12 +102,9 @@ class PIC:
         return self.machine_code
 
     def generate_bytes(self):
-        # TODO: List comprehension maybe?
         for case in self.switch_instructions:
-            for instruction in case:
-                self.bytes += instruction.generate_bytes()
-        for method in self.methods:
-            self.bytes += method.generate_bytes()
+            self.bytes += b"".join([instr.generate_bytes() for instr in case])
+        self.bytes += b"".join([method.generate_bytes() for method in self.methods])
         return self.bytes
 
     def accept_build(self, generator, method_offset):
