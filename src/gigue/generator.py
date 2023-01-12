@@ -1,9 +1,13 @@
 import random
+from typing import List
+from typing import Optional
+from typing import Union
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.instructions import Instruction
 from gigue.method import Method
 from gigue.pic import PIC
 
@@ -15,54 +19,56 @@ class Generator:
 
     def __init__(
         self,
-        jit_start_address,
-        interpreter_start_address,
-        jit_elements_nb,
-        method_max_size,
-        method_max_calls,
-        pics_method_max_size,
-        pics_max_cases,
-        pics_methods_max_calls,
-        pics_cmp_reg=6,
-        pics_hit_case_reg=5,
-        pics_ratio=0.2,
-        registers=None,
-        output_jit_file=BIN_DIR + "jit.bin",
-        output_interpret_file=BIN_DIR + "interpret.bin",
+        jit_start_address: int,
+        interpreter_start_address: int,
+        jit_elements_nb: int,
+        method_max_size: int,
+        method_max_calls: int,
+        pics_method_max_size: int,
+        pics_max_cases: int,
+        pics_methods_max_calls: int,
+        pics_cmp_reg: int = 6,
+        pics_hit_case_reg: int = 5,
+        pics_ratio: float = 0.2,
+        registers: Optional[List[int]] = None,
+        output_jit_file: str = BIN_DIR + "jit.bin",
+        output_interpret_file: str = BIN_DIR + "interpret.bin",
     ):
         if registers is None:
-            self.registers = CALLER_SAVED_REG
-        self.jit_start_address = jit_start_address
-        self.interpreter_start_address = interpreter_start_address
-        self.jit_elements_nb = jit_elements_nb  # Methods + PICs
+            self.registers: List[int] = CALLER_SAVED_REG
+        self.jit_start_address: int = jit_start_address
+        self.interpreter_start_address: int = interpreter_start_address
+        self.jit_elements_nb: int = jit_elements_nb  # Methods + PICs
         # Methods parameters
-        self.method_max_size = method_max_size
-        self.method_max_calls = method_max_calls
-        self.method_count = 0
+        self.method_max_size: int = method_max_size
+        self.method_max_calls: int = method_max_calls
+        self.method_count: int = 0
         # PICs parameters
-        self.pics_ratio = pics_ratio
-        self.pics_max_cases = pics_max_cases
-        self.pics_method_max_size = pics_method_max_size
-        self.pics_methods_max_calls = pics_methods_max_calls
-        self.pics_hit_case_reg = pics_hit_case_reg
-        self.pics_cmp_reg = pics_cmp_reg
-        self.pic_count = 0
+        self.pics_ratio: float = pics_ratio
+        self.pics_max_cases: int = pics_max_cases
+        self.pics_method_max_size: int = pics_method_max_size
+        self.pics_methods_max_calls: int = pics_methods_max_calls
+        self.pics_hit_case_reg: int = pics_hit_case_reg
+        self.pics_cmp_reg: int = pics_cmp_reg
+        self.pic_count: int = 0
         # Generation
-        self.builder = InstructionBuilder()
-        self.jit_methods = []
-        self.jit_pics = []
-        self.jit_elements = []  # Shuffled concatenation of above
-        self.jit_instructions = []
-        self.interpreter_instructions = []
+        self.builder: InstructionBuilder = InstructionBuilder()
+        self.jit_methods: List[Method] = []
+        self.jit_pics: List[PIC] = []
+        self.jit_elements: List[
+            Union[Method, PIC]
+        ] = []  # Shuffled concatenation of above
+        self.jit_instructions: List[Instruction] = []
+        self.interpreter_instructions: List[Instruction] = []
         # MC/Bytes/Binary generation
-        self.jit_machine_code = []
-        self.jit_bytes = []
-        self.interpreter_machine_code = []
-        self.interpreter_bytes = []
-        self.output_jit_bin = b""
-        self.output_interpreter_bin = b""
-        self.output_jit_file = output_jit_file
-        self.output_interpreter_file = output_interpret_file
+        self.jit_machine_code: List[int] = []
+        self.jit_bytes: List[bytes] = []
+        self.interpreter_machine_code: List[int] = []
+        self.interpreter_bytes: List[bytes] = []
+        self.output_jit_bin: bytes = b""
+        self.output_interpreter_bin: bytes = b""
+        self.output_jit_file: str = output_jit_file
+        self.output_interpreter_file: str = output_interpret_file
 
     def add_method(self, address):
         body_size = random.randint(3, self.method_max_size)

@@ -1,39 +1,41 @@
 import random
+from typing import List
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.instructions import Instruction
 from gigue.method import Method
 
 
 class PIC:
     def __init__(
         self,
-        address,
-        case_number,
-        method_max_size,
-        method_max_calls,
-        hit_case_reg,
-        cmp_reg,
-        registers,
+        address: int,
+        case_number: int,
+        method_max_size: int,
+        method_max_calls: int,
+        hit_case_reg: int,
+        cmp_reg: int,
+        registers: List[int],
     ):
         # TODO: Store case method call depth
         # hit_case_reg: register in which the case_nb that should be ran is loaded
         # cmp_reg: register in which the running case nb is stored before comparison
-        self.case_number = case_number
-        self.address = address
-        self.registers = registers
-        self.method_max_size = method_max_size
-        self.method_max_calls = method_max_calls
-        self.hit_case_reg = hit_case_reg
-        self.cmp_reg = cmp_reg
+        self.case_number: int = case_number
+        self.address: int = address
+        self.registers: List[int] = registers
+        self.method_max_size: int = method_max_size
+        self.method_max_calls: int = method_max_calls
+        self.hit_case_reg: int = hit_case_reg
+        self.cmp_reg: int = cmp_reg
 
-        self.builder = InstructionBuilder()
-        self.switch_instructions = []
-        self.methods = []
-        self.instructions = []
-        self.machine_code = []
-        self.bytes = b""
+        self.builder: InstructionBuilder = InstructionBuilder()
+        self.switch_instructions: List[Instruction] = []
+        self.methods: List[Method] = []
+        self.instructions: List[Instruction] = []
+        self.machine_code: List[int] = []
+        self.bytes: bytes = b""
 
     def get_switch_size(self):
         # switch corresponds to:

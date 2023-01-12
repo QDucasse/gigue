@@ -34,11 +34,11 @@ class Method:
         used_s_regs: int = 1,
         local_vars_nb: int = 2,
     ):
-        self.address = address
-        self.body_size = body_size
-        self.call_depth = call_depth
-        self.used_s_regs = used_s_regs
-        self.local_vars_nb = local_vars_nb
+        self.address: int = address
+        self.body_size: int = body_size
+        self.call_depth: int = call_depth
+        self.used_s_regs: int = used_s_regs
+        self.local_vars_nb: int = local_vars_nb
 
         # The calls will be added once random instructions are generated to
         # fill the method body. As a call takes two instructions and the method
@@ -47,23 +47,22 @@ class Method:
 
         if call_number > (body_size - 1) // 2:
             raise_call_number_value_error(call_number, body_size)
-        self.call_number = call_number
-        self.call_depth = call_depth
+        self.call_number: int = call_number
 
-        self.is_leaf = self.call_number == 0
-        self.prologue_size = None
-        self.epilogue_size = None
+        self.is_leaf: bool = self.call_number == 0
+        self.prologue_size: int = 0
+        self.epilogue_size: int = 0
 
-        self.registers = registers
+        self.registers: List[int] = registers
 
-        self.builder = InstructionBuilder()
+        self.builder: InstructionBuilder = InstructionBuilder()
         self.instructions: List[Instruction] = []
         self.callees: List[Method] = []
         self.machine_code: List[int] = []
-        self.bytes = b""
+        self.bytes: bytes = b""
 
     def total_size(self):
-        if self.prologue_size is None or self.epilogue_size is None:
+        if self.prologue_size == 0 or self.epilogue_size == 0:
             raise ValueError
         return self.body_size + self.prologue_size + self.epilogue_size
 

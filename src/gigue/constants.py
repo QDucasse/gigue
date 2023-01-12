@@ -8,12 +8,14 @@ BIN_DIR = "bin/"
 
 
 class InstructionInfo:
-    def __init__(self, name, opcode7, opcode3, instr_type, top7=0):
-        self.name = name
-        self.opcode7 = opcode7
-        self.opcode3 = opcode3
-        self.top7 = top7
-        self.instr_type = instr_type
+    def __init__(
+        self, name: str, opcode7: int, opcode3: int, instr_type: str, top7: int = 0
+    ):
+        self.name: str = name
+        self.opcode7: int = opcode7
+        self.opcode3: int = opcode3
+        self.top7: int = top7
+        self.instr_type: str = instr_type
 
 
 def find_instr_for_opcode(opcode):
