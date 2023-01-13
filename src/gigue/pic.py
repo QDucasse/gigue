@@ -1,9 +1,12 @@
 import random
 from typing import List
+from typing import Optional
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.constants import CMP_REG
+from gigue.constants import HIT_CASE_REG
 from gigue.instructions import Instruction
 from gigue.method import Method
 
@@ -15,20 +18,25 @@ class PIC:
         case_number: int,
         method_max_size: int,
         method_max_calls: int,
-        hit_case_reg: int,
-        cmp_reg: int,
         registers: List[int],
+        hit_case_reg: Optional[int] = None,
+        cmp_reg: Optional[int] = None,
     ):
         # TODO: Store case method call depth
-        # hit_case_reg: register in which the case_nb that should be ran is loaded
-        # cmp_reg: register in which the running case nb is stored before comparison
         self.case_number: int = case_number
         self.address: int = address
         self.registers: List[int] = registers
         self.method_max_size: int = method_max_size
         self.method_max_calls: int = method_max_calls
-        self.hit_case_reg: int = hit_case_reg
+        # hit_case_reg: register in which the case_nb that should be ran is loaded
+        # cmp_reg: register in which the running case nb is stored before comparison
+        # Comparison and current registers
+        if cmp_reg is None:
+            cmp_reg = CMP_REG
         self.cmp_reg: int = cmp_reg
+        if hit_case_reg is None:
+            hit_case_reg = HIT_CASE_REG
+        self.hit_case_reg: int = hit_case_reg
 
         self.builder: InstructionBuilder = InstructionBuilder()
         self.switch_instructions: List[Instruction] = []
@@ -46,7 +54,7 @@ class PIC:
         # ret
 
         # The size is: instruction size * 3 (addi bne jalr) + 1 (ret)
-        return 4 * (3 * self.case_number + 1)
+        return 3 * self.case_number + 1
 
     def total_size(self):
         return self.get_switch_size() + sum(
@@ -56,7 +64,7 @@ class PIC:
     def add_case_methods(self, weights=None):
         if weights is None:
             weights = INSTRUCTION_WEIGHTS
-        method_address = self.address + self.get_switch_size()
+        method_address = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
             size = random.randint(3, self.method_max_size)
             call_nb = random.randint(0, min(self.method_max_calls, size // 2 - 1))
@@ -68,10 +76,10 @@ class PIC:
             )
             case_method.fill_with_instructions(weights)
             self.methods.append(case_method)
-            # print(hex(case_method.address))
-            method_address += case_method.total_size() * 4
+            method_address += (case_method.total_size() * 4)
 
     def add_switch_instructions(self):
+        # WARNING!!!! hit case starts at 1
         # The switch instructions consist of:
         #   1 - Loading the value to compare in cmp_reg (x6)
         #   2 - Compare to the current case that should be in hit_case_reg (x5)
@@ -80,10 +88,8 @@ class PIC:
         #   5 - Repeat (1/2/3/4)
         #   6 - Simple ret at the end if no case was reached
         for case_nb, method in enumerate(self.methods):
-            # method_offset = method.address - self.address + (case_nb * 3 - 1) * 4
-            current_address = self.address + (case_nb * 3) * 4
+            current_address = self.address + ((case_nb + 1) * 3) * 4
             method_offset = method.address - current_address
-            # print(method_offset)
             switch_case = self.builder.build_switch_case(
                 case_number=case_nb + 1,
                 method_offset=method_offset,

@@ -4,6 +4,8 @@ from gigue.constants import CALLEE_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.constants import RA
 from gigue.constants import SP
+from gigue.constants import HIT_CASE_REG
+from gigue.constants import CMP_REG
 from gigue.instructions import BInstruction
 from gigue.instructions import IInstruction
 from gigue.instructions import JInstruction
@@ -125,7 +127,9 @@ class InstructionBuilder:
         return [UInstruction.auipc(1, offset_high), IInstruction.jalr(1, 1, offset_low)]
 
     @staticmethod
-    def build_pic_call(offset, hit_case, hit_case_reg):
+    def build_pic_call(offset, hit_case, hit_case_reg=None):
+        if hit_case_reg is None:
+            hit_case_reg = HIT_CASE_REG
         if offset < 0x8:
             raise Exception
         offset_low = offset & 0xFFF
@@ -146,15 +150,19 @@ class InstructionBuilder:
         ]
 
     @staticmethod
-    def build_switch_case(case_number, method_offset, hit_case_reg, cmp_reg):
+    def build_switch_case(case_number, method_offset, hit_case_reg=None, cmp_reg=None):
         # Switch for one case:
-        #   1 - Loading the value to compare in x6
-        #   2 - Compare to the current case (should be in x5)
+        #   1 - Loading the value to compare in the compare register
+        #   2 - Compare to the current case (should be in the hit case register)
         #   3 - Jump to the corresponding method if equal
         #   4 - Go to the next case if not
         # Note: beq is not used to cover a wider range (2Mb rather than 8kb)
+        if hit_case_reg is None:
+            hit_case_reg = HIT_CASE_REG
+        if cmp_reg is None:
+            cmp_reg = CMP_REG
         return [
-            IInstruction.addi(rd=hit_case_reg, rs1=0, imm=case_number),
+            IInstruction.addi(rd=cmp_reg, rs1=0, imm=case_number),
             BInstruction.bne(rs1=cmp_reg, rs2=hit_case_reg, imm=8),
             JInstruction.jal(rd=0, imm=method_offset),
         ]

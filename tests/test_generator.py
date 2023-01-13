@@ -24,7 +24,6 @@ INTERPRETER_START_ADDRESS = 0x1000
 JIT_START_ADDRESS = 0x3000
 STACK_ADDRESS = 0xE000
 END_ADDRESS = 0xFFF0
-RET_ADDRESS = 0x1000
 cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
 
 
@@ -37,7 +36,7 @@ def instrument_execution(uc_emul):
     previous_pc = INTERPRETER_START_ADDRESS
     try:
         while True:
-            uc_emul.emu_start(previous_pc, 0, 0, 1)
+            uc_emul.emu_start(begin=previous_pc, until=0, timeout=0, count=1)
             pc = uc_emul.reg_read(UC_RISCV_REG_PC)
             print(f"PC:{hex(pc)}")
             ra = uc_emul.reg_read(UC_RISCV_REG_RA)
@@ -47,6 +46,23 @@ def instrument_execution(uc_emul):
     except UcError:
         pc = uc_emul.reg_read(UC_RISCV_REG_PC)
         print(f"Exception !!! PC:{hex(pc)}")
+        assert False
+
+
+def instrument_stack(uc_emul):
+    previous_pc = INTERPRETER_START_ADDRESS
+    try:
+        while True:
+            uc_emul.emu_start(previous_pc, 0, 0, 1)
+            sp = uc_emul.reg_read(UC_RISCV_REG_SP)
+            print(f"SP:{hex(sp)}")
+            pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+            previous_pc = pc
+    except UcError:
+        pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+        ra = uc_emul.reg_read(UC_RISCV_REG_RA)
+        sp = uc_emul.reg_read(UC_RISCV_REG_SP)
+        print(f"Exception !!! PC:{hex(pc)}, RA:{hex(ra)}, SP:{hex(sp)}")
         assert False
 
 
@@ -71,12 +87,12 @@ def test_fill_jit_code(jit_elements_nb, method_max_size, pics_ratio):
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
-    assert len(generator.jit_methods + generator.jit_pics) == jit_elements_nb
+    assert len(generator.jit_elements) == jit_elements_nb
 
 
 @pytest.mark.parametrize("jit_elements_nb", [8, 10, 20, 30, 50, 100])
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
-@pytest.mark.parametrize("pics_ratio", [0])
+@pytest.mark.parametrize("pics_ratio", [0, 0.1, 0.2, 0.5])
 def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
@@ -93,7 +109,8 @@ def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
     generator.fill_interpretation_loop()
     assert (
         len(generator.interpreter_instructions)
-        == 2 * jit_elements_nb
+        == 2 * generator.method_count
+        + 3 * generator.pic_count
         + Generator.INT_PROLOGUE_SIZE
         + Generator.INT_EPILOGUE_SIZE
     )
@@ -213,9 +230,9 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
 # =================================
 
 
-@pytest.mark.parametrize("jit_elements_nb", [10, 20, 50])
-@pytest.mark.parametrize("method_max_size", [5, 10, 20, 50, 100, 200])
-@pytest.mark.parametrize("pics_ratio", [0])  # , 0.1, 0.2, 0.5
+@pytest.mark.parametrize("jit_elements_nb", [2, 10, 20, 50])
+@pytest.mark.parametrize("method_max_size", [2, 5, 10, 20, 50, 100])
+@pytest.mark.parametrize("pics_ratio", [0, 0.1, 0.2, 0.5, 1])
 def test_execute_generated_binaries(
     jit_elements_nb, method_max_size, pics_ratio, cap_disasm_setup
 ):
@@ -225,8 +242,8 @@ def test_execute_generated_binaries(
         jit_elements_nb=jit_elements_nb,
         method_max_size=method_max_size,
         method_max_calls=5,
-        pics_method_max_size=30,
-        pics_max_cases=5,
+        pics_method_max_size=5,
+        pics_max_cases=2,
         pics_methods_max_calls=5,
         pics_ratio=pics_ratio,
     )
@@ -237,7 +254,7 @@ def test_execute_generated_binaries(
     generator.generate_jit_bytes()
     generator.generate_interpreter_bytes()
     interpreter_binary = generator.generate_interpreter_binary()
-    # # Binary infos:
+    # Binary infos:
     print(
         "Interpreter binary: from {} to {} (length {})".format(
             hex(INTERPRETER_START_ADDRESS),
@@ -245,12 +262,12 @@ def test_execute_generated_binaries(
             len(interpreter_binary),
         )
     )
-    # # Capstone disasm:
+    # Capstone disasm:
     cap_disasm = cap_disasm_setup
     for i in cap_disasm.disasm(interpreter_binary, INTERPRETER_START_ADDRESS):
         print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     jit_binary = generator.generate_jit_binary()
-    # # Binary infos:
+    # Binary infos:
     print(
         "JIT binary: from {} to {} (length {})".format(
             hex(JIT_START_ADDRESS),
@@ -258,11 +275,11 @@ def test_execute_generated_binaries(
             len(jit_binary),
         )
     )
-    # # Capstone disasm:
+    # Capstone disasm:
     for i in cap_disasm.disasm(jit_binary, JIT_START_ADDRESS):
         print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
-    uc_emul.mem_map(RET_ADDRESS, 2 * 1024 * 1024)
+    uc_emul.mem_map(INTERPRETER_START_ADDRESS, 2 * 1024 * 1024)
     # Fill memory with nops up to END_ADDRESS
     for addr in range(JIT_START_ADDRESS, END_ADDRESS + 4, 4):
         uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
@@ -276,6 +293,7 @@ def test_execute_generated_binaries(
     uc_emul.mem_write(JIT_START_ADDRESS, jit_binary)
     uc_emul.emu_start(INTERPRETER_START_ADDRESS, END_ADDRESS)
     # instrument_execution(uc_emul)
+    # instrument_stack(uc_emul)
     uc_emul.emu_stop()
 
 

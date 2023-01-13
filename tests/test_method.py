@@ -47,8 +47,11 @@ def test_instructions_filling(
         used_s_regs=used_s_regs,
     )
     method.fill_with_instructions()
-    # instructions contain: method body + s_regs load/store + ra load/store if not leaf
-    #                          + stack sizing (allocation) + ret
+    # instructions contain:
+    #   method body
+    #   + s_regs load/store + ra load/store if not leaf
+    #   + stack sizing (allocation/retribution)
+    #   + ret
     size_expected = (
         method.body_size
         + 2 * (method.used_s_regs + (1 if not method.is_leaf else 0))

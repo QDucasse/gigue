@@ -22,6 +22,8 @@ from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import RA
 from gigue.constants import SP
+from gigue.constants import CMP_REG
+from gigue.constants import HIT_CASE_REG
 from gigue.helpers import bytes_to_int
 from gigue.helpers import int_to_bytes
 
@@ -42,37 +44,43 @@ def test_build_method_call(offset, disasm_setup):
 
 
 @pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFF, 0x80000, 0x1FFFE])
-def test_build_pic_call(offset, disasm_setup):
+@pytest.mark.parametrize("hit_case", range(1, 5))
+def test_build_pic_call(offset, hit_case, disasm_setup):
     instr_builder = InstructionBuilder()
-    instrs = instr_builder.build_pic_call(offset, 5, 5)
+    instrs = instr_builder.build_pic_call(
+        offset=offset,
+        hit_case=hit_case
+    )
+    gen_instrs = [instr.generate() for instr in instrs]
     assert instrs[0].name == "addi"
     assert instrs[1].name == "auipc"
     assert instrs[2].name == "jalr"
     # Disassembly
     disasm = disasm_setup
-    assert offset == disasm.extract_call_offset(
-        [instr.generate() for instr in instrs[1:]]
-    )
+    assert disasm.extract_rd(gen_instrs[0]) == HIT_CASE_REG
+    assert disasm.extract_imm_i(gen_instrs[0]) == hit_case
+    assert offset == disasm.extract_call_offset(gen_instrs[1:])
 
 
-@pytest.mark.parametrize("offset", [0x4, 0x800, 0xFFE, 0x80000, 0x1FFFE])
-def test_build_switch_pic(offset, disasm_setup):
+@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE])
+@pytest.mark.parametrize("case_number", range(1, 5))
+def test_build_switch_pic(offset, disasm_setup, case_number):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_switch_case(
-        case_number=3, method_offset=offset, hit_case_reg=6, cmp_reg=5
+        case_number=case_number, method_offset=offset
     )
     gen_instrs = [instr.generate() for instr in instrs]
     # Disassembly
     disasm = disasm_setup
     # Load the value in x6
     assert instrs[0].name == "addi"
-    assert disasm.extract_rd(gen_instrs[0]) == 6
-    assert disasm.extract_imm_i(gen_instrs[0]) == 3
+    assert disasm.extract_rd(gen_instrs[0]) == CMP_REG
+    assert disasm.extract_imm_i(gen_instrs[0]) == case_number
     # Compare and branch i
     assert instrs[1].name == "bne"
     assert disasm.extract_imm_b(gen_instrs[1]) == 8
-    assert disasm.extract_rs1(gen_instrs[1]) == 5
-    assert disasm.extract_rs2(gen_instrs[1]) == 6
+    assert disasm.extract_rs1(gen_instrs[1]) == CMP_REG
+    assert disasm.extract_rs2(gen_instrs[1]) == HIT_CASE_REG
     # Compare and branch i
     assert instrs[2].name == "jal"
     assert offset == disasm.extract_imm_j(gen_instrs[2])
@@ -194,7 +202,7 @@ def test_build_random_b_instruction(execution_number):
 # =================================
 
 # Specific instructions
-# =====================
+# \____________________
 
 
 def test_build_nop(cap_disasm_setup):
@@ -218,7 +226,7 @@ def test_build_ret(cap_disasm_setup):
 
 
 # Random instructions
-# =====================
+# \__________________
 
 
 @pytest.mark.parametrize("execution_number", range(30))
@@ -284,10 +292,10 @@ def test_random_b_disassembly_execution_smoke(execution_number, uc_emul_full_set
 
 
 # Specific structures
-# ===================
+# \__________________
 
 
-@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFF0, 0x80000, 0x1FFFE])
+@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
 def test_build_method_call_execution(offset, uc_emul_full_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_method_call(offset)
@@ -308,7 +316,7 @@ def test_build_method_call_execution(offset, uc_emul_full_setup):
     uc_emul.emu_stop()
 
 
-@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFF0, 0x80000, 0x1FFFE])
+@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
 def test_build_pic_call_execution(offset, uc_emul_full_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_pic_call(offset, 5, 5)
@@ -326,11 +334,12 @@ def test_build_pic_call_execution(offset, uc_emul_full_setup):
     uc_emul.emu_stop()
 
 
-@pytest.mark.parametrize("offset", [0x4, 0x800, 0xFFE, 0x80000, 0x1FFFE])
-def test_build_switch_pic_execution(offset, uc_emul_full_setup, cap_disasm_setup):
+@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
+@pytest.mark.parametrize("case_number", range(5))
+def test_build_switch_pic_execution(offset, case_number, uc_emul_full_setup, cap_disasm_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_switch_case(
-        case_number=3, method_offset=offset, hit_case_reg=6, cmp_reg=5
+        case_number=case_number, method_offset=offset
     )
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
@@ -340,10 +349,11 @@ def test_build_switch_pic_execution(offset, uc_emul_full_setup, cap_disasm_setup
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
-    uc_emul.reg_write(UC_RISCV_REG_T0, 3)
+    # Force the hit on the given case
+    uc_emul.reg_write(UC_RISCV_REG_T0, case_number)
     uc_emul.emu_start(begin=ADDRESS, until=ADDRESS + 8 + offset)
     current_t1 = uc_emul.reg_read(UC_RISCV_REG_T1)
-    assert current_t1 == 3
+    assert current_t1 == case_number
     uc_emul.emu_stop()
 
 

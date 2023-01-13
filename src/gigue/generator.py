@@ -4,6 +4,7 @@ from typing import Optional
 from typing import Union
 
 from gigue.builder import InstructionBuilder
+from gigue.helpers import flatten_list
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
@@ -53,11 +54,9 @@ class Generator:
         self.pic_count: int = 0
         # Generation
         self.builder: InstructionBuilder = InstructionBuilder()
-        self.jit_methods: List[Method] = []
-        self.jit_pics: List[PIC] = []
         self.jit_elements: List[
             Union[Method, PIC]
-        ] = []  # Shuffled concatenation of above
+        ] = []
         self.jit_instructions: List[Instruction] = []
         self.interpreter_instructions: List[Instruction] = []
         # MC/Bytes/Binary generation
@@ -70,17 +69,19 @@ class Generator:
         self.output_jit_file: str = output_jit_file
         self.output_interpreter_file: str = output_interpret_file
 
+    #  JIT element generation
+    # \______________________
+
     def add_method(self, address):
-        body_size = random.randint(3, self.method_max_size)
-        print(f"Method body size: {body_size}")
-        call_nb = 1  # random.randint(0, min(self.method_max_calls, size // 2 - 1))
+        body_size = max(3, random.randint(0, self.method_max_size))
+        call_nb = random.randint(0, min(self.method_max_calls, body_size // 2 - 1))
         method = Method(
             address=address,
             body_size=body_size,
             call_number=call_nb,
             registers=CALLER_SAVED_REG,
         )
-        self.jit_methods.append(method)
+        self.jit_elements.append(method)
         self.method_count += 1
         return method
 
@@ -95,15 +96,17 @@ class Generator:
             cmp_reg=self.pics_cmp_reg,
             registers=CALLER_SAVED_REG,
         )
-        self.jit_pics.append(pic)
+        self.jit_elements.append(pic)
         self.pic_count += 1
         return pic
+
+    #  Interpretation loop calling construction
+    # \________________________________________
 
     def build_element_call(self, element, offset):
         return element.accept_build(self, offset)
 
     def build_method_call(self, method, offset):
-        print(f"Call offset: {hex(offset)}")
         call_instructions = self.builder.build_method_call(offset)
         self.interpreter_instructions += call_instructions
         return len(call_instructions) * 4
@@ -116,6 +119,9 @@ class Generator:
         self.interpreter_instructions += call_instructions
         return len(call_instructions) * 4
 
+    #  JIT filling and patching
+    # \________________________
+
     def fill_jit_code(self, weights=None):
         if weights is None:
             weights = INSTRUCTION_WEIGHTS
@@ -125,19 +131,10 @@ class Generator:
             code_type = random.choices(
                 ["method", "pic"], [1 - self.pics_ratio, self.pics_ratio]
             )[0]
-            # print("_____________________________________________")
             adder_function = getattr(Generator, "add_" + code_type)
             current_element = adder_function(self, current_address)
             current_element.fill_with_instructions(weights)
-            # print(f"Method total size: {current_element.total_size()}")
-            # print(f"Previous address: {hex(current_address)}")
-            # current_address += current_element.total_size()
-            current_address += current_element.total_size() * 4
-            # print(f"Elements: {[ins.__class__.__name__ for ins in current_element.instructions]}")
-            # print(f"Element size: {current_element.total_size() * 4}, {hex(current_element.total_size() * 4)}")
-            # print(f"Element nb of instructions: {len(current_element.instructions)}")
-            # print(f"New address: {hex(current_address)}")
-            self.jit_instructions += current_element.instructions
+            current_address += (current_element.total_size() * 4)
             current_element_count += 1
 
     def patch_jit_calls(self):
@@ -150,13 +147,18 @@ class Generator:
         # [ ]   2.1 First generate random instructions (no jumps or branches)
         # [ ]   2.2 Generate patched calls
         # [ ]   2.3 Add jumps and branches and avoid calls
-        for method in self.jit_methods:
-            callees = random.sample(self.jit_methods, k=method.call_number)
-            # Remove recursivity
-            if method in callees:
-                callees.remove(method)
-            method.patch_calls(callees)
+        # for method in self.jit_methods:
+        #     callees = random.sample(self.jit_methods, k=method.call_number)
+        #     # Remove recursivity
+        #     if method in callees:
+        #         callees.remove(method)
+        #     method.patch_calls(callees)
         # Patch pics methods
+        # TODO: Create jit_instructions at the end of this one!
+        pass
+
+    #  Interpretation loop filling
+    # \___________________________
 
     def fill_interpretation_loop(self):
         prologue_instructions = self.builder.build_prologue(10, 0, True)
@@ -165,11 +167,9 @@ class Generator:
             self.interpreter_start_address + len(prologue_instructions) * 4
         )
         # for all addresses in methods and pics, generate a call
-        self.jit_elements = self.jit_methods + self.jit_pics
-        print([hex(elt.address) for elt in self.jit_elements])
-        random.shuffle(self.jit_elements)
-        print([hex(elt.address) for elt in self.jit_elements])
-        for element in self.jit_elements:
+        shuffled_elements = self.jit_elements.copy()
+        random.shuffle(shuffled_elements)
+        for element in shuffled_elements:
             call_size = self.build_element_call(
                 element, element.address - current_address
             )
@@ -182,8 +182,8 @@ class Generator:
 
     def generate_jit_machine_code(self):
         self.jit_machine_code = [
-            instr.generate() for instr in self.jit_instructions
-        ]  # [elt.generate() for elt in self.jit_elements]
+            elt.generate() for elt in self.jit_elements
+        ]
         return self.jit_machine_code
 
     def generate_interpreter_machine_code(self):
@@ -196,7 +196,9 @@ class Generator:
     # \________________
 
     def generate_jit_bytes(self):
-        self.jit_bytes = [instr.generate_bytes() for instr in self.jit_instructions]
+        self.jit_bytes = [
+            elt.generate_bytes() for elt in self.jit_elements
+        ]
         return self.jit_bytes
 
     def generate_interpreter_bytes(self):
@@ -236,7 +238,6 @@ class Generator:
         self.generate_jit_machine_code()
         self.generate_interpreter_machine_code()
         # Generate bytes
-        self.generate_jit_bytes()
         self.generate_interpreter_bytes()
         # Generate binaries
         self.generate_jit_binary()
