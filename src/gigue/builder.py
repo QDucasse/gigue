@@ -1,11 +1,11 @@
 import random
 
 from gigue.constants import CALLEE_SAVED_REG
+from gigue.constants import CMP_REG
+from gigue.constants import HIT_CASE_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.constants import RA
 from gigue.constants import SP
-from gigue.constants import HIT_CASE_REG
-from gigue.constants import CMP_REG
 from gigue.instructions import BInstruction
 from gigue.instructions import IInstruction
 from gigue.instructions import JInstruction

@@ -4,9 +4,9 @@ from typing import Optional
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
-from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.constants import CMP_REG
 from gigue.constants import HIT_CASE_REG
+from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.instructions import Instruction
 from gigue.method import Method
 
@@ -76,7 +76,7 @@ class PIC:
             )
             case_method.fill_with_instructions(weights)
             self.methods.append(case_method)
-            method_address += (case_method.total_size() * 4)
+            method_address += case_method.total_size() * 4
 
     def add_switch_instructions(self):
         # WARNING!!!! hit case starts at 1

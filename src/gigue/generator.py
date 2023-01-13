@@ -4,7 +4,6 @@ from typing import Optional
 from typing import Union
 
 from gigue.builder import InstructionBuilder
-from gigue.helpers import flatten_list
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
@@ -54,9 +53,7 @@ class Generator:
         self.pic_count: int = 0
         # Generation
         self.builder: InstructionBuilder = InstructionBuilder()
-        self.jit_elements: List[
-            Union[Method, PIC]
-        ] = []
+        self.jit_elements: List[Union[Method, PIC]] = []
         self.jit_instructions: List[Instruction] = []
         self.interpreter_instructions: List[Instruction] = []
         # MC/Bytes/Binary generation
@@ -134,7 +131,7 @@ class Generator:
             adder_function = getattr(Generator, "add_" + code_type)
             current_element = adder_function(self, current_address)
             current_element.fill_with_instructions(weights)
-            current_address += (current_element.total_size() * 4)
+            current_address += current_element.total_size() * 4
             current_element_count += 1
 
     def patch_jit_calls(self):
@@ -181,9 +178,7 @@ class Generator:
     # \_______________________
 
     def generate_jit_machine_code(self):
-        self.jit_machine_code = [
-            elt.generate() for elt in self.jit_elements
-        ]
+        self.jit_machine_code = [elt.generate() for elt in self.jit_elements]
         return self.jit_machine_code
 
     def generate_interpreter_machine_code(self):
@@ -196,9 +191,7 @@ class Generator:
     # \________________
 
     def generate_jit_bytes(self):
-        self.jit_bytes = [
-            elt.generate_bytes() for elt in self.jit_elements
-        ]
+        self.jit_bytes = [elt.generate_bytes() for elt in self.jit_elements]
         return self.jit_bytes
 
     def generate_interpreter_bytes(self):

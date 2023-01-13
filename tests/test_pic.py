@@ -42,8 +42,11 @@ def test_total_size(case_nb, method_max_size):
     )
     pic.add_case_methods()
     pic.add_switch_instructions()
-    assert pic.total_size() == pic.get_switch_size() + len(flatten_list([method.generate() for method in pic.methods]))
+    assert pic.total_size() == pic.get_switch_size() + len(
+        flatten_list([method.generate() for method in pic.methods])
+    )
     assert pic.total_size() == len(pic.generate_bytes()) // 4
+
 
 # =================================
 #    Instruction Filling Tests
@@ -68,7 +71,9 @@ def test_method_adding(case_nb, method_max_size):
 
 @pytest.mark.parametrize("case_nb", range(1, 10))
 @pytest.mark.parametrize("method_max_size", [5, 20, 50, 100, 200])
-def test_switch_instructions_adding(case_nb, method_max_size, disasm_setup, cap_disasm_setup):
+def test_switch_instructions_adding(
+    case_nb, method_max_size, disasm_setup, cap_disasm_setup
+):
     pic = PIC(
         case_number=case_nb,
         address=ADDRESS,
@@ -84,10 +89,7 @@ def test_switch_instructions_adding(case_nb, method_max_size, disasm_setup, cap_
     #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Switch instructions should hold the different switch cases and a final ret
     assert len(pic.switch_instructions) == case_nb + 1
-    assert (
-        len(flatten_list(pic.switch_instructions))
-        == pic.get_switch_size()
-    )
+    assert len(flatten_list(pic.switch_instructions)) == pic.get_switch_size()
     # Disassembly
     disasm = disasm_setup
     for i, (case, method) in enumerate(zip(pic.switch_instructions[:-1], pic.methods)):

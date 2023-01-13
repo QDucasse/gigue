@@ -20,10 +20,10 @@ from unicorn.riscv_const import UC_RISCV_REG_T1
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
-from gigue.constants import RA
-from gigue.constants import SP
 from gigue.constants import CMP_REG
 from gigue.constants import HIT_CASE_REG
+from gigue.constants import RA
+from gigue.constants import SP
 from gigue.helpers import bytes_to_int
 from gigue.helpers import int_to_bytes
 
@@ -47,10 +47,7 @@ def test_build_method_call(offset, disasm_setup):
 @pytest.mark.parametrize("hit_case", range(1, 5))
 def test_build_pic_call(offset, hit_case, disasm_setup):
     instr_builder = InstructionBuilder()
-    instrs = instr_builder.build_pic_call(
-        offset=offset,
-        hit_case=hit_case
-    )
+    instrs = instr_builder.build_pic_call(offset=offset, hit_case=hit_case)
     gen_instrs = [instr.generate() for instr in instrs]
     assert instrs[0].name == "addi"
     assert instrs[1].name == "auipc"
@@ -336,7 +333,9 @@ def test_build_pic_call_execution(offset, uc_emul_full_setup):
 
 @pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
 @pytest.mark.parametrize("case_number", range(5))
-def test_build_switch_pic_execution(offset, case_number, uc_emul_full_setup, cap_disasm_setup):
+def test_build_switch_pic_execution(
+    offset, case_number, uc_emul_full_setup, cap_disasm_setup
+):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_switch_case(
         case_number=case_number, method_offset=offset
