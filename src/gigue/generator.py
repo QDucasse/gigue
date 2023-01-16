@@ -5,11 +5,11 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from gigue.helpers import gaussian_between
 from gigue.builder import InstructionBuilder
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.helpers import gaussian_between
 from gigue.instructions import Instruction
 from gigue.method import Method
 from gigue.pic import PIC
@@ -77,8 +77,12 @@ class Generator:
     # \______________________
 
     def add_method(self, address):
-        body_size = gaussian_between(3, self.method_max_size)  # max(3, random.randint(0, self.method_max_size))
-        call_nb = gaussian_between(0, min(self.max_call_depth, body_size // 2 - 1))  # random.randint(0, min(self.max_call_depth, body_size // 2 - 1))
+        body_size = gaussian_between(
+            3, self.method_max_size
+        )  # max(3, random.randint(0, self.method_max_size))
+        call_nb = gaussian_between(
+            0, min(self.max_call_depth, body_size // 2 - 1)
+        )  # random.randint(0, min(self.max_call_depth, body_size // 2 - 1))
         method = Method(
             address=address,
             body_size=body_size,

@@ -11,11 +11,10 @@ from unicorn.unicorn_const import UC_ARCH_RISCV
 from unicorn.unicorn_const import UC_MODE_RISCV64
 
 from gigue.constants import CALLER_SAVED_REG
-from gigue.pic import PIC
-from gigue.method import Method
 from gigue.disassembler import Disassembler
 from gigue.generator import Generator
 from gigue.instructions import IInstruction
+from gigue.pic import PIC
 
 # =================================
 #            Constants
@@ -78,7 +77,9 @@ def instrument_stack(uc_emul):
 @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
 @pytest.mark.parametrize("max_call_depth", [2, 5, 10])
 @pytest.mark.parametrize("pics_max_case", [2, 5, 10])
-def test_fill_jit_code(jit_elements_nb, method_max_size, pics_ratio, max_call_depth, pics_max_case):
+def test_fill_jit_code(
+    jit_elements_nb, method_max_size, pics_ratio, max_call_depth, pics_max_case
+):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,

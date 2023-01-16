@@ -1,9 +1,9 @@
 from math import ceil
 from random import gauss
 
-
 # List manipulation
 # \________________
+
 
 def flatten_list(nested_list):
     return [item for sublist in nested_list for item in sublist]
@@ -11,6 +11,7 @@ def flatten_list(nested_list):
 
 # Sign extension
 # \_____________
+
 
 def to_signed(value, size):
     sign_mask = 1 << (size - 1)  # 0b100000...
@@ -28,6 +29,7 @@ def to_unsigned(value, size):
 # Format
 # \_____
 
+
 def format_to(value, size):
     return abs(value) & ((1 << size) - 1)
 
@@ -38,6 +40,7 @@ def format_to_aligned(value, size):
 
 # Byte/int conversion
 # \__________________
+
 
 def int_to_bytes(value):
     return value.to_bytes(4, "little")
@@ -50,13 +53,14 @@ def bytes_to_int(value):
 # Distributions
 # \____________
 
+
 def gaussian_between(low_bound, up_bound):
-    '''
+    """
     We select
         mu + 3 * sigma = low
         mu - 3 * sigma = up
     This way there should be 0.1% values above and 0.1% below!
-    '''
+    """
     # if low_bound <= up_bound:
     #     raise Exception
     sigma = (up_bound - low_bound) / 6
