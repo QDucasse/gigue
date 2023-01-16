@@ -1,4 +1,3 @@
-import random
 from typing import List
 from typing import Optional
 
@@ -7,6 +6,7 @@ from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import CMP_REG
 from gigue.constants import HIT_CASE_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.helpers import gaussian_between
 from gigue.instructions import Instruction
 from gigue.method import Method
 
@@ -17,17 +17,18 @@ class PIC:
         address: int,
         case_number: int,
         method_max_size: int,
-        method_max_calls: int,
+        method_max_call_number: int,
+        method_max_call_depth: int,
         registers: List[int],
         hit_case_reg: Optional[int] = None,
         cmp_reg: Optional[int] = None,
     ):
-        # TODO: Store case method call depth
         self.case_number: int = case_number
         self.address: int = address
         self.registers: List[int] = registers
         self.method_max_size: int = method_max_size
-        self.method_max_calls: int = method_max_calls
+        self.method_max_call_number: int = method_max_call_number
+        self.method_max_call_depth: int = method_max_call_depth
         # hit_case_reg: register in which the case_nb that should be ran is loaded
         # cmp_reg: register in which the running case nb is stored before comparison
         # Comparison and current registers
@@ -66,12 +67,19 @@ class PIC:
             weights = INSTRUCTION_WEIGHTS
         method_address = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
-            size = random.randint(3, self.method_max_size)
-            call_nb = random.randint(0, min(self.method_max_calls, size // 2 - 1))
+            body_size = gaussian_between(3, self.method_max_size)
+            max_call_nb = min(self.method_max_call_number, body_size // 2 - 1)
+            call_nb = abs(gaussian_between(-max_call_nb, max_call_nb))
+            call_depth = abs(
+                gaussian_between(
+                    -self.method_max_call_depth, self.method_max_call_depth
+                )
+            )
             case_method = Method(
                 address=method_address,
-                body_size=size,
+                body_size=body_size,
                 call_number=call_nb,
+                call_depth=call_depth,
                 registers=CALLER_SAVED_REG,
             )
             case_method.fill_with_instructions(weights)

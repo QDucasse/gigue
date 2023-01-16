@@ -61,6 +61,12 @@ class Parser(argparse.ArgumentParser):
             help="Maximum size of a method (in nb of instructions)",
         )
         self.add_argument(
+            "--maxcallnb",
+            type=int,
+            default=5,
+            help="Maximum calls in a method (< msize/2 - 1)",
+        )
+        self.add_argument(
             "--maxcalldepth",
             type=int,
             default=5,
@@ -128,6 +134,7 @@ def main(argv=None):
         jit_elements_nb=args.jitnb,
         pics_ratio=args.picratio,
         max_call_depth=args.maxcalldepth,
+        max_call_nb=args.maxcallnb,
         # Methods
         method_max_size=args.metmaxsize,
         # PICs

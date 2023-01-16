@@ -14,6 +14,7 @@ from gigue.constants import CALLER_SAVED_REG
 from gigue.disassembler import Disassembler
 from gigue.generator import Generator
 from gigue.instructions import IInstruction
+from gigue.method import Method
 from gigue.pic import PIC
 
 # =================================
@@ -72,13 +73,19 @@ def instrument_stack(uc_emul):
 # =================================
 
 
-@pytest.mark.parametrize("jit_elements_nb", [5, 20, 100])
+@pytest.mark.parametrize("jit_elements_nb", [10, 100])
 @pytest.mark.parametrize("method_max_size", [5, 20, 100])
-@pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
+@pytest.mark.parametrize("pics_ratio", [0, 0.5])
 @pytest.mark.parametrize("max_call_depth", [2, 5, 10])
-@pytest.mark.parametrize("pics_max_case", [2, 5, 10])
+@pytest.mark.parametrize("max_call_nb", [2, 5, 10])
+@pytest.mark.parametrize("pics_max_cases", [2, 5, 10])
 def test_fill_jit_code(
-    jit_elements_nb, method_max_size, pics_ratio, max_call_depth, pics_max_case
+    jit_elements_nb,
+    method_max_size,
+    pics_ratio,
+    max_call_depth,
+    max_call_nb,
+    pics_max_cases,
 ):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
@@ -86,21 +93,26 @@ def test_fill_jit_code(
         jit_elements_nb=jit_elements_nb,
         method_max_size=method_max_size,
         max_call_depth=max_call_depth,
+        max_call_nb=max_call_nb,
         pics_method_max_size=method_max_size,
-        pics_max_cases=pics_max_case,
+        pics_max_cases=pics_max_cases,
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
     assert len(generator.jit_elements) == jit_elements_nb
     assert generator.pic_count + generator.method_count == jit_elements_nb
-    # Check number of cases per PIC
+    # Check call numbers and number of cases per PIC
     for elt in generator.jit_elements:
         if isinstance(elt, PIC):
             assert elt.case_number <= generator.pics_max_cases
+            for method in elt.methods:
+                assert method.call_number <= generator.max_call_nb
+        elif isinstance(elt, Method):
+            assert elt.call_number <= generator.max_call_nb
     # Check call depths
     for i in generator.call_depth_dict.keys():
         for method in generator.call_depth_dict[i]:
-            assert 0 <= method.call_number <= generator.max_call_depth
+            assert 0 <= method.call_depth <= generator.max_call_depth
 
 
 @pytest.mark.parametrize("jit_elements_nb", [5, 20, 100])
@@ -113,6 +125,7 @@ def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
         jit_elements_nb=jit_elements_nb,
         method_max_size=method_max_size,
         max_call_depth=5,
+        max_call_nb=5,
         pics_method_max_size=30,
         pics_max_cases=5,
         pics_ratio=pics_ratio,
@@ -172,6 +185,7 @@ def test_generate_interpreter_machine_code(
         jit_elements_nb=jit_elements_nb,
         method_max_size=method_max_size,
         max_call_depth=5,
+        max_call_nb=5,
         pics_method_max_size=30,
         pics_max_cases=5,
         pics_ratio=pics_ratio,
@@ -220,6 +234,7 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
         jit_elements_nb=jit_elements_nb,
         method_max_size=method_max_size,
         max_call_depth=5,
+        max_call_nb=5,
         pics_method_max_size=30,
         pics_max_cases=5,
         pics_ratio=pics_ratio,
@@ -230,7 +245,6 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
     generator.generate_interpreter_machine_code()
     generator.generate_jit_bytes()
     generator.generate_interpreter_bytes()
-    print(generator.call_depth_dict)
     assert len(generator.jit_bytes) == len(generator.jit_machine_code)
     assert len(generator.interpreter_bytes) == len(generator.interpreter_machine_code)
 
@@ -252,6 +266,7 @@ def test_execute_generated_binaries(
         jit_elements_nb=jit_elements_nb,
         method_max_size=method_max_size,
         max_call_depth=5,
+        max_call_nb=5,
         pics_method_max_size=5,
         pics_max_cases=2,
         pics_ratio=pics_ratio,

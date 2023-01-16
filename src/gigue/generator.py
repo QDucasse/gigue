@@ -9,6 +9,7 @@ from gigue.builder import InstructionBuilder
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.helpers import flatten_list
 from gigue.helpers import gaussian_between
 from gigue.instructions import Instruction
 from gigue.method import Method
@@ -26,6 +27,7 @@ class Generator:
         interpreter_start_address: int,
         jit_elements_nb: int,
         max_call_depth: int,
+        max_call_nb: int,
         method_max_size: int,
         pics_method_max_size: int,
         pics_max_cases: int,
@@ -47,6 +49,7 @@ class Generator:
         # Global parameters
         self.jit_elements_nb: int = jit_elements_nb  # Methods + PICs
         self.max_call_depth: int = max_call_depth
+        self.max_call_nb: int = max_call_nb
         # Methods parameters
         self.method_max_size: int = method_max_size
         self.method_count: int = 0
@@ -77,20 +80,22 @@ class Generator:
     # \______________________
 
     def add_method(self, address):
-        body_size = gaussian_between(
-            3, self.method_max_size
-        )  # max(3, random.randint(0, self.method_max_size))
-        call_nb = gaussian_between(
-            0, min(self.max_call_depth, body_size // 2 - 1)
-        )  # random.randint(0, min(self.max_call_depth, body_size // 2 - 1))
+        body_size = gaussian_between(3, self.method_max_size)
+        # To force the creation of leaf functions,
+        # the gaussian distribution is centered
+        # around 0 and the absolute value is used!
+        max_call_nb = min(self.max_call_nb, body_size // 2 - 1)
+        call_nb = abs(gaussian_between(-max_call_nb, max_call_nb))
+        call_depth = abs(gaussian_between(-self.max_call_depth, self.max_call_depth))
         method = Method(
             address=address,
             body_size=body_size,
             call_number=call_nb,
+            call_depth=call_depth,
             registers=CALLER_SAVED_REG,
         )
         self.jit_elements.append(method)
-        self.call_depth_dict[call_nb].append(method)
+        self.call_depth_dict[call_depth].append(method)
         self.method_count += 1
         return method
 
@@ -100,7 +105,8 @@ class Generator:
             address=address,
             case_number=cases_nb,
             method_max_size=self.pics_method_max_size,
-            method_max_calls=self.max_call_depth,
+            method_max_call_number=self.max_call_nb,
+            method_max_call_depth=self.max_call_depth,
             hit_case_reg=self.pics_hit_case_reg,
             cmp_reg=self.pics_cmp_reg,
             registers=CALLER_SAVED_REG,
@@ -148,25 +154,28 @@ class Generator:
             current_address += current_element.total_size() * 4
             current_element_count += 1
 
+    def extract_callees(self, call_depth, nb):
+        possible_callees = flatten_list(
+            [
+                self.call_depth_dict[i]
+                for i in self.call_depth_dict.keys()
+                if i < call_depth
+            ]
+        )
+        return random.sample(possible_callees, k=nb)
+
     def patch_jit_calls(self):
-        # Patch methods
-        # TODO:
-        # [ ] 1. Change the call building in methods
-        # [ ]   1.1 Add a frame creation -> save ra
-        # [ ]   1.1 Add a frame creation -> restore ra
-        # [ ] 2. Change the order of instruction generation
-        # [ ]   2.1 First generate random instructions (no jumps or branches)
-        # [ ]   2.2 Generate patched calls
-        # [ ]   2.3 Add jumps and branches and avoid calls
-        # for method in self.jit_methods:
-        #     callees = random.sample(self.jit_methods, k=method.call_number)
-        #     # Remove recursivity
-        #     if method in callees:
-        #         callees.remove(method)
-        #     method.patch_calls(callees)
-        # Patch pics methods
-        # TODO: Create jit_instructions at the end of this one!
-        pass
+        for elt in self.jit_elements:
+            if isinstance(elt, PIC):
+                for method in elt.methods:
+                    method.patch_calls(
+                        self.extract_calles(method.call_depth, method.call_number)
+                    )
+            elif isinstance(elt, Method):
+                method = elt
+                method.patch_calls(
+                    self.extract_calles(method.call_depth, method.call_number)
+                )
 
     #  Interpretation loop filling
     # \___________________________
