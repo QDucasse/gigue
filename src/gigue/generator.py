@@ -1,8 +1,11 @@
 import random
+from collections import defaultdict
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Union
 
+from gigue.helpers import gaussian_between
 from gigue.builder import InstructionBuilder
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
@@ -22,11 +25,10 @@ class Generator:
         jit_start_address: int,
         interpreter_start_address: int,
         jit_elements_nb: int,
+        max_call_depth: int,
         method_max_size: int,
-        method_max_calls: int,
         pics_method_max_size: int,
         pics_max_cases: int,
-        pics_methods_max_calls: int,
         pics_cmp_reg: int = 6,
         pics_hit_case_reg: int = 5,
         pics_ratio: float = 0.2,
@@ -34,20 +36,24 @@ class Generator:
         output_jit_file: str = BIN_DIR + "jit.bin",
         output_interpret_file: str = BIN_DIR + "interpret.bin",
     ):
+        # Registers
         if registers is None:
             self.registers: List[int] = CALLER_SAVED_REG
+        # Memory index registers to use with loads/stores
+        # TODO: self.mem_reg_index = ?
+        # Addresses
         self.jit_start_address: int = jit_start_address
         self.interpreter_start_address: int = interpreter_start_address
+        # Global parameters
         self.jit_elements_nb: int = jit_elements_nb  # Methods + PICs
+        self.max_call_depth: int = max_call_depth
         # Methods parameters
         self.method_max_size: int = method_max_size
-        self.method_max_calls: int = method_max_calls
         self.method_count: int = 0
         # PICs parameters
         self.pics_ratio: float = pics_ratio
         self.pics_max_cases: int = pics_max_cases
         self.pics_method_max_size: int = pics_method_max_size
-        self.pics_methods_max_calls: int = pics_methods_max_calls
         self.pics_hit_case_reg: int = pics_hit_case_reg
         self.pics_cmp_reg: int = pics_cmp_reg
         self.pic_count: int = 0
@@ -55,6 +61,7 @@ class Generator:
         self.builder: InstructionBuilder = InstructionBuilder()
         self.jit_elements: List[Union[Method, PIC]] = []
         self.jit_instructions: List[Instruction] = []
+        self.call_depth_dict: Dict[int, List[Union[Method, PIC]]] = defaultdict(list)
         self.interpreter_instructions: List[Instruction] = []
         # MC/Bytes/Binary generation
         self.jit_machine_code: List[int] = []
@@ -70,8 +77,8 @@ class Generator:
     # \______________________
 
     def add_method(self, address):
-        body_size = max(3, random.randint(0, self.method_max_size))
-        call_nb = random.randint(0, min(self.method_max_calls, body_size // 2 - 1))
+        body_size = gaussian_between(3, self.method_max_size)  # max(3, random.randint(0, self.method_max_size))
+        call_nb = gaussian_between(0, min(self.max_call_depth, body_size // 2 - 1))  # random.randint(0, min(self.max_call_depth, body_size // 2 - 1))
         method = Method(
             address=address,
             body_size=body_size,
@@ -79,6 +86,7 @@ class Generator:
             registers=CALLER_SAVED_REG,
         )
         self.jit_elements.append(method)
+        self.call_depth_dict[call_nb].append(method)
         self.method_count += 1
         return method
 
@@ -88,12 +96,14 @@ class Generator:
             address=address,
             case_number=cases_nb,
             method_max_size=self.pics_method_max_size,
-            method_max_calls=self.pics_methods_max_calls,
+            method_max_calls=self.max_call_depth,
             hit_case_reg=self.pics_hit_case_reg,
             cmp_reg=self.pics_cmp_reg,
             registers=CALLER_SAVED_REG,
         )
         self.jit_elements.append(pic)
+        for method in pic.methods:
+            self.call_depth_dict[method.call_depth].append(method)
         self.pic_count += 1
         return pic
 

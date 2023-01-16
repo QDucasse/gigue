@@ -61,7 +61,7 @@ class Parser(argparse.ArgumentParser):
             help="Maximum size of a method (in nb of instructions)",
         )
         self.add_argument(
-            "--metmaxcalls",
+            "--maxcalldepth",
             type=int,
             default=5,
             help="Maximum calls in a method (< msize/2 - 1)",
@@ -75,12 +75,6 @@ class Parser(argparse.ArgumentParser):
         )
         self.add_argument(
             "--picmaxcases", type=int, default=5, help="PIC max number of cases"
-        )
-        self.add_argument(
-            "--picmetmaxcalls",
-            type=int,
-            default=2,
-            help="PIC methods max number of calls",
         )
         self.add_argument(
             "--piccmpreg",
@@ -130,16 +124,15 @@ def main(argv=None):
         jit_start_address=args.jitaddr,
         interpreter_start_address=args.intaddr,
         # General
-        jit_elements_nb=args.jitnb,
         registers=args.regs,
+        jit_elements_nb=args.jitnb,
+        pics_ratio=args.picratio,
+        max_call_depth=args.maxcalldepth,
         # Methods
         method_max_size=args.metmaxsize,
-        method_max_calls=args.metmaxcalls,
         # PICs
-        pics_ratio=args.picratio,
         pics_method_max_size=args.picmetmaxsize,
         pics_max_cases=args.picmaxcases,
-        pics_methods_max_calls=args.picmetmaxcalls,
         pics_cmp_reg=args.piccmpreg,
         pics_hit_case_reg=args.pichitcasereg,
         # Files
