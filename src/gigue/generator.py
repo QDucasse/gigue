@@ -86,7 +86,11 @@ class Generator:
         # around 0 and the absolute value is used!
         max_call_nb = min(self.max_call_nb, body_size // 2 - 1)
         call_nb = abs(gaussian_between(-max_call_nb, max_call_nb))
-        call_depth = abs(gaussian_between(-self.max_call_depth, self.max_call_depth))
+        call_depth = (
+            0
+            if call_nb == 0
+            else abs(gaussian_between(-self.max_call_depth, self.max_call_depth))
+        )
         method = Method(
             address=address,
             body_size=body_size,
@@ -96,6 +100,20 @@ class Generator:
         )
         self.jit_elements.append(method)
         self.call_depth_dict[call_depth].append(method)
+        self.method_count += 1
+        return method
+
+    def add_leaf_method(self, address):
+        body_size = gaussian_between(3, self.method_max_size)
+        method = Method(
+            address=address,
+            body_size=body_size,
+            call_number=0,
+            call_depth=0,
+            registers=CALLER_SAVED_REG,
+        )
+        self.jit_elements.append(method)
+        self.call_depth_dict[0].append(method)
         self.method_count += 1
         return method
 
@@ -144,6 +162,12 @@ class Generator:
             weights = INSTRUCTION_WEIGHTS
         current_address = self.jit_start_address
         current_element_count = 0
+        # Add a first leaf method
+        leaf_method = self.add_leaf_method(current_address)
+        leaf_method.fill_with_instructions(weights)
+        current_address += leaf_method.total_size() * 4
+        current_element_count += 1
+        # Add other methods
         while current_element_count < self.jit_elements_nb:
             code_type = random.choices(
                 ["method", "pic"], [1 - self.pics_ratio, self.pics_ratio]
@@ -162,20 +186,25 @@ class Generator:
                 if i < call_depth
             ]
         )
-        return random.sample(possible_callees, k=nb)
+        print(f"Current call depth: {call_depth}")
+        print(f"Possible callees: {possible_callees}")
+        print(f"Call depth levels: {sorted(self.call_depth_dict.keys())}")
+        print(f"Call number: {nb}")
+        return random.choices(possible_callees, k=nb)
 
     def patch_jit_calls(self):
         for elt in self.jit_elements:
             if isinstance(elt, PIC):
                 for method in elt.methods:
+                    if method.call_depth == 0:
+                        continue
                     method.patch_calls(
-                        self.extract_calles(method.call_depth, method.call_number)
+                        self.extract_callees(method.call_depth, method.call_number)
                     )
             elif isinstance(elt, Method):
-                method = elt
-                method.patch_calls(
-                    self.extract_calles(method.call_depth, method.call_number)
-                )
+                if elt.call_depth == 0:
+                    continue
+                elt.patch_calls(self.extract_callees(elt.call_depth, elt.call_number))
 
     #  Interpretation loop filling
     # \___________________________
@@ -248,7 +277,7 @@ class Generator:
     def main(self):
         # Fill
         self.fill_jit_code()
-        # self.patch_jit_calls()
+        self.patch_jit_calls()
         self.fill_interpretation_loop()
         # Generate the machine code
         self.generate_jit_machine_code()

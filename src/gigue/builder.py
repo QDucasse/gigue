@@ -113,8 +113,8 @@ class InstructionBuilder:
 
     @staticmethod
     def build_method_call(offset):
-        if offset < 0x8:
-            raise Exception
+        # if offset < 0x8:
+        #     raise Exception
         offset_low = offset & 0xFFF
         # The right part handles the low offset sign extension (that should be mitigated)
         offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)

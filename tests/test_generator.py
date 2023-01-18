@@ -148,24 +148,35 @@ def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
     #     assert call_instruction[1].name == "jalr"
 
 
-# TODO: Fix call patching
-# @pytest.mark.parametrize("jit_elements_nb", [8, 10, 20, 30, 50, 100])
-# @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
-# @pytest.mark.parametrize("pics_ratio", [0])
-# def test_patch_calls(jit_elements_nb, method_max_size, pics_ratio):
-#     generator = Generator(
-#         jit_start_address=JIT_START_ADDRESS,
-#         interpreter_start_address=INTERPRETER_START_ADDRESS,
-#         jit_elements_nb=jit_elements_nb,
-#         method_max_size=method_max_size,
-#         max_call_depth=5,
-#         pics_method_max_size=30,
-#         pics_max_cases=5,
-#         pics_ratio=pics_ratio,
-#     )
-#     generator.fill_jit_code()
-#     generator.patch_jit_calls()
-#     generator.fill_interpretation_loop()
+# TODO: Smoke test, add real testing hihi
+@pytest.mark.parametrize("jit_elements_nb", [20, 100])
+@pytest.mark.parametrize("method_max_size", [20, 100])
+@pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
+@pytest.mark.parametrize("max_call_depth", [2, 5, 10])
+@pytest.mark.parametrize("max_call_nb", [2, 5, 10])
+@pytest.mark.parametrize("pics_max_cases", [2, 5, 10])
+def test_patch_calls(
+    jit_elements_nb,
+    method_max_size,
+    pics_ratio,
+    max_call_depth,
+    max_call_nb,
+    pics_max_cases,
+):
+    generator = Generator(
+        jit_start_address=JIT_START_ADDRESS,
+        interpreter_start_address=INTERPRETER_START_ADDRESS,
+        jit_elements_nb=jit_elements_nb,
+        method_max_size=method_max_size,
+        max_call_depth=max_call_depth,
+        max_call_nb=max_call_nb,
+        pics_method_max_size=method_max_size,
+        pics_max_cases=pics_max_cases,
+        pics_ratio=pics_ratio,
+    )
+    generator.fill_jit_code()
+    generator.patch_jit_calls()
+    generator.fill_interpretation_loop()
 
 
 # =================================
