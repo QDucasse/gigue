@@ -186,10 +186,6 @@ class Generator:
                 if i < call_depth
             ]
         )
-        print(f"Current call depth: {call_depth}")
-        print(f"Possible callees: {possible_callees}")
-        print(f"Call depth levels: {sorted(self.call_depth_dict.keys())}")
-        print(f"Call number: {nb}")
         return random.choices(possible_callees, k=nb)
 
     def patch_jit_calls(self):

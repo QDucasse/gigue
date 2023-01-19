@@ -114,13 +114,11 @@ class Parser(argparse.ArgumentParser):
 
 def main(argv=None):
     if argv is None:
-        argv = sys.argv
+        argv = sys.argv[1:]
 
     parser = Parser()
     parsed_args = parser.parse(argv)
     args = ObjDict(parsed_args.__dict__)
-
-    print(argv)
 
     if not os.path.exists(BIN_DIR):
         os.makedirs(BIN_DIR)

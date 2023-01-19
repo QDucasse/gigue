@@ -307,8 +307,9 @@ def test_build_method_call_execution(offset, uc_emul_full_setup):
     uc_emul.emu_start(begin=ADDRESS, until=ADDRESS + offset)
     current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
     current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-    print(current_pc)
-    print(current_ra)
+    # print(current_pc)
+    # print(current_ra)
+    assert current_ra == ADDRESS + 8  # size of the
     assert current_pc == ADDRESS + offset
     uc_emul.emu_stop()
 
@@ -342,9 +343,9 @@ def test_build_switch_pic_execution(
     )
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
-    cap_disasm = cap_disasm_setup
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # cap_disasm = cap_disasm_setup
+    # for i in cap_disasm.disasm(bytes, ADDRESS):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
@@ -368,9 +369,9 @@ def test_build_prologue_execution(
     )
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
-    cap_disasm = cap_disasm_setup
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # cap_disasm = cap_disasm_setup
+    # for i in cap_disasm.disasm(bytes, ADDRESS):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
@@ -408,9 +409,9 @@ def test_build_epilogue_execution(
     )
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
-    cap_disasm = cap_disasm_setup
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # cap_disasm = cap_disasm_setup
+    # for i in cap_disasm.disasm(bytes, ADDRESS):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
