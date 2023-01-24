@@ -108,29 +108,39 @@ class Method:
     def accept_build(self, generator, method_offset):
         return generator.build_method_call(self, method_offset)
 
-    # TODO: Rework with new workflow!
     def patch_calls(self, callees):
         # Check for recursive call
         if self in callees:
             raise_call_patch_recursive_error(self, callees)
+        # Check call size
+        if len(callees) > 2 * self.body_size:
+            raise_call_number_value_error(len((callees), self.body_size))
         # Check for mutual call
         self.callees = callees
         for callee in callees:
             if self in callee.callees:
-                print("removing callee")
+                print("Mutual call found, removing callee")
                 self.callees.remove(callee)
 
-        replacement_nb = min(len(callees), self.call_number)
         # Replace random parts of the method with calls to chosen callees
-        indexes = random.sample(range(0, self.body_size - 1, 2), replacement_nb)
+        indexes = random.sample(
+            range(self.prologue_size, self.prologue_size + self.body_size - 1, 2),
+            len(self.callees),
+        )
         for ind, callee in zip(indexes, self.callees):
-            # Compute the offset:
-            #    address + (ind + 1) * 4
-            #                 ^   ^
-            #  compute index /    \ call takes two instructions offset computed from the second
+            # Compute the offset
             offset = callee.address - (self.address + ind * 4)
+            print(
+                f"Offset: {hex(callee.address)} - {hex(self.address + ind*4)} = {hex(offset)}"
+            )
             call_instructions = self.builder.build_method_call(offset)
             # Add the two instructions for the call
             self.instructions[ind] = call_instructions[0]
             self.instructions[ind + 1] = call_instructions[1]
-        # print("{} calls to patch with {} (addr {})".format(self.call_number, callees, self.address))
+        print(
+            "{} calls to patch with {} (addr {})".format(
+                self.call_number,
+                [hex(callee.address) for callee in callees],
+                self.address,
+            )
+        )

@@ -18,7 +18,11 @@ class Disassembler:
 
     @staticmethod
     def get_instruction_type(instruction):
-        return find_instr_for_opcode(instruction & 0x3F).type
+        return find_instr_for_opcode(instruction & 0x7F).type
+
+    @staticmethod
+    def get_instruction_name(instruction):
+        return find_instr_for_opcode(instruction & 0x7F).name
 
     def extract_opcode7(self, instruction):
         return self.extract_info(instruction, 7, 0)
