@@ -74,7 +74,9 @@ class PIC:
         method_address = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
             body_size = gaussian_between(3, self.method_max_size)
-            max_call_nb = min(self.method_max_call_number, body_size // 2 - 1)
+            max_call_nb = min(
+                self.method_max_call_number, Method.compute_max_call_number(body_size)
+            )
             call_nb = abs(gaussian_between(-max_call_nb, max_call_nb))
             call_depth = abs(
                 gaussian_between(

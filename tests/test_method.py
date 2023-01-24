@@ -13,19 +13,19 @@ from gigue.pic import PIC
 
 
 def test_initialization():
-    method = Method(address=0x7FFFFF, body_size=32, call_number=15, registers=[])
-    assert method.body_size == 32
+    method = Method(address=0x7FFFFF, body_size=30, call_number=5, registers=[])
+    assert method.body_size == 30
     assert method.address == 0x7FFFFF
-    assert method.call_number == 15
+    assert method.call_number == 5
 
 
 def test_error_initialization():
     with pytest.raises(ValueError):
-        Method(address=0x7FFFFF, body_size=28, call_number=15, registers=[])
+        Method(address=0x7FFFFF, body_size=10, call_number=5, registers=[])
 
 
 def test_fill_with_nops(cap_disasm_setup):
-    method = Method(address=0x7FFFFF, body_size=32, call_number=15, registers=[])
+    method = Method(address=0x7FFFFF, body_size=30, call_number=5, registers=[])
     method.fill_with_nops()
     bytes = method.generate_bytes()
     # Disassembly
@@ -42,7 +42,7 @@ def test_instructions_filling(
 ):
     method = Method(
         address=0x1000,
-        body_size=6,
+        body_size=10,
         call_number=call_number,
         registers=CALLER_SAVED_REG,
         used_s_regs=used_s_regs,
@@ -170,7 +170,7 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
 
 def test_patch_calls_check_recursive_loop_call():
     method = Method(
-        address=0x1000, body_size=7, call_number=3, registers=CALLER_SAVED_REG
+        address=0x1000, body_size=10, call_number=3, registers=CALLER_SAVED_REG
     )
     callee1 = Method(
         address=0x1100, body_size=2, call_number=0, registers=CALLER_SAVED_REG

@@ -64,13 +64,13 @@ class Parser(argparse.ArgumentParser):
             "--maxcallnb",
             type=int,
             default=5,
-            help="Maximum calls in a method (< msize/2 - 1)",
+            help="Maximum calls in a method (< msize/3 - 1)",
         )
         self.add_argument(
             "--maxcalldepth",
             type=int,
             default=5,
-            help="Maximum calls in a method (< msize/2 - 1)",
+            help="Maximum call depth of a method (i.e. nested calls)",
         )
         # PICs info
         self.add_argument(

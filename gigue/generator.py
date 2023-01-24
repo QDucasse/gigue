@@ -84,7 +84,7 @@ class Generator:
         # To force the creation of leaf functions,
         # the gaussian distribution is centered
         # around 0 and the absolute value is used!
-        max_call_nb = min(self.max_call_nb, body_size // 2 - 1)
+        max_call_nb = min(self.max_call_nb, Method.compute_max_call_number(body_size))
         call_nb = abs(gaussian_between(-max_call_nb, max_call_nb))
         call_depth = (
             0

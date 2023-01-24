@@ -7,13 +7,13 @@ from gigue.instructions import Instruction
 
 
 def raise_call_number_value_error(call_number, size):
-    max_call_number = (size - 1) // 3
+    max_call_number = size // 3
     raise ValueError(
         "ValueError: Call number should be <= {} and is {}.".format(
             max_call_number, call_number
         )
-        + "\n  Number of calls in a method cannot be greater than (size - 1) // 2 "
-        + "\n  (note: '-1' for ret and '//2' because a call is composed of two instructions)."
+        + "\n  Number of calls in a method cannot be greater than size // 3 "
+        + "\n  (note: //3 because a call is composed of max three instructions in PICs)."
     )
 
 
@@ -40,13 +40,7 @@ class Method:
         self.used_s_regs: int = used_s_regs
         self.local_vars_nb: int = local_vars_nb
 
-        # The calls will be added once random instructions are generated to
-        # fill the method body. As a call takes two instructions and the method
-        # should end with a ret, the max number of calls is (body_size -1) // 2 for
-        # a given method body size.
-
-        if call_number > (body_size - 1) // 2:
-            raise_call_number_value_error(call_number, body_size)
+        self.check_call_number(call_number)
         self.call_number: int = call_number
 
         self.is_leaf: bool = self.call_number == 0
@@ -60,6 +54,21 @@ class Method:
         self.callees: List[Method] = []
         self.machine_code: List[int] = []
         self.bytes: bytes = b""
+
+    @classmethod
+    def compute_max_call_number(cls, body_size):
+        # The calls will be added once random instructions are generated to
+        # fill the method body. As a call takes two instructions and the method
+        # should end with a ret, the max number of calls is body_size // 3 for
+        # a given method body size.
+        return body_size // 3
+
+    def get_max_call_number(self):
+        return Method.compute_max_call_number(self.body_size)
+
+    def check_call_number(self, call_number):
+        if call_number > self.get_max_call_number():
+            raise_call_number_value_error(call_number, self.body_size)
 
     def total_size(self):
         if self.prologue_size == 0 or self.epilogue_size == 0:
@@ -112,9 +121,8 @@ class Method:
         # Check for recursive call
         if self in callees:
             raise_call_patch_recursive_error(self, callees)
-        # Check call size, 3 for a PIC call (addi, auipc, jalr)
-        if len(callees) > self.body_size / 3:
-            raise_call_number_value_error(len(callees), self.body_size)
+
+        assert len(callees) == self.call_number
 
         self.callees = callees
         # TODO: Check for mutual call
