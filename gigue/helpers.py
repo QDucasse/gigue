@@ -4,14 +4,12 @@ from random import gauss
 # List manipulation
 # \________________
 
-
 def flatten_list(nested_list):
     return [item for sublist in nested_list for item in sublist]
 
 
 # Sign extension
 # \_____________
-
 
 def to_signed(value, size):
     sign_mask = 1 << (size - 1)  # 0b100000...
@@ -29,7 +27,6 @@ def to_unsigned(value, size):
 # Format
 # \_____
 
-
 def format_to(value, size):
     return abs(value) & ((1 << size) - 1)
 
@@ -41,7 +38,6 @@ def format_to_aligned(value, size):
 # Byte/int conversion
 # \__________________
 
-
 def int_to_bytes(value):
     return value.to_bytes(4, "little")
 
@@ -52,7 +48,6 @@ def bytes_to_int(value):
 
 # Distributions
 # \____________
-
 
 def gaussian_between(low_bound, up_bound):
     """
@@ -70,8 +65,17 @@ def gaussian_between(low_bound, up_bound):
     return box_value
 
 
+# List Windows
+# \___________
+
+def window(arr, k):
+    for i in range(len(arr)-k+1):
+        yield arr[i:i+k]
+
+
 # Object Dictionary
 # \________________
+
 class ObjDict(dict):
     def __getattr__(self, name):
         if name in self:

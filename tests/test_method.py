@@ -6,6 +6,8 @@ from unicorn.riscv_const import UC_RISCV_REG_RA
 from gigue.constants import CALLER_SAVED_REG
 from gigue.method import Method
 from gigue.pic import PIC
+from gigue.helpers import window
+
 
 # =================================
 #             Method
@@ -98,16 +100,14 @@ def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
     body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
     callee_addresses = [callee1.address, callee2.address, callee3.address]
     disasm = disasm_setup
-    # TODO: Better way to check for a window of three following instructions?
-    for (i, instr) in enumerate(body_mc[:-1]):
-        if disasm.get_instruction_name(instr) == "auipc":
-            if disasm.get_instruction_name(body_mc[i + 1]) == "jalr":
-                offset = disasm.extract_call_offset(body_mc[i : i + 2])
-                extracted_address = (
-                    method.address + (i + method.prologue_size) * 4 + offset
-                )
-                assert extracted_address in callee_addresses
-                callee_addresses.remove(extracted_address)
+    for i, instr_list in enumerate(window(body_mc[:-1], 2)):
+        if [disasm.get_instruction_name(instr) for instr in instr_list] == ["auipc", "jalr"]:
+            offset = disasm.extract_call_offset(instr_list)
+            extracted_address = (
+                method.address + (i + method.prologue_size) * 4 + offset
+            )
+            assert extracted_address in callee_addresses
+            callee_addresses.remove(extracted_address)
     assert callee_addresses == []
 
 
@@ -154,17 +154,14 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
     body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
     callee_addresses = [callee1.address, callee2.address, callee3.address]
     disasm = disasm_setup
-    # TODO: Better way to check for a window of three following instructions?
-    for (i, instr) in enumerate(body_mc[:-2]):
-        if disasm.get_instruction_name(instr) == "addi":
-            if disasm.get_instruction_name(body_mc[i + 1]) == "auipc":
-                if disasm.get_instruction_name(body_mc[i + 2]) == "jalr":
-                    offset = disasm.extract_call_offset(body_mc[i + 1 : i + 3])
-                    extracted_address = (
-                        method.address + (i + 1 + method.prologue_size) * 4 + offset
-                    )
-                    assert extracted_address in callee_addresses
-                    callee_addresses.remove(extracted_address)
+    for i, instr_list in enumerate(window(body_mc[:-1], 3)):
+        if [disasm.get_instruction_name(instr) for instr in instr_list] == ["addi", "auipc", "jalr"]:
+            offset = disasm.extract_call_offset(instr_list[1:])
+            extracted_address = (
+                method.address + (i + 1 + method.prologue_size) * 4 + offset
+            )
+            assert extracted_address in callee_addresses
+            callee_addresses.remove(extracted_address)
     assert callee_addresses == []
 
 
