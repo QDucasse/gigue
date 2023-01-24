@@ -63,9 +63,6 @@ class PIC:
             [method.total_size() for method in self.methods]
         )
 
-    def accept_build(self, generator, method_offset):
-        return generator.build_pic_call(self, method_offset)
-
     def accept_build_call(self, method_offset):
         hit_case = random.randint(1, self.case_number)
         # The -4 comes from the addi that has to be mitigated

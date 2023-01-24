@@ -290,29 +290,29 @@ def test_execute_generated_binaries(
     generator.generate_interpreter_bytes()
     interpreter_binary = generator.generate_interpreter_binary()
     # Binary infos:
-    print(
-        "Interpreter binary: from {} to {} (length {})".format(
-            hex(INTERPRETER_START_ADDRESS),
-            hex(INTERPRETER_START_ADDRESS + len(interpreter_binary)),
-            len(interpreter_binary),
-        )
-    )
+    # print(
+    #     "Interpreter binary: from {} to {} (length {})".format(
+    #         hex(INTERPRETER_START_ADDRESS),
+    #         hex(INTERPRETER_START_ADDRESS + len(interpreter_binary)),
+    #         len(interpreter_binary),
+    #     )
+    # )
     # Capstone disasm:
-    cap_disasm = cap_disasm_setup
-    for i in cap_disasm.disasm(interpreter_binary, INTERPRETER_START_ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # cap_disasm = cap_disasm_setup
+    # for i in cap_disasm.disasm(interpreter_binary, INTERPRETER_START_ADDRESS):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     jit_binary = generator.generate_jit_binary()
     # Binary infos:
-    print(
-        "JIT binary: from {} to {} (length {})".format(
-            hex(JIT_START_ADDRESS),
-            hex(JIT_START_ADDRESS + len(jit_binary)),
-            len(jit_binary),
-        )
-    )
+    # print(
+    #     "JIT binary: from {} to {} (length {})".format(
+    #         hex(JIT_START_ADDRESS),
+    #         hex(JIT_START_ADDRESS + len(jit_binary)),
+    #         len(jit_binary),
+    #     )
+    # )
     # Capstone disasm:
-    for i in cap_disasm.disasm(jit_binary, JIT_START_ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # for i in cap_disasm.disasm(jit_binary, JIT_START_ADDRESS):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
     uc_emul.mem_map(INTERPRETER_START_ADDRESS, 2 * 1024 * 1024)
     # Fill memory with nops up to END_ADDRESS

@@ -89,15 +89,16 @@ def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
     callee3.fill_with_instructions()
     method.patch_calls([callee1, callee2, callee3])
     # Capstone disassembly
-    bytes_method = method.generate_bytes()
-    cap_disasm = cap_disasm_setup
-    for i in cap_disasm.disasm(bytes_method, ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # bytes_method = method.generate_bytes()
+    # cap_disasm = cap_disasm_setup
+    # for i in cap_disasm.disasm(bytes_method, ADDRESS):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Tests correct jump offsets
     mc_method = method.generate()
     body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
     callee_addresses = [callee1.address, callee2.address, callee3.address]
     disasm = disasm_setup
+    # TODO: Better way to check for a window of three following instructions?
     for (i, instr) in enumerate(body_mc[:-1]):
         if disasm.get_instruction_name(instr) == "auipc":
             if disasm.get_instruction_name(body_mc[i + 1]) == "jalr":
@@ -144,15 +145,16 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
     callee3.fill_with_instructions()
     method.patch_calls([callee1, callee2, callee3])
     # Capstone disassembly
-    bytes_method = method.generate_bytes()
-    cap_disasm = cap_disasm_setup
-    for i in cap_disasm.disasm(bytes_method, ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # bytes_method = method.generate_bytes()
+    # cap_disasm = cap_disasm_setup
+    # for i in cap_disasm.disasm(bytes_method, ADDRESS):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Tests correct jump offsets
     mc_method = method.generate()
     body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
     callee_addresses = [callee1.address, callee2.address, callee3.address]
     disasm = disasm_setup
+    # TODO: Better way to check for a window of three following instructions?
     for (i, instr) in enumerate(body_mc[:-2]):
         if disasm.get_instruction_name(instr) == "addi":
             if disasm.get_instruction_name(body_mc[i + 1]) == "auipc":

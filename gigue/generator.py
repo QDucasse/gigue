@@ -135,26 +135,6 @@ class Generator:
         self.pic_count += 1
         return pic
 
-    #  Interpretation loop calling construction
-    # \________________________________________
-
-    # TODO: Switch the logic in the builder?
-    def build_element_call(self, element, offset):
-        return element.accept_build(self, offset)
-
-    def build_method_call(self, method, offset):
-        call_instructions = self.builder.build_method_call(offset)
-        self.interpreter_instructions += call_instructions
-        return len(call_instructions) * 4
-
-    def build_pic_call(self, pic, offset):
-        hit_case = random.randint(1, pic.case_number)
-        call_instructions = self.builder.build_pic_call(
-            offset, hit_case, pic.hit_case_reg
-        )
-        self.interpreter_instructions += call_instructions
-        return len(call_instructions) * 4
-
     #  JIT filling and patching
     # \________________________
 
@@ -216,10 +196,11 @@ class Generator:
         shuffled_elements = self.jit_elements.copy()
         random.shuffle(shuffled_elements)
         for element in shuffled_elements:
-            call_size = self.build_element_call(
+            call_instructions = self.builder.build_element_call(
                 element, element.address - current_address
             )
-            current_address += call_size
+            self.interpreter_instructions += call_instructions
+            current_address += len(call_instructions) * 4
         epilogue_instructions = self.builder.build_epilogue(10, 0, True)
         self.interpreter_instructions += epilogue_instructions
 

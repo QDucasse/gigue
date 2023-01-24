@@ -105,9 +105,6 @@ class Method:
             self.bytes += instruction.generate_bytes()
         return self.bytes
 
-    def accept_build(self, generator, method_offset):
-        return generator.build_method_call(self, method_offset)
-
     def accept_build_call(self, method_offset):
         return self.builder.build_method_call(method_offset)
 
@@ -132,13 +129,12 @@ class Method:
             range(self.prologue_size, self.prologue_size + self.body_size - 1, 3),
             len(self.callees),
         )
-        print(indexes)
         for ind, callee in zip(indexes, self.callees):
             # Compute the offset
             offset = callee.address - (self.address + ind * 4)
-            print(
-                f"Offset: {hex(callee.address)} - ({hex(self.address)} + {hex(ind*4)}) = {hex(offset)}"
-            )
+            # print(
+            #     f"Offset: {hex(callee.address)} - ({hex(self.address)} + {hex(ind*4)}) = {hex(offset)}"
+            # )
             call_instructions = self.builder.build_element_call(callee, offset)
             # Add the two instructions for the call
             self.instructions[ind : ind + len(call_instructions)] = call_instructions
