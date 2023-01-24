@@ -46,6 +46,8 @@ class Generator:
         # Addresses
         self.jit_start_address: int = jit_start_address
         self.interpreter_start_address: int = interpreter_start_address
+        self.interpreter_prologue_size: int = 0
+        self.interpreter_epilogue_size: int = 0
         # Global parameters
         self.jit_elements_nb: int = jit_elements_nb  # Methods + PICs
         self.max_call_depth: int = max_call_depth
@@ -202,6 +204,9 @@ class Generator:
             self.interpreter_instructions += call_instructions
             current_address += len(call_instructions) * 4
         epilogue_instructions = self.builder.build_epilogue(10, 0, True)
+        # Update sizes
+        self.interpreter_prologue_size = len(prologue_instructions)
+        self.interpreter_epilogue_size = len(epilogue_instructions)
         self.interpreter_instructions += epilogue_instructions
 
     #  Machine code generation

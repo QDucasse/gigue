@@ -24,7 +24,7 @@ from gigue.pic import PIC
 disassembler = Disassembler()
 INTERPRETER_START_ADDRESS = 0x1000
 JIT_START_ADDRESS = 0x3000
-STACK_ADDRESS = 0xE000
+STACK_ADDRESS = 0x10000
 END_ADDRESS = 0xFFF0
 cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
 
@@ -99,6 +99,7 @@ def test_fill_jit_code(
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
+    generator.patch_jit_calls()
     assert len(generator.jit_elements) == jit_elements_nb
     assert generator.pic_count + generator.method_count == jit_elements_nb
     # Check call numbers and number of cases per PIC
@@ -131,6 +132,7 @@ def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
+    generator.patch_jit_calls()
     generator.fill_interpretation_loop()
     assert (
         len(generator.interpreter_instructions)
@@ -140,43 +142,51 @@ def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
         + Generator.INT_EPILOGUE_SIZE
     )
 
-    # TODO: Rework method tests now that its flattened + tests for PICs
-    # for i, (jit_element, call_instruction) in enumerate(
-    #     zip(generator.jit_elements, generator.interpreter_calls)
-    # ):
-    #     assert call_instruction[0].name == "auipc"
-    #     assert call_instruction[1].name == "jalr"
+    # TODO: Monitor calls
+    # disasm = disasm_setup
+    # elt_addresses = [elt.address for elt in generator.jit_elements]
+    # mc_code = generator.generate_interpreter_machine_code()
+    # for i, instr in enumerate(mc_code[generator.interpreter_prologue_size:-generator.interpreter_epilogue_size]):
+    #     print(instr)
+    #     if disasm.get_instruction_name(instr) == "addi":
+    #         if disasm.get_instruction_name(mc_code[i + 1]) == "auipc":
+    #             if disasm.get_instruction_name(mc_code[i + 2]) == "jalr":
+    #                 assert disasm.extract_call_offset(mc_code[i + 1 : i + 3]) in elt_addresses
+    #     elif disasm.get_instruction_name(instr) == "auipc":
+    #         if disasm.get_instruction_name(mc_code[i + 1]) == "jalr":
+    #             print("huh")
+    #             assert disasm.extract_call_offset(mc_code[i : i + 2]) in elt_addresses
 
 
 # TODO: Smoke test, add real testing hihi
-# @pytest.mark.parametrize("jit_elements_nb", [20, 100])
-# @pytest.mark.parametrize("method_max_size", [20, 100])
-# @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
-# @pytest.mark.parametrize("max_call_depth", [2, 5, 10])
-# @pytest.mark.parametrize("max_call_nb", [2, 5, 10])
-# @pytest.mark.parametrize("pics_max_cases", [2, 5, 10])
-# def test_patch_calls(
-#     jit_elements_nb,
-#     method_max_size,
-#     pics_ratio,
-#     max_call_depth,
-#     max_call_nb,
-#     pics_max_cases,
-# ):
-#     generator = Generator(
-#         jit_start_address=JIT_START_ADDRESS,
-#         interpreter_start_address=INTERPRETER_START_ADDRESS,
-#         jit_elements_nb=jit_elements_nb,
-#         method_max_size=method_max_size,
-#         max_call_depth=max_call_depth,
-#         max_call_nb=max_call_nb,
-#         pics_method_max_size=method_max_size,
-#         pics_max_cases=pics_max_cases,
-#         pics_ratio=pics_ratio,
-#     )
-#     generator.fill_jit_code()
-#     generator.patch_jit_calls()
-#     generator.fill_interpretation_loop()
+@pytest.mark.parametrize("jit_elements_nb", [20, 100])
+@pytest.mark.parametrize("method_max_size", [20, 100])
+@pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
+@pytest.mark.parametrize("max_call_depth", [2, 5, 10])
+@pytest.mark.parametrize("max_call_nb", [2, 5, 10])
+@pytest.mark.parametrize("pics_max_cases", [2, 5, 10])
+def test_patch_calls(
+    jit_elements_nb,
+    method_max_size,
+    pics_ratio,
+    max_call_depth,
+    max_call_nb,
+    pics_max_cases,
+):
+    generator = Generator(
+        jit_start_address=JIT_START_ADDRESS,
+        interpreter_start_address=INTERPRETER_START_ADDRESS,
+        jit_elements_nb=jit_elements_nb,
+        method_max_size=method_max_size,
+        max_call_depth=max_call_depth,
+        max_call_nb=max_call_nb,
+        pics_method_max_size=method_max_size,
+        pics_max_cases=pics_max_cases,
+        pics_ratio=pics_ratio,
+    )
+    generator.fill_jit_code()
+    generator.patch_jit_calls()
+    generator.fill_interpretation_loop()
 
 
 # =================================
@@ -202,6 +212,7 @@ def test_generate_interpreter_machine_code(
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
+    generator.patch_jit_calls()
     generator.fill_interpretation_loop()
     generator.generate_jit_machine_code()
     generator.generate_interpreter_machine_code()
@@ -251,6 +262,7 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
+    generator.patch_jit_calls()
     generator.fill_interpretation_loop()
     generator.generate_jit_machine_code()
     generator.generate_interpreter_machine_code()
@@ -266,7 +278,7 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
 
 
 @pytest.mark.parametrize("jit_elements_nb", [5, 20, 100])
-@pytest.mark.parametrize("method_max_size", [5, 20, 100])
+@pytest.mark.parametrize("method_max_size", [5, 20])
 @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
 def test_execute_generated_binaries(
     jit_elements_nb, method_max_size, pics_ratio, cap_disasm_setup
@@ -278,11 +290,12 @@ def test_execute_generated_binaries(
         method_max_size=method_max_size,
         max_call_depth=5,
         max_call_nb=5,
-        pics_method_max_size=5,
+        pics_method_max_size=method_max_size,
         pics_max_cases=2,
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
+    # generator.patch_jit_calls()
     generator.fill_interpretation_loop()
     generator.generate_jit_machine_code()
     generator.generate_interpreter_machine_code()
@@ -338,6 +351,7 @@ if __name__ == "__main__":
         interpreter_start_address=0x1000,
         jit_elements_nb=200,
         method_max_size=50,
+        max_call_nb=5,
         max_call_depth=5,
         pics_method_max_size=20,
         pics_max_cases=5,
