@@ -7,7 +7,7 @@ from gigue.instructions import Instruction
 
 
 def raise_call_number_value_error(call_number, size):
-    max_call_number = (size - 1) // 2
+    max_call_number = (size - 1) // 3
     raise ValueError(
         "ValueError: Call number should be <= {} and is {}.".format(
             max_call_number, call_number
@@ -108,39 +108,44 @@ class Method:
     def accept_build(self, generator, method_offset):
         return generator.build_method_call(self, method_offset)
 
+    def accept_build_call(self, method_offset):
+        return self.builder.build_method_call(method_offset)
+
     def patch_calls(self, callees):
         # Check for recursive call
         if self in callees:
             raise_call_patch_recursive_error(self, callees)
-        # Check call size
-        if len(callees) > 2 * self.body_size:
-            raise_call_number_value_error(len((callees), self.body_size))
-        # Check for mutual call
+        # Check call size, 3 for a PIC call (addi, auipc, jalr)
+        if len(callees) > self.body_size / 3:
+            raise_call_number_value_error(len(callees), self.body_size)
+
         self.callees = callees
-        for callee in callees:
-            if self in callee.callees:
-                print("Mutual call found, removing callee")
-                self.callees.remove(callee)
+        # TODO: Check for mutual call
+        # for callee in callees:
+        #     if self in callee.callees:
+        #         print("Mutual call found, removing callee")
+        #         self.callees.remove(callee)
 
         # Replace random parts of the method with calls to chosen callees
+        # The different argument of the range aim the method body size and goes 3 by 3
         indexes = random.sample(
-            range(self.prologue_size, self.prologue_size + self.body_size - 1, 2),
+            range(self.prologue_size, self.prologue_size + self.body_size - 1, 3),
             len(self.callees),
         )
+        print(indexes)
         for ind, callee in zip(indexes, self.callees):
             # Compute the offset
             offset = callee.address - (self.address + ind * 4)
             print(
-                f"Offset: {hex(callee.address)} - {hex(self.address + ind*4)} = {hex(offset)}"
+                f"Offset: {hex(callee.address)} - ({hex(self.address)} + {hex(ind*4)}) = {hex(offset)}"
             )
-            call_instructions = self.builder.build_method_call(offset)
+            call_instructions = self.builder.build_element_call(callee, offset)
             # Add the two instructions for the call
-            self.instructions[ind] = call_instructions[0]
-            self.instructions[ind + 1] = call_instructions[1]
-        print(
-            "{} calls to patch with {} (addr {})".format(
-                self.call_number,
-                [hex(callee.address) for callee in callees],
-                self.address,
-            )
-        )
+            self.instructions[ind : ind + len(call_instructions)] = call_instructions
+        # print(
+        #     "{} calls to patch with {} (addr {})".format(
+        #         self.call_number,
+        #         [hex(callee.address) for callee in callees],
+        #         self.address,
+        #     )
+        # )

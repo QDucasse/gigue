@@ -111,6 +111,11 @@ class InstructionBuilder:
         )
         return instruction
 
+    # Visitor to build either a PIC or method
+    @staticmethod
+    def build_element_call(elt, offset):
+        return elt.accept_build_call(offset)
+
     @staticmethod
     def build_method_call(offset):
         # if offset < 0x8:

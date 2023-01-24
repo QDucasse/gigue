@@ -5,6 +5,7 @@ from unicorn.riscv_const import UC_RISCV_REG_RA
 
 from gigue.constants import CALLER_SAVED_REG
 from gigue.method import Method
+from gigue.pic import PIC
 
 # =================================
 #             Method
@@ -69,10 +70,9 @@ def test_instructions_filling(
 # =================================
 
 
-# TODO:
 def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
     method = Method(
-        address=0x1000, body_size=7, call_number=3, registers=CALLER_SAVED_REG
+        address=0x1000, body_size=10, call_number=3, registers=CALLER_SAVED_REG
     )
     callee1 = Method(
         address=0x1100, body_size=2, call_number=0, registers=CALLER_SAVED_REG
@@ -98,8 +98,7 @@ def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
     body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
     callee_addresses = [callee1.address, callee2.address, callee3.address]
     disasm = disasm_setup
-    for (i, instr) in enumerate(body_mc):
-        print(i, instr)
+    for (i, instr) in enumerate(body_mc[:-1]):
         if disasm.get_instruction_name(instr) == "auipc":
             if disasm.get_instruction_name(body_mc[i + 1]) == "jalr":
                 offset = disasm.extract_call_offset(body_mc[i : i + 2])
@@ -108,6 +107,62 @@ def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
                 )
                 assert extracted_address in callee_addresses
                 callee_addresses.remove(extracted_address)
+    assert callee_addresses == []
+
+
+def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
+    method = Method(
+        address=0x1000, body_size=10, call_number=3, registers=CALLER_SAVED_REG
+    )
+    callee1 = PIC(
+        address=0x1100,
+        case_number=2,
+        method_max_size=2,
+        method_max_call_number=0,
+        method_max_call_depth=0,
+        registers=CALLER_SAVED_REG,
+    )
+    callee2 = PIC(
+        address=0x1200,
+        case_number=2,
+        method_max_size=2,
+        method_max_call_number=0,
+        method_max_call_depth=0,
+        registers=CALLER_SAVED_REG,
+    )
+    callee3 = PIC(
+        address=0x1300,
+        case_number=2,
+        method_max_size=2,
+        method_max_call_number=0,
+        method_max_call_depth=0,
+        registers=CALLER_SAVED_REG,
+    )
+    method.fill_with_instructions()
+    callee1.fill_with_instructions()
+    callee2.fill_with_instructions()
+    callee3.fill_with_instructions()
+    method.patch_calls([callee1, callee2, callee3])
+    # Capstone disassembly
+    bytes_method = method.generate_bytes()
+    cap_disasm = cap_disasm_setup
+    for i in cap_disasm.disasm(bytes_method, ADDRESS):
+        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # Tests correct jump offsets
+    mc_method = method.generate()
+    body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
+    callee_addresses = [callee1.address, callee2.address, callee3.address]
+    disasm = disasm_setup
+    for (i, instr) in enumerate(body_mc[:-2]):
+        if disasm.get_instruction_name(instr) == "addi":
+            if disasm.get_instruction_name(body_mc[i + 1]) == "auipc":
+                if disasm.get_instruction_name(body_mc[i + 2]) == "jalr":
+                    offset = disasm.extract_call_offset(body_mc[i + 1 : i + 3])
+                    extracted_address = (
+                        method.address + (i + 1 + method.prologue_size) * 4 + offset
+                    )
+                    assert extracted_address in callee_addresses
+                    callee_addresses.remove(extracted_address)
     assert callee_addresses == []
 
 
@@ -133,19 +188,19 @@ def test_patch_calls_check_recursive_loop_call():
 
 
 # TODO:
-def test_patch_calls_check_mutual_loop_call():
-    method = Method(
-        address=0x1000, body_size=3, call_number=1, registers=CALLER_SAVED_REG
-    )
-    callee = Method(
-        address=0x1100, body_size=3, call_number=1, registers=CALLER_SAVED_REG
-    )
-    method.fill_with_instructions()
-    callee.fill_with_instructions()
-    method.patch_calls([callee])
-    callee.patch_calls([method])
-    assert method.callees == [callee]
-    assert callee.callees == []
+# def test_patch_calls_check_mutual_loop_call():
+#     method = Method(
+#         address=0x1000, body_size=3, call_number=1, registers=CALLER_SAVED_REG
+#     )
+#     callee = Method(
+#         address=0x1100, body_size=3, call_number=1, registers=CALLER_SAVED_REG
+#     )
+#     method.fill_with_instructions()
+#     callee.fill_with_instructions()
+#     method.patch_calls([callee])
+#     callee.patch_calls([method])
+#     assert method.callees == [callee]
+#     assert callee.callees == []
 
 
 # =================================
@@ -189,7 +244,7 @@ def test_instructions_disassembly_execution_smoke(
 @pytest.mark.parametrize("execution_number", range(30))
 def test_patch_calls_disassembly_execution(execution_number, uc_emul_full_setup):
     method = Method(
-        address=ADDRESS, body_size=7, call_number=3, registers=CALLER_SAVED_REG
+        address=ADDRESS, body_size=10, call_number=3, registers=CALLER_SAVED_REG
     )
     callee1 = Method(
         address=0x1100, body_size=2, call_number=0, registers=CALLER_SAVED_REG

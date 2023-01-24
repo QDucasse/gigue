@@ -138,6 +138,7 @@ class Generator:
     #  Interpretation loop calling construction
     # \________________________________________
 
+    # TODO: Switch the logic in the builder?
     def build_element_call(self, element, offset):
         return element.accept_build(self, offset)
 

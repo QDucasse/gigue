@@ -1,3 +1,4 @@
+import random
 from typing import List
 from typing import Optional
 
@@ -62,6 +63,14 @@ class PIC:
             [method.total_size() for method in self.methods]
         )
 
+    def accept_build(self, generator, method_offset):
+        return generator.build_pic_call(self, method_offset)
+
+    def accept_build_call(self, method_offset):
+        hit_case = random.randint(1, self.case_number)
+        # The -4 comes from the addi that has to be mitigated
+        return self.builder.build_pic_call(method_offset - 4, hit_case)
+
     def add_case_methods(self, weights=None):
         if weights is None:
             weights = INSTRUCTION_WEIGHTS
@@ -122,6 +131,3 @@ class PIC:
             self.bytes += b"".join([instr.generate_bytes() for instr in case])
         self.bytes += b"".join([method.generate_bytes() for method in self.methods])
         return self.bytes
-
-    def accept_build(self, generator, method_offset):
-        return generator.build_pic_call(self, method_offset)
