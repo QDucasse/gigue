@@ -4,10 +4,9 @@ from conftest import RET_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_RA
 
 from gigue.constants import CALLER_SAVED_REG
+from gigue.helpers import window
 from gigue.method import Method
 from gigue.pic import PIC
-from gigue.helpers import window
-
 
 # =================================
 #             Method
@@ -101,11 +100,12 @@ def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
     callee_addresses = [callee1.address, callee2.address, callee3.address]
     disasm = disasm_setup
     for i, instr_list in enumerate(window(body_mc[:-1], 2)):
-        if [disasm.get_instruction_name(instr) for instr in instr_list] == ["auipc", "jalr"]:
+        if [disasm.get_instruction_name(instr) for instr in instr_list] == [
+            "auipc",
+            "jalr",
+        ]:
             offset = disasm.extract_call_offset(instr_list)
-            extracted_address = (
-                method.address + (i + method.prologue_size) * 4 + offset
-            )
+            extracted_address = method.address + (i + method.prologue_size) * 4 + offset
             assert extracted_address in callee_addresses
             callee_addresses.remove(extracted_address)
     assert callee_addresses == []
@@ -155,7 +155,11 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
     callee_addresses = [callee1.address, callee2.address, callee3.address]
     disasm = disasm_setup
     for i, instr_list in enumerate(window(body_mc[:-1], 3)):
-        if [disasm.get_instruction_name(instr) for instr in instr_list] == ["addi", "auipc", "jalr"]:
+        if [disasm.get_instruction_name(instr) for instr in instr_list] == [
+            "addi",
+            "auipc",
+            "jalr",
+        ]:
             offset = disasm.extract_call_offset(instr_list[1:])
             extracted_address = (
                 method.address + (i + 1 + method.prologue_size) * 4 + offset
@@ -186,20 +190,18 @@ def test_patch_calls_check_recursive_loop_call():
         method.patch_calls([callee1, callee2, method])
 
 
-# TODO:
-# def test_patch_calls_check_mutual_loop_call():
-#     method = Method(
-#         address=0x1000, body_size=3, call_number=1, registers=CALLER_SAVED_REG
-#     )
-#     callee = Method(
-#         address=0x1100, body_size=3, call_number=1, registers=CALLER_SAVED_REG
-#     )
-#     method.fill_with_instructions()
-#     callee.fill_with_instructions()
-#     method.patch_calls([callee])
-#     callee.patch_calls([method])
-#     assert method.callees == [callee]
-#     assert callee.callees == []
+def test_patch_calls_check_mutual_loop_call():
+    method = Method(
+        address=0x1000, body_size=3, call_number=1, registers=CALLER_SAVED_REG
+    )
+    callee = Method(
+        address=0x1100, body_size=3, call_number=1, registers=CALLER_SAVED_REG
+    )
+    method.fill_with_instructions()
+    callee.fill_with_instructions()
+    callee.patch_calls([method])
+    with pytest.raises(ValueError):
+        method.patch_calls([callee])
 
 
 # =================================
@@ -273,7 +275,8 @@ def test_patch_calls_disassembly_execution(execution_number, uc_emul_full_setup)
     uc_emul.mem_write(0x1100, bytes_callee1)
     uc_emul.mem_write(0x1200, bytes_callee2)
     uc_emul.mem_write(0x1300, bytes_callee3)
-    uc_emul.emu_start(ADDRESS, ADDRESS + len(bytes_method) - 4)
+    uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
+    uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()
 
 

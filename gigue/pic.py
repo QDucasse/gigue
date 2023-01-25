@@ -7,6 +7,7 @@ from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import CMP_REG
 from gigue.constants import HIT_CASE_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.helpers import flatten_list
 from gigue.helpers import gaussian_between
 from gigue.instructions import Instruction
 from gigue.method import Method
@@ -46,6 +47,9 @@ class PIC:
         self.instructions: List[Instruction] = []
         self.machine_code: List[int] = []
         self.bytes: bytes = b""
+
+    def get_callees(self):
+        return list(set(flatten_list([method.callees for method in self.methods])))
 
     def get_switch_size(self):
         # switch corresponds to:
