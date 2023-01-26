@@ -98,6 +98,8 @@ INSTRUCTIONS_INFO = {
     # Xors
     "xor": InstructionInfo("xor", 0b0110011, 0b100, "R"),
     "xori": InstructionInfo("xori", 0b0010011, 0b100, "I"),
+    # Breakpoint
+    "ebreak": InstructionInfo("ebreak", 0b1110011, 0b000, "I"),
 }
 
 

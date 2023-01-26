@@ -1,5 +1,6 @@
 import pytest
 from conftest import ADDRESS
+from unicorn import UcError
 
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.helpers import to_signed
@@ -296,6 +297,18 @@ def test_capstone_iinstr_loads(name, imm, cap_disasm_setup):
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t0, " + imm_str(imm) + "(t1)"
+
+
+def test_capstone_ebreak(cap_disasm_setup, uc_emul_setup):
+    instr = IInstruction.ebreak()
+    bytes = instr.generate_bytes()
+    cap_disasm = cap_disasm_setup
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
+    assert instr_disasm.mnemonic == "ebreak"
+    with pytest.raises(UcError):
+        uc_emul = uc_emul_setup
+        uc_emul.mem_write(ADDRESS, bytes)
+        uc_emul.emu_start(ADDRESS, ADDRESS + 4)
 
 
 # =================================

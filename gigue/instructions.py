@@ -266,6 +266,10 @@ class IInstruction(Instruction):
     def xori(cls, rd, rs1, imm):
         return cls.i_instr("xori", rd, rs1, imm)
 
+    @classmethod
+    def ebreak(cls):
+        return cls.i_instr("ebreak", 0, 0, 1)
+
 
 # TODO: Doc
 class UInstruction(Instruction):

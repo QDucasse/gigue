@@ -41,7 +41,7 @@ def uc_emul_full_setup(uc_emul_setup):
     uc_emul = uc_emul_setup
     # Fill memory with nops up to B000 by default
     for addr in range(ADDRESS, RET_ADDRESS + 4, 4):
-        uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
+        uc_emul.mem_write(addr, IInstruction.ebreak().generate_bytes())
     # Zero out registers
     for reg in CALLER_SAVED_REG:
         uc_emul.reg_write(reg, 0)
