@@ -107,7 +107,6 @@ class Method:
             max_offset = (
                 self.body_size + self.prologue_size - len(self.instructions)
             ) * 4
-            print(f"Max offset : {max_offset}")
             instruction = self.builder.build_random_instruction(
                 self.registers, max_offset, weights
             )
@@ -149,18 +148,11 @@ class Method:
 
         # Replace random parts of the method with calls to chosen callees
         # The different argument of the range aim the method body size and goes 3 by 3
-        print(
-            f"Sample range descending: {list(range(self.prologue_size + self.body_size - 3, self.prologue_size - 1, -3))}"
-        )
-        print(
-            f"Sample range ascending:     {list(range(self.prologue_size, self.prologue_size + self.body_size - 1,  3))}"
-        )
-        # print(f"Callee number: {len(self.callees)}")
         indexes = random.sample(
             # Starting the sizing from the end helps dimension random b/j instructions
             # so they do not land in the middle of a call (as they have the max offset)
             # note: other way around
-            # range(self.prologue_size, self.prologue_size + self.body_size - 1,  3),
+            # range(self.prologue_size, self.prologue_size + self.body_size - 1,  3)
             range(self.prologue_size + self.body_size - 3, self.prologue_size - 1, -3),
             len(self.callees),
         )

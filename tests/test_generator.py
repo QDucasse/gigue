@@ -235,8 +235,8 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
 # =================================
 
 
-@pytest.mark.parametrize("jit_elements_nb", [5, 20, 100])
-@pytest.mark.parametrize("method_max_size", [5, 20])
+@pytest.mark.parametrize("jit_elements_nb", [5, 20, 100, 200])
+@pytest.mark.parametrize("method_max_size", [5, 20, 50])
 @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
 def test_execute_generated_binaries(
     jit_elements_nb, method_max_size, pics_ratio, cap_disasm_setup
@@ -253,7 +253,7 @@ def test_execute_generated_binaries(
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
-    # generator.patch_jit_calls()
+    generator.patch_jit_calls()
     generator.fill_interpretation_loop()
     generator.generate_jit_machine_code()
     generator.generate_interpreter_machine_code()

@@ -91,9 +91,9 @@ def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
     method.patch_calls([callee1, callee2, callee3])
     # Capstone disassembly
     # bytes_method = method.generate_bytes()
-    cap_disasm = cap_disasm_setup
-    for i in cap_disasm.disasm(method.generate_bytes(), ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # cap_disasm = cap_disasm_setup
+    # for i in cap_disasm.disasm(method.generate_bytes(), ADDRESS):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Tests correct jump offsets
     mc_method = method.generate()
     body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
@@ -145,10 +145,10 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
     callee3.fill_with_instructions()
     method.patch_calls([callee1, callee2, callee3])
     # Capstone disassembly
-    bytes_method = method.generate_bytes()
-    cap_disasm = cap_disasm_setup
-    for i in cap_disasm.disasm(bytes_method, ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # bytes_method = method.generate_bytes()
+    # cap_disasm = cap_disasm_setup
+    # for i in cap_disasm.disasm(bytes_method, ADDRESS):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Tests correct jump offsets
     mc_method = method.generate()
     body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
@@ -265,19 +265,19 @@ def test_patch_calls_disassembly_execution(
     method.patch_calls([callee1, callee2, callee3])
     bytes_method = method.generate_bytes()
     # Disassembly
-    cap_disasm = cap_disasm_setup
-    print("Method disassembly:")
-    for i in cap_disasm.disasm(bytes_method, ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-    print("C1 disassembly:")
-    for i in cap_disasm.disasm(callee1.generate_bytes(), callee1.address):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-    print("C2 disassembly:")
-    for i in cap_disasm.disasm(callee1.generate_bytes(), callee1.address):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-    print("C3 disassembly:")
-    for i in cap_disasm.disasm(callee1.generate_bytes(), callee1.address):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # cap_disasm = cap_disasm_setup
+    # print("Method disassembly:")
+    # for i in cap_disasm.disasm(bytes_method, ADDRESS):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # print("C1 disassembly:")
+    # for i in cap_disasm.disasm(callee1.generate_bytes(), callee1.address):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # print("C2 disassembly:")
+    # for i in cap_disasm.disasm(callee1.generate_bytes(), callee1.address):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # print("C3 disassembly:")
+    # for i in cap_disasm.disasm(callee1.generate_bytes(), callee1.address):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
 
     bytes_callee1 = callee1.generate_bytes()
     bytes_callee2 = callee2.generate_bytes()
