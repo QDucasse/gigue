@@ -3,8 +3,6 @@ from capstone import CS_ARCH_RISCV
 from capstone import CS_MODE_RISCV64
 from capstone import Cs
 from unicorn import Uc
-from unicorn import UcError
-from unicorn.riscv_const import UC_RISCV_REG_PC
 from unicorn.riscv_const import UC_RISCV_REG_RA
 from unicorn.riscv_const import UC_RISCV_REG_SP
 from unicorn.unicorn_const import UC_ARCH_RISCV
@@ -27,46 +25,6 @@ JIT_START_ADDRESS = 0x3000
 STACK_ADDRESS = 0x10000
 END_ADDRESS = 0xFFF0
 cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
-
-
-# =================================
-#            Helpers
-# =================================
-
-
-def instrument_execution(uc_emul):
-    previous_pc = INTERPRETER_START_ADDRESS
-    try:
-        while True:
-            uc_emul.emu_start(begin=previous_pc, until=0, timeout=0, count=1)
-            pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-            print(f"PC:{hex(pc)}")
-            ra = uc_emul.reg_read(UC_RISCV_REG_RA)
-            print(f"RA:{hex(ra)}")
-            print("____")
-            previous_pc = pc
-    except UcError:
-        pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-        print(f"Exception !!! PC:{hex(pc)}")
-        assert False
-
-
-def instrument_stack(uc_emul):
-    previous_pc = INTERPRETER_START_ADDRESS
-    try:
-        while True:
-            uc_emul.emu_start(previous_pc, 0, 0, 1)
-            sp = uc_emul.reg_read(UC_RISCV_REG_SP)
-            print(f"SP:{hex(sp)}")
-            pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-            previous_pc = pc
-    except UcError:
-        pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-        ra = uc_emul.reg_read(UC_RISCV_REG_RA)
-        sp = uc_emul.reg_read(UC_RISCV_REG_SP)
-        print(f"Exception !!! PC:{hex(pc)}, RA:{hex(ra)}, SP:{hex(sp)}")
-        assert False
-
 
 # =================================
 #          Filling tests

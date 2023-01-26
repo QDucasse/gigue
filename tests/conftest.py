@@ -3,6 +3,8 @@ from capstone import CS_ARCH_RISCV
 from capstone import CS_MODE_RISCV64
 from capstone import Cs
 from unicorn import Uc
+from unicorn import UcError
+from unicorn.riscv_const import UC_RISCV_REG_PC
 from unicorn.riscv_const import UC_RISCV_REG_RA
 from unicorn.riscv_const import UC_RISCV_REG_SP
 from unicorn.unicorn_const import UC_ARCH_RISCV
@@ -50,3 +52,42 @@ def uc_emul_full_setup(uc_emul_setup):
     # Write STACK ADDRESS in SP
     uc_emul.reg_write(UC_RISCV_REG_SP, STACK_ADDRESS)
     return uc_emul
+
+
+# =================================
+#           Instrumenters
+# =================================
+
+
+def instrument_execution(uc_emul, start_address):
+    previous_pc = start_address
+    try:
+        while True:
+            uc_emul.emu_start(begin=previous_pc, until=0, timeout=0, count=1)
+            pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+            print(f"PC:{hex(pc)}")
+            ra = uc_emul.reg_read(UC_RISCV_REG_RA)
+            print(f"RA:{hex(ra)}")
+            print("____")
+            previous_pc = pc
+    except UcError:
+        pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+        print(f"Exception !!! PC:{hex(pc)}")
+        assert False
+
+
+def instrument_stack(uc_emul, start_address):
+    previous_pc = start_address
+    try:
+        while True:
+            uc_emul.emu_start(previous_pc, 0, 0, 1)
+            sp = uc_emul.reg_read(UC_RISCV_REG_SP)
+            print(f"SP:{hex(sp)}")
+            pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+            previous_pc = pc
+    except UcError:
+        pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+        ra = uc_emul.reg_read(UC_RISCV_REG_RA)
+        sp = uc_emul.reg_read(UC_RISCV_REG_SP)
+        print(f"Exception !!! PC:{hex(pc)}, RA:{hex(ra)}, SP:{hex(sp)}")
+        assert False

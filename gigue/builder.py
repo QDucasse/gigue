@@ -74,22 +74,33 @@ class InstructionBuilder:
         imm = random.randint(0, 0xFFFFFFFF)
         return constr(rd=rd, imm=imm)
 
+    # TODO: stores
+    # TODO: loads
+
+    @classmethod
+    def size_offset(cls, max_offset):
+        possible_offsets = set([max_offset])
+        for i in range(1, max_offset // 12 + 1):
+            possible_offsets.add(i * 12 + max_offset % 12)
+        if max_offset % 12 == 8:
+            possible_offsets.add(8)
+        possible_offsets.add(4)
+        return list(possible_offsets)
+
     @staticmethod
     def build_random_j_instruction(registers, max_offset):
         # Jump to stay in the method and keep aligment
         rd = random.choice(registers)
-        offset = max(random.randrange(0, max(4, max_offset), 4), 4)
+        offset = random.choice(InstructionBuilder.size_offset(max_offset))
         return JInstruction.jal(rd, offset)
-
-    # TODO: stores
-    # TODO: loads
 
     @staticmethod
     def build_random_b_instruction(registers, max_offset):
         name = random.choice(InstructionBuilder.B_INSTRUCTIONS)
         constr = getattr(BInstruction, name)
         rs1, rs2 = random.choices(registers, k=2)
-        offset = max(random.randrange(0, max(4, max_offset), 4), 4)
+        # offset = max(random.randrange(0, max(12, max_offset), 12), 12)
+        offset = random.choice(InstructionBuilder.size_offset(max_offset))
         return constr(rs1=rs1, rs2=rs2, imm=offset)
 
     def build_random_instruction(self, registers, max_offset, weights=None):

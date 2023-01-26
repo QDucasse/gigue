@@ -194,6 +194,39 @@ def test_build_random_b_instruction(execution_number):
     assert instr.imm % 2 == 0
 
 
+@pytest.mark.parametrize(
+    "max_offset,expected_offsets",
+    [
+        (8, [4, 8]),
+        (12, [4, 12]),
+        (24, [4, 12, 24]),
+        (36, [4, 12, 24, 36]),
+        (16, [4, 16]),
+        (20, [4, 8, 20]),
+    ],
+)
+def test_size_offset(max_offset, expected_offsets):
+    assert sorted(InstructionBuilder.size_offset(max_offset)) == expected_offsets
+
+
+@pytest.mark.parametrize(
+    "max_offset,expected_offset",
+    [
+        (8, [4, 8]),
+        (12, [4, 12]),
+        (24, [4, 12, 24]),
+        (36, [4, 12, 24, 36]),
+        (16, [4, 16]),
+        (20, [4, 8, 20]),
+    ],
+)
+def test_check_random_b_instruction_offset(max_offset, expected_offset, disasm_setup):
+    instr_builder = InstructionBuilder()
+    instr = instr_builder.build_random_b_instruction(CALLER_SAVED_REG, max_offset)
+    disasm = disasm_setup
+    assert disasm.extract_imm_b(instr.generate()) in expected_offset
+
+
 # =================================
 #      Disassembly/Execution
 # =================================
