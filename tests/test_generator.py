@@ -301,17 +301,3 @@ def test_execute_generated_binaries(
     # instrument_execution(uc_emul)
     # instrument_stack(uc_emul)
     uc_emul.emu_stop()
-
-
-if __name__ == "__main__":
-    g = Generator(
-        jit_start_address=0xF000,
-        interpreter_start_address=0x1000,
-        jit_elements_nb=200,
-        method_max_size=50,
-        max_call_nb=5,
-        max_call_depth=5,
-        pics_method_max_size=20,
-        pics_max_cases=5,
-    )
-    g.main()

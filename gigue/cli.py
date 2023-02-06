@@ -32,17 +32,21 @@ class Parser(argparse.ArgumentParser):
     def add_parse_arguments(self):
         # Addresses
         self.add_argument(
-            "--jitaddr", type=int, default=0xF000, help="Start address of the JIT code"
-        )
-        self.add_argument(
             "--intaddr",
             type=int,
-            default=0x0000,
+            default=0x800000,
             help="Start address of the interpretation loop",
         )
+        self.add_argument(
+            "--jitaddr",
+            type=int,
+            default=0x802000,
+            help="Start address of the JIT code",
+        )
+
         # General
         self.add_argument(
-            "--jitnb",
+            "--eltnb",
             type=int,
             default=200,
             help="Number of JIT code elements (methods/pics)",
@@ -96,16 +100,10 @@ class Parser(argparse.ArgumentParser):
         )
         # Output files
         self.add_argument(
-            "--outjitbin",
+            "--out",
             type=str,
-            default=BIN_DIR + "jit.bin",
-            help="Name of the binary file for the JIT code",
-        )
-        self.add_argument(
-            "--outintbin",
-            type=str,
-            default=BIN_DIR + "interpret.bin",
-            help="Name of the binary file for the interpretation loop",
+            default=BIN_DIR + "out.bin",
+            help="Name of the binary file",
         )
 
     def parse(self, args):
@@ -129,20 +127,19 @@ def main(argv=None):
         interpreter_start_address=args.intaddr,
         # General
         registers=args.regs,
-        jit_elements_nb=args.jitnb,
-        pics_ratio=args.picratio,
-        max_call_depth=args.maxcalldepth,
-        max_call_nb=args.maxcallnb,
+        jit_elements_nb=args.eltnb,
         # Methods
         method_max_size=args.metmaxsize,
+        max_call_depth=args.maxcalldepth,
+        max_call_nb=args.maxcallnb,
         # PICs
+        pics_ratio=args.picratio,
         pics_method_max_size=args.picmetmaxsize,
         pics_max_cases=args.picmaxcases,
         pics_cmp_reg=args.piccmpreg,
         pics_hit_case_reg=args.pichitcasereg,
         # Files
-        output_jit_file=args.outjitbin,
-        output_interpret_file=args.outintbin,
+        output_bin_file=args.out,
     )
     g.main()
     return 0

@@ -16,6 +16,18 @@ from gigue.method import Method
 from gigue.pic import PIC
 
 
+def raise_address_range_error(int_address, jit_address):
+    raise ValueError(
+        f"ValueError: Interpretation loop start address (here {hex(int_address)} should be lower than jit start address (here {hex(jit_address)}))"
+    )
+
+
+def raise_not_implemented():
+    raise ValueError(
+        "ValueError: Functionality not yet implemented, please give both an interpreter start address and a jit start address"
+    )
+
+
 class Generator:
     MAX_CODE_SIZE = 2 * 1024 * 1024  # 2mb
     INT_PROLOGUE_SIZE = 12  # 10 caller-saved stores + ra store + stack space
@@ -23,7 +35,6 @@ class Generator:
 
     def __init__(
         self,
-        jit_start_address: int,
         interpreter_start_address: int,
         jit_elements_nb: int,
         max_call_depth: int,
@@ -31,21 +42,36 @@ class Generator:
         method_max_size: int,
         pics_method_max_size: int,
         pics_max_cases: int,
+        jit_start_address: int = 0,
         pics_cmp_reg: int = 6,
         pics_hit_case_reg: int = 5,
         pics_ratio: float = 0.2,
         registers: Optional[List[int]] = None,
-        output_jit_file: str = BIN_DIR + "jit.bin",
-        output_interpret_file: str = BIN_DIR + "interpret.bin",
+        output_bin_file: str = BIN_DIR + "out.bin",
     ):
         # Registers
         if registers is None:
             self.registers: List[int] = CALLER_SAVED_REG
         # Memory index registers to use with loads/stores
         # TODO: self.mem_reg_index = ?
-        # Addresses
+
+        # Addresses:
+        # The memory layout in memory will result in a single .text section:
+        #    Interpretation loop | nops | JIT functions
+        if interpreter_start_address > jit_start_address:
+            raise_address_range_error(
+                int_address=interpreter_start_address, jit_address=jit_start_address
+            )
+
+        # JIT code is at a fixed address?
+        self.fixed_jit = True
+        if jit_start_address == 0:
+            self.fixed_jit = False
+            raise_not_implemented()
+
         self.jit_start_address: int = jit_start_address
         self.interpreter_start_address: int = interpreter_start_address
+        # Prologue/Epilogue size
         self.interpreter_prologue_size: int = 0
         self.interpreter_epilogue_size: int = 0
         # Global parameters
@@ -73,10 +99,11 @@ class Generator:
         self.jit_bytes: List[bytes] = []
         self.interpreter_machine_code: List[int] = []
         self.interpreter_bytes: List[bytes] = []
-        self.output_jit_bin: bytes = b""
-        self.output_interpreter_bin: bytes = b""
-        self.output_jit_file: str = output_jit_file
-        self.output_interpreter_file: str = output_interpret_file
+        self.jit_bin: bytes = b""
+        self.interpreter_bin: bytes = b""
+        self.fills_bin: bytes = b""
+        self.full_bin: bytes = b""
+        self.bin_file: str = output_bin_file
 
     #  JIT element generation
     # \______________________
@@ -236,23 +263,36 @@ class Generator:
         return self.interpreter_bytes
 
     def generate_jit_binary(self):
-        self.output_jit_bin = b"".join(self.jit_bytes)
-        return self.output_jit_bin
+        self.jit_bin = b"".join(self.jit_bytes)
+        return self.jit_bin
 
     def generate_interpreter_binary(self):
-        self.output_interpreter_bin = b"".join(self.interpreter_bytes)
-        return self.output_interpreter_bin
+        self.interpreter_bin = b"".join(self.interpreter_bytes)
+        return self.interpreter_bin
+
+    def generate_fills_binary(self):
+        fill_size = (
+            self.jit_start_address
+            - (self.interpreter_start_address + len(self.interpreter_machine_code) * 4)
+        ) // 4
+        fills = [self.builder.build_nop().generate_bytes() for i in range(fill_size)]
+        self.fills_bin = b"".join(fills)
+        return self.fills_bin
+
+    def generate_output_binary(self):
+        self.generate_interpreter_binary()
+        self.generate_fills_binary()
+        self.generate_jit_binary()
+
+        self.full_bin = self.interpreter_bin + self.fills_bin + self.jit_bin
+        return self.full_bin
 
     #  Binary Writing
     # \______________
 
-    def write_binaries(self):
-        jit_bin = open(self.output_jit_file, "wb")
-        jit_bin.write(self.output_jit_bin)
-        jit_bin.close()
-        interpreter_bin = open(self.output_interpreter_file, "wb")
-        interpreter_bin.write(self.output_interpreter_bin)
-        interpreter_bin.close()
+    def write_binary(self):
+        with open(self.bin_file, "wb") as file:
+            file.write(self.full_bin)
 
     #  Wrap-up
     # \_______
@@ -266,9 +306,9 @@ class Generator:
         self.generate_jit_machine_code()
         self.generate_interpreter_machine_code()
         # Generate bytes
+        self.generate_jit_bytes()
         self.generate_interpreter_bytes()
         # Generate binaries
-        self.generate_jit_binary()
-        self.generate_interpreter_binary()
+        self.generate_output_binary()
         # Write binaries
-        self.write_binaries()
+        self.write_binary()
