@@ -18,13 +18,15 @@ from gigue.pic import PIC
 
 def raise_address_range_error(int_address, jit_address):
     raise ValueError(
-        f"ValueError: Interpretation loop start address (here {hex(int_address)} should be lower than jit start address (here {hex(jit_address)}))"
+        f"ValueError: Interpretation loop start address (here {hex(int_address)} should"
+        f" be lower than jit start address (here {hex(jit_address)}))"
     )
 
 
 def raise_not_implemented():
     raise ValueError(
-        "ValueError: Functionality not yet implemented, please give both an interpreter start address and a jit start address"
+        "ValueError: Functionality not yet implemented, please give both an interpreter"
+        " start address and a jit start address"
     )
 
 

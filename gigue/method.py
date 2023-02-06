@@ -11,7 +11,8 @@ def raise_call_number_value_error(call_number, size):
     raise ValueError(
         f"ValueError: Call number should be <= {max_call_number} and is {call_number}."
         + "\n  Number of calls in a method cannot be greater than size // 3 "
-        + "\n  (note: //3 because a call is composed of max three instructions in PICs)."
+        + "\n  (note: //3 because a call is composed of max three instructions in"
+        " PICs)."
     )
 
 
@@ -23,13 +24,15 @@ def raise_call_patch_recursive_error(method, callees):
 
 def raise_incorrect_callee_number_error(method, callees):
     raise ValueError(
-        f"ValueError: incorrect number of callees in method: got {len(callees)}, expecting {method.call_nb}"
+        f"ValueError: incorrect number of callees in method: got {len(callees)},"
+        f" expecting {method.call_nb}"
     )
 
 
 def raise_mutual_call_error(method, callee):
     raise ValueError(
-        f"ValueError: mutual call between method at {method.address} and callee at {callee.address}"
+        f"ValueError: mutual call between method at {method.address} and callee at"
+        f" {callee.address}"
     )
 
 

@@ -89,7 +89,8 @@ class Disassembler:
         signed_offset_low = self.sign_extend(offset_low, 12)
         signed_offset_high = self.sign_extend(offset_high, 32)
         print(
-            "Disassembler:\nlowo {}\nhigho {}\nsignlowo {}\nsignhigho {}\nsum {}\n__________".format(
+            "Disassembler:\nlowo {}\nhigho {}\nsignlowo {}\nsignhigho {}\nsum"
+            " {}\n__________".format(
                 hex(offset_low),
                 hex(offset_high),
                 hex(signed_offset_low),
