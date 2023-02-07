@@ -32,12 +32,14 @@ class Parser(argparse.ArgumentParser):
     def add_parse_arguments(self):
         # Addresses
         self.add_argument(
+            "-I",
             "--intaddr",
             type=int,
             default=0x800000,
             help="Start address of the interpretation loop",
         )
         self.add_argument(
+            "-J",
             "--jitaddr",
             type=int,
             default=0x802000,
@@ -46,7 +48,7 @@ class Parser(argparse.ArgumentParser):
 
         # General
         self.add_argument(
-            "--eltnb",
+            "-N--nbelt",
             type=int,
             default=200,
             help="Number of JIT code elements (methods/pics)",
@@ -78,7 +80,7 @@ class Parser(argparse.ArgumentParser):
         )
         # PICs info
         self.add_argument(
-            "--picratio", type=int, default=0.2, help="PIC to method ratio"
+            "-R", "--picratio", type=int, default=0.2, help="PIC to method ratio"
         )
         self.add_argument(
             "--picmetmaxsize", type=int, default=20, help="PIC methods max size"
@@ -100,6 +102,7 @@ class Parser(argparse.ArgumentParser):
         )
         # Output files
         self.add_argument(
+            "-O",
             "--out",
             type=str,
             default=BIN_DIR + "out.bin",
