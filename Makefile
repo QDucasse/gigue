@@ -1,3 +1,7 @@
+# Check for RISCV toolchain env variable
+ifndef RISCV
+$(error Please set environment variable RISCV to your installed toolchain location (i.e. /opt/riscv-rocket))
+endif
 
 # Directories
 src_dir = resources/common
@@ -5,7 +9,7 @@ bin_dir = bin
 
 # Specify flags
 XLEN ?= 64
-RISCV_PREFIX ?= /opt/riscv-rocket/bin/riscv$(XLEN)-unknown-elf-
+RISCV_PREFIX ?= $(RISCV)/bin/riscv$(XLEN)-unknown-elf-
 RISCV_GCC ?= $(RISCV_PREFIX)gcc
 RISCV_GCC_OPTS ?= -march=rv64gc -mabi=lp64d -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf
 RISCV_LINK_OPTS ?= -static -nostdlib -nostartfiles -lm -lgcc -T $(src_dir)/test.ld
