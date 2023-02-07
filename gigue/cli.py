@@ -48,7 +48,8 @@ class Parser(argparse.ArgumentParser):
 
         # General
         self.add_argument(
-            "-N--nbelt",
+            "-N",
+            "--nbelt",
             type=int,
             default=200,
             help="Number of JIT code elements (methods/pics)",
@@ -130,7 +131,7 @@ def main(argv=None):
         interpreter_start_address=args.intaddr,
         # General
         registers=args.regs,
-        jit_elements_nb=args.eltnb,
+        jit_elements_nb=args.nbelt,
         # Methods
         method_max_size=args.metmaxsize,
         max_call_depth=args.maxcalldepth,
