@@ -18,7 +18,7 @@ RISCV_OBJDUMP ?= $(RISCV_PREFIX)objdump --disassemble-all --disassemble-zeroes -
 # Define sources
 SRCS_C=$(wildcard $(src_dir)/*.c) 
 SRCS_S=$(wildcard $(src_dir)/*.S)
-OBJS=$(patsubst $(src_dir)/%.c,$(bin_dir)/%.o,$(SRCS_C)) $(patsubst $(src_dir)/%.S,$(bin_dir)/%.o,$(SRCS_S)) $(bin_dir)/out.o
+OBJS=$(patsubst $(src_dir)/%.c,$(bin_dir)/%.o,$(SRCS_C)) $(patsubst $(src_dir)/%.S,$(bin_dir)/%.o,$(SRCS_S))
 
 # Check info!
 # $(info SRCS_S is $(SRCS_S))
@@ -28,18 +28,20 @@ OBJS=$(patsubst $(src_dir)/%.c,$(bin_dir)/%.o,$(SRCS_C)) $(patsubst $(src_dir)/%
 # Headers!
 incs  += -I$(src_dir)
 
-default: $(bin_dir)/out $(bin_dir)/out.dis
+dump: $(bin_dir)/out.dump $(bin_dir)/out.bin.dump
 
-$(bin_dir)/out.dump: $(bin_dir)/out
-	$(RISCV_OBJDUMP) $< > $@
+default: $(bin_dir)/out
 
 # Link all the object files!
-$(bin_dir)/out: $(bin_dir)/out.o $(OBJS)
+$(bin_dir)/out: $(OBJS)
 	$(RISCV_GCC) $(RISCV_LINK_OPTS) $^ -o $@
 
-# Objcopy! (TODO: generate the ELF directly from Python)
 $(bin_dir)/out.o: $(bin_dir)/out.bin
-	$(RISCV_PREFIX)objcopy -I binary -O elf64-littleriscv -B riscv --rename-section .data=.text $^ $@
+	$(RISCV_GCC) $(RISCV_LINK_OPTS) $(src_dir)/template.S -c -o $@
+
+# the objcopy way, the issue with this method is that the labels are auto generated!
+# $(bin_dir)/out.o: $(bin_dir)/out.bin
+# 	$(RISCV_PREFIX)objcopy -I binary -O elf64-littleriscv -B riscv --rename-section .data=.text $^ $@
 
 # Generate the object files
 bin/%.o: $(src_dir)/%.c
@@ -48,7 +50,18 @@ bin/%.o: $(src_dir)/%.c
 bin/%.o: $(src_dir)/%.S
 	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
 
+# Dumps
+$(bin_dir)/out.dump: $(bin_dir)/out
+	$(RISCV_OBJDUMP) $< > $@
+
+$(bin_dir)/out.bin.dump: $(bin_dir)/out.bin
+	$(RISCV_PREFIX)objcopy -I binary -O elf64-littleriscv -B riscv --rename-section .data=.text $^ $@.temp
+	$(RISCV_OBJDUMP) $@.temp > $@
+
+DUMPS=$(wildcard $(bin_dir)/*.dump)
+TEMPS=$(wildcard $(bin_dir)/*.temp)
+
 .PHONY: clean
 
 clean:
-	rm -rf $(OBJS)
+	rm -rf $(OBJS) $(DUMPS) $(TEMPS) $(bin_dir)/out

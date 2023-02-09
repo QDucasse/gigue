@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "16ee5fbff1e6f24ead3933fec6e43075a3fb7848426b8ff2e888a5bc1eed8ee2"
+            "sha256": "09efd1e52ce0a9e9c86af8948339d68ca92f3285c4568551152c05f258487717"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -58,6 +58,16 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==2.0.0"
+        },
+        "makeelf": {
+            "editable": true,
+            "git": "https://github.com/v3l0c1r4pt0r/makeelf.git",
+            "hashes": [
+                "sha256:9d8b8cf16b00116ea72d96f9f9561c0f960bedc78e68743e2459f1f1d71e0572"
+            ],
+            "index": "pypi",
+            "ref": "19d84181bf0b5d8b42099eaedf3628cd46bfe4d1",
+            "version": "==0.3.4"
         },
         "packaging": {
             "hashes": [
