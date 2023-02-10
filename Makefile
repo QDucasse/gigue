@@ -21,23 +21,20 @@ SRCS_S=$(wildcard $(src_dir)/*.S)
 OBJS=$(patsubst $(src_dir)/%.c,$(bin_dir)/%.o,$(SRCS_C)) $(patsubst $(src_dir)/%.S,$(bin_dir)/%.o,$(SRCS_S))
 
 # Check info!
-# $(info SRCS_S is $(SRCS_S))
-# $(info SRCS_C is $(SRCS_C))
-# $(info OBJS is $(OBJS))
+$(info SRCS_S is $(SRCS_S))
+$(info SRCS_C is $(SRCS_C))
+$(info OBJS is $(OBJS))
 
 # Headers!
 incs  += -I$(src_dir)
 
-dump: $(bin_dir)/out.dump $(bin_dir)/out.bin.dump
-
 default: $(bin_dir)/out
+
+dump: $(bin_dir)/out.dump $(bin_dir)/out.bin.dump
 
 # Link all the object files!
 $(bin_dir)/out: $(OBJS)
 	$(RISCV_GCC) $(RISCV_LINK_OPTS) $^ -o $@
-
-$(bin_dir)/out.o: $(bin_dir)/out.bin
-	$(RISCV_GCC) $(RISCV_LINK_OPTS) $(src_dir)/template.S -c -o $@
 
 # the objcopy way, the issue with this method is that the labels are auto generated!
 # $(bin_dir)/out.o: $(bin_dir)/out.bin
@@ -57,6 +54,7 @@ $(bin_dir)/out.dump: $(bin_dir)/out
 $(bin_dir)/out.bin.dump: $(bin_dir)/out.bin
 	$(RISCV_PREFIX)objcopy -I binary -O elf64-littleriscv -B riscv --rename-section .data=.text $^ $@.temp
 	$(RISCV_OBJDUMP) $@.temp > $@
+	rm $@.temp
 
 DUMPS=$(wildcard $(bin_dir)/*.dump)
 TEMPS=$(wildcard $(bin_dir)/*.temp)
