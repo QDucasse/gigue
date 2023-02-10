@@ -42,8 +42,12 @@ def format_to_aligned(value, size):
 # \__________________
 
 
-def int_to_bytes(value):
+def int_to_bytes32(value):
     return value.to_bytes(4, "little")
+
+
+def int_to_bytes64(value):
+    return value.to_bytes(8, "little")
 
 
 def bytes_to_int(value):

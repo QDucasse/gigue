@@ -25,7 +25,7 @@ from gigue.constants import HIT_CASE_REG
 from gigue.constants import RA
 from gigue.constants import SP
 from gigue.helpers import bytes_to_int
-from gigue.helpers import int_to_bytes
+from gigue.helpers import int_to_bytes64
 
 # =================================
 #        Specific structures
@@ -98,16 +98,16 @@ def test_build_prologue(used_s_regs, local_var_nb, contains_call, disasm_setup):
     assert instrs[0].name == "addi"
     assert (
         disasm.extract_imm_i(gen_instrs[0], sign_extend=True)
-        == -(used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+        == -(used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
     )
     # Filling of the stack
     for i, (instr, generated) in enumerate(zip(instrs[1:-1], gen_instrs[1:-1])):
-        assert instr.name == "sw"
-        assert disasm.extract_imm_s(generated) == i * 4
+        assert instr.name == "sd"
+        assert disasm.extract_imm_s(generated) == i * 8
     # RA check
     if contains_call:
-        assert instrs[-1].name == "sw"
-        assert disasm.extract_imm_s(gen_instrs[-1]) == used_s_regs * 4
+        assert instrs[-1].name == "sd"
+        assert disasm.extract_imm_s(gen_instrs[-1]) == used_s_regs * 8
         assert disasm.extract_rs2(instrs[-1].generate()) == 1
 
 
@@ -124,19 +124,19 @@ def test_build_epilogue(used_s_regs, local_var_nb, contains_call, disasm_setup):
     disasm = disasm_setup
     # Restore saved regs
     for i, (instr, generated) in enumerate(zip(instrs[:-2], gen_instrs[:-2])):
-        assert instr.name == "lw"
-        assert disasm.extract_imm_i(generated) == i * 4
+        assert instr.name == "ld"
+        assert disasm.extract_imm_i(generated) == i * 8
     # RA check and restore
     if contains_call:
-        assert instrs[used_s_regs].name == "lw"
-        assert disasm.extract_imm_i(gen_instrs[used_s_regs]) == used_s_regs * 4
+        assert instrs[used_s_regs].name == "ld"
+        assert disasm.extract_imm_i(gen_instrs[used_s_regs]) == used_s_regs * 8
         assert disasm.extract_rd(gen_instrs[used_s_regs]) == RA
         assert disasm.extract_rs1(gen_instrs[used_s_regs]) == SP
     # Restore SP
     assert instrs[-2].name == "addi"
     assert (
         disasm.extract_imm_i(gen_instrs[-2])
-        == (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+        == (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
     )
     # Jump check
     assert instrs[-1].name == "jalr"
@@ -422,10 +422,10 @@ def test_build_prologue_execution(
     uc_emul.emu_start(begin=ADDRESS, until=ADDRESS + len(bytes))
     current_sp = uc_emul.reg_read(UC_RISCV_REG_SP)
     for i in range(used_s_regs):
-        tmp = uc_emul.mem_read(current_sp + i * 4, 4)
+        tmp = uc_emul.mem_read(current_sp + i * 8, 8)
         assert bytes_to_int(tmp) == i + 1
     if contains_call:
-        tmp = uc_emul.mem_read(current_sp + used_s_regs * 4, 4)
+        tmp = uc_emul.mem_read(current_sp + used_s_regs * 8, 8)
         assert bytes_to_int(tmp) == RET_ADDRESS
     uc_emul.emu_stop()
 
@@ -465,11 +465,18 @@ def test_build_epilogue_execution(
         uc_emul.reg_write(reg, 0x0)
     # Write values at addresses
     for i in range(used_s_regs):
-        uc_emul.mem_write(STACK_ADDRESS + i * 4, int_to_bytes(i + 1))
+        uc_emul.mem_write(STACK_ADDRESS + i * 8, int_to_bytes64(i + 1))
     # Previously saved RA
     called_address = RET_ADDRESS - 24
     if contains_call:
-        uc_emul.mem_write(STACK_ADDRESS + used_s_regs * 4, int_to_bytes(called_address))
+        uc_emul.mem_write(
+            STACK_ADDRESS + used_s_regs * 8, int_to_bytes64(called_address)
+        )
+
+    cap_disasm = cap_disasm_setup
+    for i in cap_disasm.disasm(bytes, ADDRESS):
+        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+
     # Launch emulation
     uc_emul.emu_start(
         begin=ADDRESS, until=(called_address if contains_call else RET_ADDRESS)
@@ -483,7 +490,7 @@ def test_build_epilogue_execution(
     assert (
         current_sp
         == STACK_ADDRESS
-        + (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+        + (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
     )
     assert current_pc == called_address if contains_call else RET_ADDRESS
     uc_emul.emu_stop()

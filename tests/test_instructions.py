@@ -504,10 +504,10 @@ if __name__ == "__main__":
     from capstone import CS_MODE_RISCV64
     from capstone import Cs
 
-    from gigue.helpers import int_to_bytes
+    from gigue.helpers import int_to_bytes32
 
     add = RInstruction.add(rd=5, rs1=6, rs2=7)
-    code = int_to_bytes(add.generate())
+    code = int_to_bytes32(add.generate())
     print(code)
     md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
 

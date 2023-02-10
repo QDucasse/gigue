@@ -187,43 +187,43 @@ class InstructionBuilder:
     def build_prologue(used_s_regs, local_var_nb, contains_call):
         # An example prologue would be:
         # addi sp sp -16 (+local vars)
-        # sw s0 0(sp)
-        # sw s1 4(sp)
-        # sw s2 8(sp)
-        # sw ra 12(sp)
+        # sd s0 0(sp)
+        # sd s1 4(sp)
+        # sd s2 8(sp)
+        # sd ra 12(sp)
         instructions = []
-        stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+        stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
         # Decrement sp by number of s registers + local variable space
         instructions.append(IInstruction.addi(rd=SP, rs1=SP, imm=-stack_space))
         # Store any saved registers used
         for i in range(used_s_regs):
             instructions.append(
-                SInstruction.sw(rs1=SP, rs2=CALLEE_SAVED_REG[i], imm=i * 4)
+                SInstruction.sd(rs1=SP, rs2=CALLEE_SAVED_REG[i], imm=i * 8)
             )
         # Store ra is a function call is made
         if contains_call:
-            instructions.append(SInstruction.sw(rs1=SP, rs2=RA, imm=used_s_regs * 4))
+            instructions.append(SInstruction.sd(rs1=SP, rs2=RA, imm=used_s_regs * 8))
         return instructions
 
     @staticmethod
     def build_epilogue(used_s_regs, local_var_nb, contains_call):
         # An example epilogue would be:
-        # lw s0 0(sp)
-        # lw s1 4(sp
-        # lw s2 8(sp
-        # lw ra 12(sp)
+        # ld s0 0(sp)
+        # ld s1 4(sp
+        # ld s2 8(sp
+        # ld ra 12(sp)
         # addi sp sp 16 (+local vars)
         # jr ra
         instructions = []
-        stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+        stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
         # Reload saved registers used
         for i in range(used_s_regs):
             instructions.append(
-                IInstruction.lw(rd=CALLEE_SAVED_REG[i], rs1=SP, imm=i * 4)
+                IInstruction.ld(rd=CALLEE_SAVED_REG[i], rs1=SP, imm=i * 8)
             )
         # Reload ra (if necessary)
         if contains_call:
-            instructions.append(IInstruction.lw(rd=RA, rs1=SP, imm=used_s_regs * 4))
+            instructions.append(IInstruction.ld(rd=RA, rs1=SP, imm=used_s_regs * 8))
         # Increment sp to previous value
         instructions.append(IInstruction.addi(rd=SP, rs1=SP, imm=stack_space))
         # Jump back to return address
