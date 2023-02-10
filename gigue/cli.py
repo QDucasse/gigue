@@ -62,6 +62,7 @@ class Parser(argparse.ArgumentParser):
         )
         # Method info
         self.add_argument(
+            "-S",
             "--metmaxsize",
             type=int,
             default=50,
@@ -84,7 +85,8 @@ class Parser(argparse.ArgumentParser):
             "-R", "--picratio", type=int, default=0.2, help="PIC to method ratio"
         )
         self.add_argument(
-            "--picmetmaxsize", type=int, default=20, help="PIC methods max size"
+            "-P",
+            "--picmetmaxsize", type=int, default=25, help="PIC methods max size"
         )
         self.add_argument(
             "--picmaxcases", type=int, default=5, help="PIC max number of cases"

@@ -21,9 +21,9 @@ SRCS_S=$(wildcard $(src_dir)/*.S)
 OBJS=$(patsubst $(src_dir)/%.c,$(bin_dir)/%.o,$(SRCS_C)) $(patsubst $(src_dir)/%.S,$(bin_dir)/%.o,$(SRCS_S))
 
 # Check info!
-$(info SRCS_S is $(SRCS_S))
-$(info SRCS_C is $(SRCS_C))
-$(info OBJS is $(OBJS))
+# $(info SRCS_S is $(SRCS_S))
+# $(info SRCS_C is $(SRCS_C))
+# $(info OBJS is $(OBJS))
 
 # Headers!
 incs  += -I$(src_dir)
@@ -33,8 +33,8 @@ default: $(bin_dir)/out
 dump: $(bin_dir)/out.dump $(bin_dir)/out.bin.dump
 
 # Link all the object files!
-$(bin_dir)/out: $(OBJS)
-	$(RISCV_GCC) $(RISCV_LINK_OPTS) $^ -o $@
+$(bin_dir)/out: $(OBJS) $(bin_dir)/out.bin
+	$(RISCV_GCC) $(RISCV_LINK_OPTS) $(OBJS) -o $@
 
 # the objcopy way, the issue with this method is that the labels are auto generated!
 # $(bin_dir)/out.o: $(bin_dir)/out.bin
