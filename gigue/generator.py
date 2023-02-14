@@ -9,6 +9,7 @@ from gigue.builder import InstructionBuilder
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.helpers import align
 from gigue.helpers import flatten_list
 from gigue.helpers import gaussian_between
 from gigue.instructions import Instruction
@@ -49,13 +50,17 @@ class Generator:
         pics_hit_case_reg: int = 5,
         pics_ratio: float = 0.2,
         registers: Optional[List[int]] = None,
+        data_reg: int = 31,
         output_bin_file: str = BIN_DIR + "out.bin",
     ):
         # Registers
         if registers is None:
-            self.registers: List[int] = CALLER_SAVED_REG
-        # Memory index registers to use with loads/stores
-        # TODO: self.mem_reg_index = ?
+            registers = CALLER_SAVED_REG
+        self.registers: List[int] = registers
+
+        # Data section info
+        self.data_reg = data_reg  # Default is x31/t6
+        self.registers = [reg for reg in self.registers if reg != self.data_reg]
 
         # Addresses:
         # The memory layout in memory will result in a single .text section:
@@ -66,17 +71,19 @@ class Generator:
             )
 
         # JIT code is at a fixed address?
+        # For now we dont handle auto sized JIT code
         self.fixed_jit = True
         if jit_start_address == 0:
             self.fixed_jit = False
             raise_not_implemented()
+        self.jit_start_address: int = align(jit_start_address, 4)
+        self.interpreter_start_address: int = align(interpreter_start_address, 4)
 
-        self.jit_start_address: int = jit_start_address
-        self.interpreter_start_address: int = interpreter_start_address
-        # Prologue/Epilogue size
+        # Prologue/Epilogue info
         self.interpreter_prologue_size: int = 0
         self.interpreter_epilogue_size: int = 0
-        # Global parameters
+
+        # Global JIT code parameters
         self.jit_elements_nb: int = jit_elements_nb  # Methods + PICs
         self.max_call_depth: int = max_call_depth
         self.max_call_nb: int = max_call_nb
@@ -90,12 +97,14 @@ class Generator:
         self.pics_hit_case_reg: int = pics_hit_case_reg
         self.pics_cmp_reg: int = pics_cmp_reg
         self.pic_count: int = 0
+
         # Generation
         self.builder: InstructionBuilder = InstructionBuilder()
         self.jit_elements: List[Union[Method, PIC]] = []
         self.jit_instructions: List[Instruction] = []
         self.call_depth_dict: Dict[int, List[Union[Method, PIC]]] = defaultdict(list)
         self.interpreter_instructions: List[Instruction] = []
+
         # MC/Bytes/Binary generation
         self.jit_machine_code: List[int] = []
         self.jit_bytes: List[bytes] = []

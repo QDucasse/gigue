@@ -35,14 +35,14 @@ class Parser(argparse.ArgumentParser):
             "-I",
             "--intaddr",
             type=int,
-            default=0x800000,
+            default=0,
             help="Start address of the interpretation loop",
         )
         self.add_argument(
             "-J",
             "--jitaddr",
             type=int,
-            default=0x802000,
+            default=4096,  # 0x1000
             help="Start address of the JIT code",
         )
 
@@ -56,9 +56,22 @@ class Parser(argparse.ArgumentParser):
         )
         self.add_argument(
             "--regs",
-            type=int,
+            type=list,
             default=CALLER_SAVED_REG,
             help="Registers that can be used freely by the generated code",
+        )
+        # Data info
+        self.add_argument(
+            "--datareg",
+            type=int,
+            default=int,
+            help="Register that holds the address of the data section",
+        )
+        self.add_argument(
+            "--datasize",
+            type=int,
+            default=int,
+            help="Size of the data section",
         )
         # Method info
         self.add_argument(
@@ -82,11 +95,10 @@ class Parser(argparse.ArgumentParser):
         )
         # PICs info
         self.add_argument(
-            "-R", "--picratio", type=int, default=0.2, help="PIC to method ratio"
+            "-R", "--picratio", type=float, default=0.2, help="PIC to method ratio"
         )
         self.add_argument(
-            "-P",
-            "--picmetmaxsize", type=int, default=25, help="PIC methods max size"
+            "-P", "--picmetmaxsize", type=int, default=25, help="PIC methods max size"
         )
         self.add_argument(
             "--picmaxcases", type=int, default=5, help="PIC max number of cases"
@@ -133,6 +145,7 @@ def main(argv=None):
         interpreter_start_address=args.intaddr,
         # General
         registers=args.regs,
+        data_reg=args.datareg,
         jit_elements_nb=args.nbelt,
         # Methods
         method_max_size=args.metmaxsize,
