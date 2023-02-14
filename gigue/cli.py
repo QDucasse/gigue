@@ -64,14 +64,20 @@ class Parser(argparse.ArgumentParser):
         self.add_argument(
             "--datareg",
             type=int,
-            default=int,
+            default=31,
             help="Register that holds the address of the data section",
         )
         self.add_argument(
             "--datasize",
             type=int,
-            default=int,
+            default=8 * 200,
             help="Size of the data section",
+        )
+        self.add_argument(
+            "--datagen",
+            type=str,
+            default="random",
+            help="Data generation strategy",
         )
         # Method info
         self.add_argument(
@@ -123,6 +129,12 @@ class Parser(argparse.ArgumentParser):
             default=BIN_DIR + "out.bin",
             help="Name of the binary file",
         )
+        self.add_argument(
+            "--outdata",
+            type=str,
+            default=BIN_DIR + "data.bin",
+            help="Name of the binary data file",
+        )
 
     def parse(self, args):
         return self.parse_args(args)
@@ -145,8 +157,11 @@ def main(argv=None):
         interpreter_start_address=args.intaddr,
         # General
         registers=args.regs,
-        data_reg=args.datareg,
         jit_elements_nb=args.nbelt,
+        # Data
+        data_reg=args.datareg,
+        data_generation_strategy=args.datagen,
+        data_size=args.datasize,
         # Methods
         method_max_size=args.metmaxsize,
         max_call_depth=args.maxcalldepth,
@@ -159,6 +174,7 @@ def main(argv=None):
         pics_hit_case_reg=args.pichitcasereg,
         # Files
         output_bin_file=args.out,
+        output_data_bin_file=args.outdata
     )
     g.main()
     return 0

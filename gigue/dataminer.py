@@ -10,8 +10,7 @@ def raise_no_strategy_error(generation_strategy):
 
 
 class Dataminer:
-    def __init__(self, address, size):
-        self.address = align(address, 4)
+    def __init__(self, size):
         self.size = align(size, 8)
 
     def mine_random(self, i):

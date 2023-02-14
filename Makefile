@@ -13,7 +13,7 @@ RISCV_PREFIX ?= $(RISCV)/bin/riscv$(XLEN)-unknown-elf-
 RISCV_GCC ?= $(RISCV_PREFIX)gcc
 RISCV_GCC_OPTS ?= -march=rv64gc -mabi=lp64d -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf
 RISCV_LINK_OPTS ?= -static -nostdlib -nostartfiles -lm -lgcc -T $(src_dir)/test.ld
-RISCV_OBJDUMP ?= $(RISCV_PREFIX)objdump --disassemble-all --disassemble-zeroes --section=.text --section=.text.startup --section=.text.init --section=.data
+RISCV_OBJDUMP ?= $(RISCV_PREFIX)objdump --disassemble --full-contents --disassemble-zeroes --section=.text --section=.text.startup --section=.text.init --section=.data
 
 # Define sources
 SRCS_C=$(wildcard $(src_dir)/*.c) 
@@ -41,10 +41,10 @@ $(bin_dir)/out: $(OBJS) $(bin_dir)/out.bin
 # 	$(RISCV_PREFIX)objcopy -I binary -O elf64-littleriscv -B riscv --rename-section .data=.text $^ $@
 
 # Generate the object files
-bin/%.o: $(src_dir)/%.c
+bin/%.o: $(src_dir)/%.c $(bin_dir)/out.bin
 	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
 
-bin/%.o: $(src_dir)/%.S
+bin/%.o: $(src_dir)/%.S $(bin_dir)/out.bin
 	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
 
 # Dumps

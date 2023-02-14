@@ -11,9 +11,12 @@ gigue_end:
 gigue_size:
     .int gigue_end - gigue_start
 
-
-; .text.startup:
     .global main
 main:
+    la t6, tab
     call gigue_start
     j exit
+
+.section .data
+tab: 
+    .incbin "bin/data.bin"

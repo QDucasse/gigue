@@ -3,11 +3,10 @@ import pytest
 from gigue.dataminer import Dataminer
 from gigue.helpers import bytes_to_int
 
-DEFAULT_ADDRESS = 0x1000
+
 DEFAULT_SIZE = 100
 
 
-@pytest.mark.parametrize("address", [0x1000, 0x1001, 0x1004])
 @pytest.mark.parametrize("size", [100, 101, 104, 108])
 def test_initialization(address, size):
     miner = Dataminer(address, size)
@@ -16,14 +15,14 @@ def test_initialization(address, size):
 
 
 def test_min_random():
-    miner = Dataminer(DEFAULT_ADDRESS, DEFAULT_SIZE)
+    miner = Dataminer(DEFAULT_SIZE)
     data_bin = miner.mine_random(0)
     assert len(data_bin) == 8
 
 
 @pytest.mark.parametrize("n", range(0, 8 * 20, 8))
 def test_min_iterative32(n):
-    miner = Dataminer(DEFAULT_ADDRESS, 100)
+    miner = Dataminer(DEFAULT_SIZE)
     data_bin = miner.mine_iterative32(n)
     assert len(data_bin) == 8
     assert bytes_to_int(data_bin[:4]) == n // 4
@@ -32,7 +31,7 @@ def test_min_iterative32(n):
 
 @pytest.mark.parametrize("n", range(0, 8 * 20, 8))
 def test_min_iterative64(n):
-    miner = Dataminer(0x1000, 100)
+    miner = Dataminer(DEFAULT_SIZE)
     data_bin = miner.mine_iterative64(n)
     assert len(data_bin) == 8
     assert bytes_to_int(data_bin) == n // 8
@@ -40,14 +39,14 @@ def test_min_iterative64(n):
 
 @pytest.mark.parametrize("size", [8 * 3, 8 * 5, 8 * 20])
 def test_generate_data_random(size):
-    miner = Dataminer(DEFAULT_ADDRESS, size)
+    miner = Dataminer(size)
     data_bin = miner.generate_data("random")
     assert len(data_bin) == size
 
 
 @pytest.mark.parametrize("size", [8 * 3, 8 * 5, 8 * 20])
 def test_generate_data_iterative32(size):
-    miner = Dataminer(DEFAULT_ADDRESS, size)
+    miner = Dataminer(size)
     data_bin = miner.generate_data("iterative32")
     assert len(data_bin) == size
     for i in range(0, miner.size, 4):
@@ -56,7 +55,7 @@ def test_generate_data_iterative32(size):
 
 @pytest.mark.parametrize("size", [8 * 3, 8 * 5, 8 * 20])
 def test_generate_data_iterative64(size):
-    miner = Dataminer(DEFAULT_ADDRESS, size)
+    miner = Dataminer(size)
     data_bin = miner.generate_data("iterative64")
     assert len(data_bin) == size
     for i in range(0, miner.size, 8):

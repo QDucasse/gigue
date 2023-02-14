@@ -29,6 +29,7 @@ def imm_str(immediate):
 #         Sign Extension
 # =================================
 
+
 # TODO: Add more examples!
 @pytest.mark.parametrize(
     "value,size,expected",

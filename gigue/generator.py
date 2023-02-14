@@ -13,6 +13,7 @@ from gigue.helpers import align
 from gigue.helpers import flatten_list
 from gigue.helpers import gaussian_between
 from gigue.instructions import Instruction
+from gigue.dataminer import Dataminer
 from gigue.method import Method
 from gigue.pic import PIC
 
@@ -45,6 +46,8 @@ class Generator:
         method_max_size: int,
         pics_method_max_size: int,
         pics_max_cases: int,
+        data_size: int,
+        data_generation_strategy: str,
         jit_start_address: int = 0,
         pics_cmp_reg: int = 6,
         pics_hit_case_reg: int = 5,
@@ -52,6 +55,7 @@ class Generator:
         registers: Optional[List[int]] = None,
         data_reg: int = 31,
         output_bin_file: str = BIN_DIR + "out.bin",
+        output_data_bin_file: str = BIN_DIR + "data.bin"
     ):
         # Registers
         if registers is None:
@@ -115,6 +119,12 @@ class Generator:
         self.fills_bin: bytes = b""
         self.full_bin: bytes = b""
         self.bin_file: str = output_bin_file
+
+        # Data info
+        self.miner: Dataminer = Dataminer(data_size)
+        self.data_bin: bytes = b""
+        self.data_generation_strategy: str = data_generation_strategy
+        self.data_bin_file: str = output_data_bin_file
 
     #  JIT element generation
     # \______________________
@@ -298,12 +308,20 @@ class Generator:
         self.full_bin = self.interpreter_bin + self.fills_bin + self.jit_bin
         return self.full_bin
 
+    def generate_data_binary(self):
+        self.data_bin = self.miner.generate_data(self.data_generation_strategy)
+        return self.data_bin
+
     #  Binary Writing
     # \______________
 
     def write_binary(self):
         with open(self.bin_file, "wb") as file:
             file.write(self.full_bin)
+
+    def write_data_binary(self):
+        with open(self.data_bin_file, "wb") as file:
+            file.write(self.data_bin)
 
     #  Wrap-up
     # \_______
@@ -321,5 +339,7 @@ class Generator:
         self.generate_interpreter_bytes()
         # Generate binaries
         self.generate_output_binary()
+        self.generate_data_binary()
         # Write binaries
         self.write_binary()
+        self.write_data_binary()

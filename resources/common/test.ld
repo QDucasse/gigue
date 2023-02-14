@@ -60,7 +60,7 @@ SECTIONS
     _tbss_end = .;
   }
 
-  /* End of uninitalized data segement */
+  /* End of uninitalized data segment */
   _end = .;
 }
 
