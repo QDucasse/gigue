@@ -38,6 +38,10 @@ def format_to_aligned(value, size):
     return abs(value) & ((1 << size) - 2)
 
 
+def align(value, alignment):
+    return (value // alignment) * alignment
+
+
 # Byte/int conversion
 # \__________________
 
