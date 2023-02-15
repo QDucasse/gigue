@@ -9,11 +9,11 @@ from gigue.builder import InstructionBuilder
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.dataminer import Dataminer
 from gigue.helpers import align
 from gigue.helpers import flatten_list
 from gigue.helpers import gaussian_between
 from gigue.instructions import Instruction
-from gigue.dataminer import Dataminer
 from gigue.method import Method
 from gigue.pic import PIC
 
@@ -46,8 +46,8 @@ class Generator:
         method_max_size: int,
         pics_method_max_size: int,
         pics_max_cases: int,
-        data_size: int,
-        data_generation_strategy: str,
+        data_size: int = 8 * 100,
+        data_generation_strategy: str = "random",
         jit_start_address: int = 0,
         pics_cmp_reg: int = 6,
         pics_hit_case_reg: int = 5,
@@ -55,7 +55,7 @@ class Generator:
         registers: Optional[List[int]] = None,
         data_reg: int = 31,
         output_bin_file: str = BIN_DIR + "out.bin",
-        output_data_bin_file: str = BIN_DIR + "data.bin"
+        output_data_bin_file: str = BIN_DIR + "data.bin",
     ):
         # Registers
         if registers is None:
@@ -146,6 +146,7 @@ class Generator:
             body_size=body_size,
             call_number=call_nb,
             call_depth=call_depth,
+            data_reg=self.data_reg,
             registers=CALLER_SAVED_REG,
         )
         self.jit_elements.append(method)
@@ -160,6 +161,7 @@ class Generator:
             body_size=body_size,
             call_number=0,
             call_depth=0,
+            data_reg=self.data_reg,
             registers=CALLER_SAVED_REG,
         )
         self.jit_elements.append(method)
@@ -178,6 +180,7 @@ class Generator:
             hit_case_reg=self.pics_hit_case_reg,
             cmp_reg=self.pics_cmp_reg,
             registers=CALLER_SAVED_REG,
+            data_reg=self.data_reg,
         )
         self.jit_elements.append(pic)
         for method in pic.methods:

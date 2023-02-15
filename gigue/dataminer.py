@@ -36,7 +36,7 @@ class Dataminer:
 
 
 if __name__ == "__main__":
-    miner = Dataminer(0x1000, 104)
+    miner = Dataminer(104)
     data = miner.generate_data("iterative32")
     print(data)
     print(len(data))

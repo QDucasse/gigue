@@ -174,7 +174,7 @@ def main(argv=None):
         pics_hit_case_reg=args.pichitcasereg,
         # Files
         output_bin_file=args.out,
-        output_data_bin_file=args.outdata
+        output_data_bin_file=args.outdata,
     )
     g.main()
     return 0

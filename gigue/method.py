@@ -43,6 +43,7 @@ class Method:
         body_size: int,
         call_number: int,
         registers: List[int],
+        data_reg: int,
         call_depth: int = 1,
         used_s_regs: int = 1,
         local_vars_nb: int = 2,
@@ -61,6 +62,7 @@ class Method:
         self.epilogue_size: int = 0
 
         self.registers: List[int] = registers
+        self.data_reg: int = data_reg
 
         self.builder: InstructionBuilder = InstructionBuilder()
         self.instructions: List[Instruction] = []
@@ -111,7 +113,10 @@ class Method:
                 self.body_size + self.prologue_size - len(self.instructions)
             ) * 4
             instruction = self.builder.build_random_instruction(
-                self.registers, max_offset, weights
+                registers=self.registers,
+                max_offset=max_offset,
+                data_reg=self.data_reg,
+                weights=weights,
             )
             self.instructions.append(instruction)
         # Generate epilogue

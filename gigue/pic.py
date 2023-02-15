@@ -1,6 +1,5 @@
 import random
 from typing import List
-from typing import Optional
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
@@ -22,23 +21,21 @@ class PIC:
         method_max_call_number: int,
         method_max_call_depth: int,
         registers: List[int],
-        hit_case_reg: Optional[int] = None,
-        cmp_reg: Optional[int] = None,
+        data_reg: int,
+        hit_case_reg: int = HIT_CASE_REG,
+        cmp_reg: int = CMP_REG,
     ):
         self.case_number: int = case_number
         self.address: int = address
         self.registers: List[int] = registers
+        self.data_reg: int = data_reg
         self.method_max_size: int = method_max_size
         self.method_max_call_number: int = method_max_call_number
         self.method_max_call_depth: int = method_max_call_depth
         # hit_case_reg: register in which the case_nb that should be ran is loaded
         # cmp_reg: register in which the running case nb is stored before comparison
         # Comparison and current registers
-        if cmp_reg is None:
-            cmp_reg = CMP_REG
         self.cmp_reg: int = cmp_reg
-        if hit_case_reg is None:
-            hit_case_reg = HIT_CASE_REG
         self.hit_case_reg: int = hit_case_reg
 
         self.builder: InstructionBuilder = InstructionBuilder()
@@ -93,6 +90,7 @@ class PIC:
                 call_number=call_nb,
                 call_depth=call_depth,
                 registers=CALLER_SAVED_REG,
+                data_reg=self.data_reg,
             )
             case_method.fill_with_instructions(weights)
             self.methods.append(case_method)

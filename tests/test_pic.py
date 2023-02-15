@@ -8,6 +8,8 @@ from gigue.constants import CALLER_SAVED_REG
 from gigue.helpers import flatten_list
 from gigue.pic import PIC
 
+DATA_REG = 31
+
 # =================================
 #            Size Tests
 # =================================
@@ -23,6 +25,7 @@ def test_switch_size(case_nb, method_max_size):
         method_max_call_number=5,
         method_max_call_depth=5,
         registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     pic.add_case_methods()
     pic.add_switch_instructions()
@@ -41,6 +44,7 @@ def test_total_size(case_nb, method_max_size):
         method_max_call_number=5,
         method_max_call_depth=5,
         registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     pic.add_case_methods()
     pic.add_switch_instructions()
@@ -65,6 +69,7 @@ def test_method_adding(case_nb, method_max_size):
         method_max_call_number=5,
         method_max_call_depth=5,
         registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     pic.add_case_methods()
     assert len(pic.methods) == case_nb
@@ -84,6 +89,7 @@ def test_switch_instructions_adding(
         method_max_call_number=5,
         method_max_call_depth=5,
         registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     pic.add_case_methods()
     pic.add_switch_instructions()
@@ -128,6 +134,7 @@ def test_disassembly_execution(
         hit_case_reg=6,
         cmp_reg=5,
         registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     pic.add_case_methods()
     pic.add_switch_instructions()

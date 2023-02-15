@@ -52,14 +52,14 @@ class InstructionBuilder:
         return IInstruction.ret()
 
     @staticmethod
-    def build_random_r_instruction(registers):
+    def build_random_r_instruction(registers, *args, **kwargs):
         name = random.choice(InstructionBuilder.R_INSTRUCTIONS)
         constr = getattr(RInstruction, name)
         rd, rs1, rs2 = tuple(random.choices(registers, k=3))
         return constr(rd=rd, rs1=rs1, rs2=rs2)
 
     @staticmethod
-    def build_random_i_instruction(registers):
+    def build_random_i_instruction(registers, *args, **kwargs):
         name = random.choice(InstructionBuilder.I_INSTRUCTIONS)
         constr = getattr(IInstruction, name)
         rd, rs1 = tuple(random.choices(registers, k=2))
@@ -67,18 +67,39 @@ class InstructionBuilder:
         return constr(rd=rd, rs1=rs1, imm=imm)
 
     @staticmethod
-    def build_random_u_instruction(registers):
+    def build_random_u_instruction(registers, *args, **kwargs):
         name = random.choice(InstructionBuilder.U_INSTRUCTIONS)
         constr = getattr(UInstruction, name)
         rd = random.choice(registers)
         imm = random.randint(0, 0xFFFFFFFF)
         return constr(rd=rd, imm=imm)
 
-    # TODO: stores
-    # TODO: loads
+    # TODO: Stores should use the register holding the data address
+    @staticmethod
+    def build_random_s_instruction(registers, data_reg, *args, **kwargs):
+        name = random.choice(InstructionBuilder.S_INSTRUCTIONS)
+        constr = getattr(SInstruction, name)
+        # Note: sd, rs2, off(rs1) stores the contents of rs2
+        # at the address in rs1 + offset
+        rs1 = data_reg
+        rs2 = random.choice(registers)
+        imm = random.randint(0, 0xFFFFFFFF)
+        return constr(rs1=rs1, rs2=rs2, imm=imm)
+
+    # TODO: Loads should use the register holding the data address
+    @staticmethod
+    def build_random_l_instruction(registers, data_reg, *args, **kwargs):
+        name = random.choice(InstructionBuilder.I_INSTRUCTIONS_LOAD)
+        constr = getattr(IInstruction, name)
+        # Note: ld, rd, off(rs1) loads the value at the address
+        # stored in rs1 + off in rd
+        rd = random.choice(registers)
+        rs1 = data_reg
+        imm = random.randint(0, 0xFFFFFFFF)
+        return constr(rd=rd, rs1=rs1, imm=imm)
 
     @classmethod
-    def size_offset(cls, max_offset):
+    def size_offset(cls, max_offset, *args):
         possible_offsets = set([max_offset])
         for i in range(1, max_offset // 12 + 1):
             possible_offsets.add(i * 12 + max_offset % 12)
@@ -88,14 +109,14 @@ class InstructionBuilder:
         return list(possible_offsets)
 
     @staticmethod
-    def build_random_j_instruction(registers, max_offset):
+    def build_random_j_instruction(registers, max_offset, *args, **kwargs):
         # Jump to stay in the method and keep aligment
         rd = random.choice(registers)
         offset = random.choice(InstructionBuilder.size_offset(max_offset))
         return JInstruction.jal(rd, offset)
 
     @staticmethod
-    def build_random_b_instruction(registers, max_offset):
+    def build_random_b_instruction(registers, max_offset, *args, **kwargs):
         name = random.choice(InstructionBuilder.B_INSTRUCTIONS)
         constr = getattr(BInstruction, name)
         rs1, rs2 = random.choices(registers, k=2)
@@ -103,22 +124,22 @@ class InstructionBuilder:
         offset = random.choice(InstructionBuilder.size_offset(max_offset))
         return constr(rs1=rs1, rs2=rs2, imm=offset)
 
-    def build_random_instruction(self, registers, max_offset, weights=None):
+    def build_random_instruction(self, registers, max_offset, data_reg, weights=None):
         if weights is None:
             weights = INSTRUCTION_WEIGHTS
-        method_name, needs_max_offset = random.choices(
+        method_name = random.choices(
             [
-                ("build_random_r_instruction", False),
-                ("build_random_i_instruction", False),
-                ("build_random_u_instruction", False),
-                ("build_random_j_instruction", True),
-                ("build_random_b_instruction", True),
+                "build_random_r_instruction",
+                "build_random_i_instruction",
+                "build_random_u_instruction",
+                "build_random_j_instruction",
+                "build_random_b_instruction",
             ],
             weights,
         )[0]
         method = getattr(InstructionBuilder, method_name)
-        instruction = (
-            method(registers, max_offset) if needs_max_offset else method(registers)
+        instruction = method(
+            registers=registers, max_offset=max_offset, data_reg=data_reg
         )
         return instruction
 

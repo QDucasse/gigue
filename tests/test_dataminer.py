@@ -3,14 +3,12 @@ import pytest
 from gigue.dataminer import Dataminer
 from gigue.helpers import bytes_to_int
 
-
 DEFAULT_SIZE = 100
 
 
 @pytest.mark.parametrize("size", [100, 101, 104, 108])
-def test_initialization(address, size):
-    miner = Dataminer(address, size)
-    assert miner.address == (address // 4) * 4
+def test_initialization(size):
+    miner = Dataminer(size)
     assert miner.size == (size // 8) * 8
 
 

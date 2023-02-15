@@ -1,5 +1,6 @@
 import pytest
 from conftest import ADDRESS
+from conftest import DATA_REG
 from conftest import RET_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_RA
 
@@ -14,7 +15,9 @@ from gigue.pic import PIC
 
 
 def test_initialization():
-    method = Method(address=0x7FFFFF, body_size=30, call_number=5, registers=[])
+    method = Method(
+        address=0x7FFFFF, body_size=30, call_number=5, registers=[], data_reg=DATA_REG
+    )
     assert method.body_size == 30
     assert method.address == 0x7FFFFF
     assert method.call_number == 5
@@ -22,11 +25,19 @@ def test_initialization():
 
 def test_error_initialization():
     with pytest.raises(ValueError):
-        Method(address=0x7FFFFF, body_size=10, call_number=5, registers=[])
+        Method(
+            address=0x7FFFFF,
+            body_size=10,
+            call_number=5,
+            registers=[],
+            data_reg=DATA_REG,
+        )
 
 
 def test_fill_with_nops(cap_disasm_setup):
-    method = Method(address=0x7FFFFF, body_size=30, call_number=5, registers=[])
+    method = Method(
+        address=0x7FFFFF, body_size=30, call_number=5, registers=[], data_reg=DATA_REG
+    )
     method.fill_with_nops()
     bytes = method.generate_bytes()
     # Disassembly
@@ -47,6 +58,7 @@ def test_instructions_filling(
         call_number=call_number,
         registers=CALLER_SAVED_REG,
         used_s_regs=used_s_regs,
+        data_reg=DATA_REG,
     )
     method.fill_with_instructions()
     # instructions contain:
@@ -73,16 +85,32 @@ def test_instructions_filling(
 
 def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
     method = Method(
-        address=0x1000, body_size=10, call_number=3, registers=CALLER_SAVED_REG
+        address=0x1000,
+        body_size=10,
+        call_number=3,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     callee1 = Method(
-        address=0x1100, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+        address=0x1100,
+        body_size=2,
+        call_number=0,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     callee2 = Method(
-        address=0x1200, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+        address=0x1200,
+        body_size=2,
+        call_number=0,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     callee3 = Method(
-        address=0x1300, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+        address=0x1300,
+        body_size=2,
+        call_number=0,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     method.fill_with_instructions()
     callee1.fill_with_instructions()
@@ -113,7 +141,11 @@ def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
 
 def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
     method = Method(
-        address=0x1000, body_size=10, call_number=3, registers=CALLER_SAVED_REG
+        address=0x1000,
+        body_size=10,
+        call_number=3,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     callee1 = PIC(
         address=0x1100,
@@ -122,6 +154,7 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
         method_max_call_number=0,
         method_max_call_depth=0,
         registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     callee2 = PIC(
         address=0x1200,
@@ -130,6 +163,7 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
         method_max_call_number=0,
         method_max_call_depth=0,
         registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     callee3 = PIC(
         address=0x1300,
@@ -138,6 +172,7 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
         method_max_call_number=0,
         method_max_call_depth=0,
         registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     method.fill_with_instructions()
     callee1.fill_with_instructions()
@@ -171,13 +206,25 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
 
 def test_patch_calls_check_recursive_loop_call():
     method = Method(
-        address=0x1000, body_size=10, call_number=3, registers=CALLER_SAVED_REG
+        address=0x1000,
+        body_size=10,
+        call_number=3,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     callee1 = Method(
-        address=0x1100, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+        address=0x1100,
+        body_size=2,
+        call_number=0,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     callee2 = Method(
-        address=0x1200, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+        address=0x1200,
+        body_size=2,
+        call_number=0,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     method.fill_with_instructions()
     callee1.fill_with_instructions()
@@ -192,10 +239,18 @@ def test_patch_calls_check_recursive_loop_call():
 
 def test_patch_calls_check_mutual_loop_call():
     method = Method(
-        address=0x1000, body_size=3, call_number=1, registers=CALLER_SAVED_REG
+        address=0x1000,
+        body_size=3,
+        call_number=1,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     callee = Method(
-        address=0x1100, body_size=3, call_number=1, registers=CALLER_SAVED_REG
+        address=0x1100,
+        body_size=3,
+        call_number=1,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     method.fill_with_instructions()
     callee.fill_with_instructions()
@@ -225,7 +280,11 @@ def test_instructions_disassembly_execution_smoke(
     execution_number, weights, cap_disasm_setup, uc_emul_full_setup
 ):
     method = Method(
-        address=0x1000, body_size=10, call_number=3, registers=CALLER_SAVED_REG
+        address=0x1000,
+        body_size=10,
+        call_number=3,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     method.fill_with_instructions(weights)
     bytes = method.generate_bytes()
@@ -247,16 +306,32 @@ def test_patch_calls_disassembly_execution(
     execution_number, uc_emul_full_setup, cap_disasm_setup
 ):
     method = Method(
-        address=ADDRESS, body_size=10, call_number=3, registers=CALLER_SAVED_REG
+        address=ADDRESS,
+        body_size=10,
+        call_number=3,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     callee1 = Method(
-        address=0x1100, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+        address=0x1100,
+        body_size=2,
+        call_number=0,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     callee2 = Method(
-        address=0x1200, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+        address=0x1200,
+        body_size=2,
+        call_number=0,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     callee3 = Method(
-        address=0x1300, body_size=2, call_number=0, registers=CALLER_SAVED_REG
+        address=0x1300,
+        body_size=2,
+        call_number=0,
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
     )
     method.fill_with_instructions()
     callee1.fill_with_instructions()
