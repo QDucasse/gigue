@@ -1,6 +1,7 @@
 import pytest
 from conftest import ADDRESS
 from conftest import DATA_REG
+from conftest import DATA_SIZE
 from conftest import RET_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_RA
 
@@ -15,9 +16,7 @@ from gigue.pic import PIC
 
 
 def test_initialization():
-    method = Method(
-        address=0x7FFFFF, body_size=30, call_number=5, registers=[], data_reg=DATA_REG
-    )
+    method = Method(address=0x7FFFFF, body_size=30, call_number=5)
     assert method.body_size == 30
     assert method.address == 0x7FFFFF
     assert method.call_number == 5
@@ -29,15 +28,11 @@ def test_error_initialization():
             address=0x7FFFFF,
             body_size=10,
             call_number=5,
-            registers=[],
-            data_reg=DATA_REG,
         )
 
 
 def test_fill_with_nops(cap_disasm_setup):
-    method = Method(
-        address=0x7FFFFF, body_size=30, call_number=5, registers=[], data_reg=DATA_REG
-    )
+    method = Method(address=0x7FFFFF, body_size=30, call_number=5)
     method.fill_with_nops()
     bytes = method.generate_bytes()
     # Disassembly
@@ -56,11 +51,11 @@ def test_instructions_filling(
         address=0x1000,
         body_size=10,
         call_number=call_number,
-        registers=CALLER_SAVED_REG,
         used_s_regs=used_s_regs,
-        data_reg=DATA_REG,
     )
-    method.fill_with_instructions()
+    method.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
     # instructions contain:
     #   method body
     #   + s_regs load/store + ra load/store if not leaf
@@ -88,34 +83,34 @@ def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
         address=0x1000,
         body_size=10,
         call_number=3,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
     callee1 = Method(
         address=0x1100,
         body_size=2,
         call_number=0,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
     callee2 = Method(
         address=0x1200,
         body_size=2,
         call_number=0,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
     callee3 = Method(
         address=0x1300,
         body_size=2,
         call_number=0,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
-    method.fill_with_instructions()
-    callee1.fill_with_instructions()
-    callee2.fill_with_instructions()
-    callee3.fill_with_instructions()
+    method.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    callee1.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    callee2.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    callee3.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
     method.patch_calls([callee1, callee2, callee3])
     # Capstone disassembly
     # bytes_method = method.generate_bytes()
@@ -144,8 +139,6 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
         address=0x1000,
         body_size=10,
         call_number=3,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
     callee1 = PIC(
         address=0x1100,
@@ -153,8 +146,6 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
         method_max_size=2,
         method_max_call_number=0,
         method_max_call_depth=0,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
     callee2 = PIC(
         address=0x1200,
@@ -162,8 +153,6 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
         method_max_size=2,
         method_max_call_number=0,
         method_max_call_depth=0,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
     callee3 = PIC(
         address=0x1300,
@@ -171,13 +160,19 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
         method_max_size=2,
         method_max_call_number=0,
         method_max_call_depth=0,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
-    method.fill_with_instructions()
-    callee1.fill_with_instructions()
-    callee2.fill_with_instructions()
-    callee3.fill_with_instructions()
+    method.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    callee1.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    callee2.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    callee3.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
     method.patch_calls([callee1, callee2, callee3])
     # Capstone disassembly
     # bytes_method = method.generate_bytes()
@@ -209,26 +204,26 @@ def test_patch_calls_check_recursive_loop_call():
         address=0x1000,
         body_size=10,
         call_number=3,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
     callee1 = Method(
         address=0x1100,
         body_size=2,
         call_number=0,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
     callee2 = Method(
         address=0x1200,
         body_size=2,
         call_number=0,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
-    method.fill_with_instructions()
-    callee1.fill_with_instructions()
-    callee2.fill_with_instructions()
+    method.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    callee1.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    callee2.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
     with pytest.raises(ValueError):
         callee1.patch_calls([callee1, callee2, method])
     with pytest.raises(ValueError):
@@ -242,18 +237,18 @@ def test_patch_calls_check_mutual_loop_call():
         address=0x1000,
         body_size=3,
         call_number=1,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
     callee = Method(
         address=0x1100,
         body_size=3,
         call_number=1,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
-    method.fill_with_instructions()
-    callee.fill_with_instructions()
+    method.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    callee.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
     callee.patch_calls([method])
     with pytest.raises(ValueError):
         method.patch_calls([callee])
@@ -283,10 +278,13 @@ def test_instructions_disassembly_execution_smoke(
         address=0x1000,
         body_size=10,
         call_number=3,
+    )
+    method.fill_with_instructions(
         registers=CALLER_SAVED_REG,
         data_reg=DATA_REG,
+        data_size=DATA_SIZE,
+        weights=weights,
     )
-    method.fill_with_instructions(weights)
     bytes = method.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
@@ -309,34 +307,34 @@ def test_patch_calls_disassembly_execution(
         address=ADDRESS,
         body_size=10,
         call_number=3,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
     callee1 = Method(
         address=0x1100,
         body_size=2,
         call_number=0,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
     callee2 = Method(
         address=0x1200,
         body_size=2,
         call_number=0,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
     callee3 = Method(
         address=0x1300,
         body_size=2,
         call_number=0,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
-    method.fill_with_instructions()
-    callee1.fill_with_instructions()
-    callee2.fill_with_instructions()
-    callee3.fill_with_instructions()
+    method.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    callee1.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    callee2.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    callee3.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
     method.patch_calls([callee1, callee2, callee3])
     bytes_method = method.generate_bytes()
     # Disassembly
@@ -382,19 +380,16 @@ if __name__ == "__main__":
     from gigue.instructions import IInstruction
 
     cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
-    method = Method(
-        address=0x1000, body_size=32, call_number=3, registers=CALLER_SAVED_REG
+    method = Method(address=0x1000, body_size=32, call_number=3)
+    callee1 = Method(address=0x1100, body_size=2, call_number=0)
+    callee2 = Method(address=0x1200, body_size=2, call_number=0)
+    callee3 = Method(address=0x1300, body_size=2, call_number=0)
+    method.fill_with_instructions(
+        registers=CALLER_SAVED_REG,
+        data_reg=DATA_REG,
+        data_size=DATA_SIZE,
+        weights=[35, 40, 10, 5, 10],
     )
-    callee1 = Method(
-        address=0x1100, body_size=2, call_number=0, registers=CALLER_SAVED_REG
-    )
-    callee2 = Method(
-        address=0x1200, body_size=2, call_number=0, registers=CALLER_SAVED_REG
-    )
-    callee3 = Method(
-        address=0x1300, body_size=2, call_number=0, registers=CALLER_SAVED_REG
-    )
-    method.fill_with_instructions(weights=[35, 40, 10, 5, 10])
     method.patch_calls([callee1, callee2, callee3])
     bytes = method.generate_bytes()
     for i in cap_disasm.disasm(bytes, ADDRESS):

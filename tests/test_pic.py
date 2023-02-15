@@ -1,5 +1,7 @@
 import pytest
 from conftest import ADDRESS
+from conftest import DATA_REG
+from conftest import DATA_SIZE
 from conftest import RET_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_RA
 from unicorn.riscv_const import UC_RISCV_REG_T1
@@ -7,8 +9,6 @@ from unicorn.riscv_const import UC_RISCV_REG_T1
 from gigue.constants import CALLER_SAVED_REG
 from gigue.helpers import flatten_list
 from gigue.pic import PIC
-
-DATA_REG = 31
 
 # =================================
 #            Size Tests
@@ -24,11 +24,10 @@ def test_switch_size(case_nb, method_max_size):
         method_max_size=method_max_size,
         method_max_call_number=5,
         method_max_call_depth=5,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
-    pic.add_case_methods()
-    pic.add_switch_instructions()
+    pic.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
     # (case_nb * nb_instruction + ret) * instruction size
     assert pic.get_switch_size() == case_nb * 3 + 1
     assert pic.get_switch_size() == len(flatten_list(pic.switch_instructions))
@@ -43,11 +42,10 @@ def test_total_size(case_nb, method_max_size):
         method_max_size=method_max_size,
         method_max_call_number=5,
         method_max_call_depth=5,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
-    pic.add_case_methods()
-    pic.add_switch_instructions()
+    pic.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
     assert pic.total_size() == pic.get_switch_size() + len(
         flatten_list([method.generate() for method in pic.methods])
     )
@@ -68,10 +66,10 @@ def test_method_adding(case_nb, method_max_size):
         method_max_size=method_max_size,
         method_max_call_number=5,
         method_max_call_depth=5,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
-    pic.add_case_methods()
+    pic.add_case_methods(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
     assert len(pic.methods) == case_nb
     for method in pic.methods:
         assert method.body_size <= method_max_size
@@ -88,10 +86,10 @@ def test_switch_instructions_adding(
         method_max_size=method_max_size,
         method_max_call_number=5,
         method_max_call_depth=5,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
-    pic.add_case_methods()
+    pic.add_case_methods(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
     pic.add_switch_instructions()
     # bytes = pic.generate_bytes()
     # cap_disasm = cap_disasm_setup
@@ -133,11 +131,10 @@ def test_disassembly_execution(
         method_max_call_depth=5,
         hit_case_reg=6,
         cmp_reg=5,
-        registers=CALLER_SAVED_REG,
-        data_reg=DATA_REG,
     )
-    pic.add_case_methods()
-    pic.add_switch_instructions()
+    pic.fill_with_instructions(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
     pic.generate()
     pic_bytes = pic.generate_bytes()
     # Disassembly

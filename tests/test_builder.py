@@ -1,6 +1,7 @@
 import pytest
 from conftest import ADDRESS
 from conftest import DATA_REG
+from conftest import DATA_SIZE
 from conftest import RET_ADDRESS
 from conftest import STACK_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_PC
@@ -264,7 +265,7 @@ def test_build_ret(cap_disasm_setup):
 def test_build_random_instruction_disassembly_smoke(execution_number, cap_disasm_setup):
     instr_builder = InstructionBuilder()
     instr = instr_builder.build_random_instruction(
-        registers=CALLER_SAVED_REG, max_offset=0x7FF, data_reg=DATA_REG
+        registers=CALLER_SAVED_REG, max_offset=0x7FF, data_reg=DATA_REG, data_size=DATA_SIZE
     )
     bytes = instr.generate_bytes()
     # Disassembly

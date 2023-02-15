@@ -2,7 +2,6 @@ import random
 from collections import defaultdict
 from typing import Dict
 from typing import List
-from typing import Optional
 from typing import Union
 
 from gigue.builder import InstructionBuilder
@@ -52,14 +51,13 @@ class Generator:
         pics_cmp_reg: int = 6,
         pics_hit_case_reg: int = 5,
         pics_ratio: float = 0.2,
-        registers: Optional[List[int]] = None,
+        registers: List[int] = CALLER_SAVED_REG,
         data_reg: int = 31,
+        weights: List[int] = INSTRUCTION_WEIGHTS,
         output_bin_file: str = BIN_DIR + "out.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
     ):
         # Registers
-        if registers is None:
-            registers = CALLER_SAVED_REG
         self.registers: List[int] = registers
 
         # Data section info
@@ -103,6 +101,7 @@ class Generator:
         self.pic_count: int = 0
 
         # Generation
+        self.weights: List[int] = weights
         self.builder: InstructionBuilder = InstructionBuilder()
         self.jit_elements: List[Union[Method, PIC]] = []
         self.jit_instructions: List[Instruction] = []
@@ -121,6 +120,7 @@ class Generator:
         self.bin_file: str = output_bin_file
 
         # Data info
+        self.data_size = data_size
         self.miner: Dataminer = Dataminer(data_size)
         self.data_bin: bytes = b""
         self.data_generation_strategy: str = data_generation_strategy
@@ -146,8 +146,6 @@ class Generator:
             body_size=body_size,
             call_number=call_nb,
             call_depth=call_depth,
-            data_reg=self.data_reg,
-            registers=CALLER_SAVED_REG,
         )
         self.jit_elements.append(method)
         self.call_depth_dict[call_depth].append(method)
@@ -161,8 +159,6 @@ class Generator:
             body_size=body_size,
             call_number=0,
             call_depth=0,
-            data_reg=self.data_reg,
-            registers=CALLER_SAVED_REG,
         )
         self.jit_elements.append(method)
         self.call_depth_dict[0].append(method)
@@ -179,8 +175,6 @@ class Generator:
             method_max_call_depth=self.max_call_depth,
             hit_case_reg=self.pics_hit_case_reg,
             cmp_reg=self.pics_cmp_reg,
-            registers=CALLER_SAVED_REG,
-            data_reg=self.data_reg,
         )
         self.jit_elements.append(pic)
         for method in pic.methods:
@@ -191,14 +185,17 @@ class Generator:
     #  JIT filling and patching
     # \________________________
 
-    def fill_jit_code(self, weights=None):
-        if weights is None:
-            weights = INSTRUCTION_WEIGHTS
+    def fill_jit_code(self):
         current_address = self.jit_start_address
         current_element_count = 0
         # Add a first leaf method
         leaf_method = self.add_leaf_method(current_address)
-        leaf_method.fill_with_instructions(weights)
+        leaf_method.fill_with_instructions(
+            registers=self.registers,
+            data_reg=self.data_reg,
+            data_size=self.data_size,
+            weights=self.weights,
+        )
         current_address += leaf_method.total_size() * 4
         current_element_count += 1
         # Add other methods
@@ -208,7 +205,12 @@ class Generator:
             )[0]
             adder_function = getattr(Generator, "add_" + code_type)
             current_element = adder_function(self, current_address)
-            current_element.fill_with_instructions(weights)
+            current_element.fill_with_instructions(
+                registers=self.registers,
+                data_reg=self.data_reg,
+                data_size=self.data_size,
+                weights=self.weights,
+            )
             current_address += current_element.total_size() * 4
             current_element_count += 1
 

@@ -2,7 +2,6 @@ import random
 from typing import List
 
 from gigue.builder import InstructionBuilder
-from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import CMP_REG
 from gigue.constants import HIT_CASE_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
@@ -20,15 +19,11 @@ class PIC:
         method_max_size: int,
         method_max_call_number: int,
         method_max_call_depth: int,
-        registers: List[int],
-        data_reg: int,
         hit_case_reg: int = HIT_CASE_REG,
         cmp_reg: int = CMP_REG,
     ):
         self.case_number: int = case_number
         self.address: int = address
-        self.registers: List[int] = registers
-        self.data_reg: int = data_reg
         self.method_max_size: int = method_max_size
         self.method_max_call_number: int = method_max_call_number
         self.method_max_call_depth: int = method_max_call_depth
@@ -69,9 +64,7 @@ class PIC:
         # The -4 comes from the addi that has to be mitigated
         return self.builder.build_pic_call(method_offset - 4, hit_case)
 
-    def add_case_methods(self, weights=None):
-        if weights is None:
-            weights = INSTRUCTION_WEIGHTS
+    def add_case_methods(self, *args, **kwargs):
         method_address = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
             body_size = gaussian_between(3, self.method_max_size)
@@ -89,10 +82,8 @@ class PIC:
                 body_size=body_size,
                 call_number=call_nb,
                 call_depth=call_depth,
-                registers=CALLER_SAVED_REG,
-                data_reg=self.data_reg,
             )
-            case_method.fill_with_instructions(weights)
+            case_method.fill_with_instructions(*args, **kwargs)
             self.methods.append(case_method)
             method_address += case_method.total_size() * 4
 
@@ -117,8 +108,12 @@ class PIC:
             self.switch_instructions.append(switch_case)
         self.switch_instructions.append([self.builder.build_ret()])
 
-    def fill_with_instructions(self, weights=None):
-        self.add_case_methods(weights)
+    def fill_with_instructions(
+        self, registers, data_reg, data_size, weights=INSTRUCTION_WEIGHTS
+    ):
+        self.add_case_methods(
+            registers=registers, data_reg=data_reg, data_size=data_size, weights=weights
+        )
         self.add_switch_instructions()
 
     def generate(self):

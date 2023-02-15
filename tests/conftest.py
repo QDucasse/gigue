@@ -19,6 +19,7 @@ STACK_ADDRESS = 0x9000
 RET_ADDRESS = 0xBEE0
 
 DATA_REG = 31
+DATA_SIZE = 100
 
 
 @pytest.fixture

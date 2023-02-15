@@ -42,8 +42,6 @@ class Method:
         address: int,
         body_size: int,
         call_number: int,
-        registers: List[int],
-        data_reg: int,
         call_depth: int = 1,
         used_s_regs: int = 1,
         local_vars_nb: int = 2,
@@ -60,9 +58,6 @@ class Method:
         self.is_leaf: bool = self.call_number == 0
         self.prologue_size: int = 0
         self.epilogue_size: int = 0
-
-        self.registers: List[int] = registers
-        self.data_reg: int = data_reg
 
         self.builder: InstructionBuilder = InstructionBuilder()
         self.instructions: List[Instruction] = []
@@ -97,10 +92,9 @@ class Method:
         for _ in range(self.body_size):
             self.instructions.append(self.builder.build_nop())
 
-    def fill_with_instructions(self, weights=None):
-        # Weights = [R, I, U, J, B]
-        if weights is None:
-            weights = INSTRUCTION_WEIGHTS
+    def fill_with_instructions(
+        self, registers, data_reg, data_size, weights=INSTRUCTION_WEIGHTS
+    ):
         # Generate prologue
         prologue_instructions = self.builder.build_prologue(
             self.used_s_regs, self.local_vars_nb, not self.is_leaf
@@ -112,10 +106,12 @@ class Method:
             max_offset = (
                 self.body_size + self.prologue_size - len(self.instructions)
             ) * 4
+            # Weights = [R, I, U, J, B]
             instruction = self.builder.build_random_instruction(
-                registers=self.registers,
+                registers=registers,
                 max_offset=max_offset,
-                data_reg=self.data_reg,
+                data_reg=data_reg,
+                data_size=data_size,
                 weights=weights,
             )
             self.instructions.append(instruction)

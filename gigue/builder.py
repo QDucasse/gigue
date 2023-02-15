@@ -6,6 +6,7 @@ from gigue.constants import HIT_CASE_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.constants import RA
 from gigue.constants import SP
+from gigue.helpers import align
 from gigue.instructions import BInstruction
 from gigue.instructions import IInstruction
 from gigue.instructions import JInstruction
@@ -43,6 +44,13 @@ class InstructionBuilder:
     S_INSTRUCTIONS = ["sb", "sd", "sh", "sw"]
     B_INSTRUCTIONS = ["beq", "bge", "bgeu", "blt", "bltu", "bne"]
 
+    ALIGNMENT = {
+        "b": 8,
+        "h": 16,
+        "w": 32,
+        "d": 64,
+    }
+
     @staticmethod
     def build_nop():
         return IInstruction.nop()
@@ -74,32 +82,40 @@ class InstructionBuilder:
         imm = random.randint(0, 0xFFFFFFFF)
         return constr(rd=rd, imm=imm)
 
-    # TODO: Stores should use the register holding the data address
+    # TODO: Should be a regular instance method?
+    @classmethod
+    def define_memory_access_alignment(name):
+        for key in InstructionBuilder.ALIGNMENT.keys():
+            if name.contains(key):
+                return InstructionBuilder.ALIGNMENT[name]
+
     @staticmethod
-    def build_random_s_instruction(registers, data_reg, *args, **kwargs):
+    def build_random_s_instruction(registers, data_reg, data_size, *args, **kwargs):
         name = random.choice(InstructionBuilder.S_INSTRUCTIONS)
         constr = getattr(SInstruction, name)
         # Note: sd, rs2, off(rs1) stores the contents of rs2
         # at the address in rs1 + offset
         rs1 = data_reg
         rs2 = random.choice(registers)
-        imm = random.randint(0, 0xFFFFFFFF)
+        alignment = InstructionBuilder.define_memory_access_alignment(name)
+        imm = align(random.randint(0, data_size), alignment)
         return constr(rs1=rs1, rs2=rs2, imm=imm)
 
-    # TODO: Loads should use the register holding the data address
     @staticmethod
-    def build_random_l_instruction(registers, data_reg, *args, **kwargs):
+    def build_random_l_instruction(registers, data_reg, data_size, *args, **kwargs):
         name = random.choice(InstructionBuilder.I_INSTRUCTIONS_LOAD)
         constr = getattr(IInstruction, name)
         # Note: ld, rd, off(rs1) loads the value at the address
         # stored in rs1 + off in rd
         rd = random.choice(registers)
         rs1 = data_reg
-        imm = random.randint(0, 0xFFFFFFFF)
+        alignment = InstructionBuilder.define_memory_access_alignment(name)
+        imm = align(random.randint(0, data_size), alignment)
         return constr(rd=rd, rs1=rs1, imm=imm)
 
+    # TODO: Should be a regular instance method?
     @classmethod
-    def size_offset(cls, max_offset, *args):
+    def size_offset(cls, max_offset):
         possible_offsets = set([max_offset])
         for i in range(1, max_offset // 12 + 1):
             possible_offsets.add(i * 12 + max_offset % 12)
@@ -124,9 +140,10 @@ class InstructionBuilder:
         offset = random.choice(InstructionBuilder.size_offset(max_offset))
         return constr(rs1=rs1, rs2=rs2, imm=offset)
 
-    def build_random_instruction(self, registers, max_offset, data_reg, weights=None):
-        if weights is None:
-            weights = INSTRUCTION_WEIGHTS
+    @staticmethod
+    def build_random_instruction(
+        registers, max_offset, data_reg, data_size, weights=INSTRUCTION_WEIGHTS
+    ):
         method_name = random.choices(
             [
                 "build_random_r_instruction",
@@ -139,7 +156,10 @@ class InstructionBuilder:
         )[0]
         method = getattr(InstructionBuilder, method_name)
         instruction = method(
-            registers=registers, max_offset=max_offset, data_reg=data_reg
+            registers=registers,
+            max_offset=max_offset,
+            data_reg=data_reg,
+            data_size=data_size,
         )
         return instruction
 
@@ -164,9 +184,7 @@ class InstructionBuilder:
         return [UInstruction.auipc(1, offset_high), IInstruction.jalr(1, 1, offset_low)]
 
     @staticmethod
-    def build_pic_call(offset, hit_case, hit_case_reg=None):
-        if hit_case_reg is None:
-            hit_case_reg = HIT_CASE_REG
+    def build_pic_call(offset, hit_case, hit_case_reg=HIT_CASE_REG):
         if offset < 0x8:
             raise Exception
         offset_low = offset & 0xFFF
@@ -187,17 +205,15 @@ class InstructionBuilder:
         ]
 
     @staticmethod
-    def build_switch_case(case_number, method_offset, hit_case_reg=None, cmp_reg=None):
+    def build_switch_case(
+        case_number, method_offset, hit_case_reg=HIT_CASE_REG, cmp_reg=CMP_REG
+    ):
         # Switch for one case:
         #   1 - Loading the value to compare in the compare register
         #   2 - Compare to the current case (should be in the hit case register)
         #   3 - Jump to the corresponding method if equal
         #   4 - Go to the next case if not
         # Note: beq is not used to cover a wider range (2Mb rather than 8kb)
-        if hit_case_reg is None:
-            hit_case_reg = HIT_CASE_REG
-        if cmp_reg is None:
-            cmp_reg = CMP_REG
         return [
             IInstruction.addi(rd=cmp_reg, rs1=0, imm=case_number),
             BInstruction.bne(rs1=cmp_reg, rs2=hit_case_reg, imm=8),
