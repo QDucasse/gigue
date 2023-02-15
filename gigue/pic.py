@@ -4,7 +4,6 @@ from typing import List
 from gigue.builder import InstructionBuilder
 from gigue.constants import CMP_REG
 from gigue.constants import HIT_CASE_REG
-from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.helpers import flatten_list
 from gigue.helpers import gaussian_between
 from gigue.instructions import Instruction
@@ -109,7 +108,7 @@ class PIC:
         self.switch_instructions.append([self.builder.build_ret()])
 
     def fill_with_instructions(
-        self, registers, data_reg, data_size, weights=INSTRUCTION_WEIGHTS
+        self, registers, data_reg, data_size, weights
     ):
         self.add_case_methods(
             registers=registers, data_reg=data_reg, data_size=data_size, weights=weights

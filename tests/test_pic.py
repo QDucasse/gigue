@@ -7,6 +7,7 @@ from unicorn.riscv_const import UC_RISCV_REG_T1
 from gigue.constants import DATA_REG
 from gigue.constants import DATA_SIZE
 from gigue.constants import CALLER_SAVED_REG
+from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.helpers import flatten_list
 from gigue.pic import PIC
 
@@ -26,7 +27,7 @@ def test_switch_size(case_nb, method_max_size):
         method_max_call_depth=5,
     )
     pic.fill_with_instructions(
-        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE, weights=INSTRUCTION_WEIGHTS
     )
     # (case_nb * nb_instruction + ret) * instruction size
     assert pic.get_switch_size() == case_nb * 3 + 1
@@ -44,7 +45,7 @@ def test_total_size(case_nb, method_max_size):
         method_max_call_depth=5,
     )
     pic.fill_with_instructions(
-        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE, weights=INSTRUCTION_WEIGHTS
     )
     assert pic.total_size() == pic.get_switch_size() + len(
         flatten_list([method.generate() for method in pic.methods])
@@ -68,7 +69,7 @@ def test_method_adding(case_nb, method_max_size):
         method_max_call_depth=5,
     )
     pic.add_case_methods(
-        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE, weights=INSTRUCTION_WEIGHTS
     )
     assert len(pic.methods) == case_nb
     for method in pic.methods:
@@ -88,7 +89,7 @@ def test_switch_instructions_adding(
         method_max_call_depth=5,
     )
     pic.add_case_methods(
-        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE, weights=INSTRUCTION_WEIGHTS
     )
     pic.add_switch_instructions()
     # bytes = pic.generate_bytes()
@@ -133,7 +134,7 @@ def test_disassembly_execution(
         cmp_reg=5,
     )
     pic.fill_with_instructions(
-        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE, weights=INSTRUCTION_WEIGHTS
     )
     pic.generate()
     pic_bytes = pic.generate_bytes()

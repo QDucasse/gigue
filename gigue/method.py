@@ -2,7 +2,6 @@ import random
 from typing import List
 
 from gigue.builder import InstructionBuilder
-from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.instructions import Instruction
 
 
@@ -93,7 +92,7 @@ class Method:
             self.instructions.append(self.builder.build_nop())
 
     def fill_with_instructions(
-        self, registers, data_reg, data_size, weights=INSTRUCTION_WEIGHTS
+        self, registers, data_reg, data_size, weights
     ):
         # Generate prologue
         prologue_instructions = self.builder.build_prologue(
