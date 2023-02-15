@@ -1,10 +1,10 @@
 import pytest
 from conftest import ADDRESS
-from conftest import DATA_REG
-from conftest import DATA_SIZE
 from conftest import RET_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_RA
 
+from gigue.constants import DATA_REG
+from gigue.constants import DATA_SIZE
 from gigue.constants import CALLER_SAVED_REG
 from gigue.helpers import window
 from gigue.method import Method

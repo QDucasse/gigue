@@ -7,6 +7,10 @@ from typing import Union
 from gigue.builder import InstructionBuilder
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
+from gigue.constants import DATA_REG
+from gigue.constants import HIT_CASE_REG
+from gigue.constants import CMP_REG
+from gigue.constants import DATA_SIZE
 from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.dataminer import Dataminer
 from gigue.helpers import align
@@ -39,20 +43,20 @@ class Generator:
     def __init__(
         self,
         interpreter_start_address: int,
+        jit_start_address: int,
         jit_elements_nb: int,
         max_call_depth: int,
         max_call_nb: int,
         method_max_size: int,
+        pics_ratio: float,
         pics_method_max_size: int,
         pics_max_cases: int,
-        data_size: int = 8 * 100,
+        data_size: int = DATA_SIZE,
         data_generation_strategy: str = "random",
-        jit_start_address: int = 0,
-        pics_cmp_reg: int = 6,
-        pics_hit_case_reg: int = 5,
-        pics_ratio: float = 0.2,
+        pics_cmp_reg: int = CMP_REG,
+        pics_hit_case_reg: int = HIT_CASE_REG,
         registers: List[int] = CALLER_SAVED_REG,
-        data_reg: int = 31,
+        data_reg: int = DATA_REG,
         weights: List[int] = INSTRUCTION_WEIGHTS,
         output_bin_file: str = BIN_DIR + "out.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",

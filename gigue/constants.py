@@ -1,12 +1,24 @@
 # [R, I, U, J, B]
 INSTRUCTION_WEIGHTS = [35, 40, 10, 5, 10]
+
+# Register info
 CALLER_SAVED_REG = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31]
 CALLEE_SAVED_REG = [8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+
+# RISCV shortcuts
 RA = 1
 SP = 2
+
+# Paths
+BIN_DIR = "bin/"
+
+# PICs info
 HIT_CASE_REG = 5
 CMP_REG = 6
-BIN_DIR = "bin/"
+
+# Data info
+DATA_REG = 31
+DATA_SIZE = 0x100
 
 
 class InstructionInfo:

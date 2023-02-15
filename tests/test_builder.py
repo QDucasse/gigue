@@ -1,7 +1,5 @@
 import pytest
 from conftest import ADDRESS
-from conftest import DATA_REG
-from conftest import DATA_SIZE
 from conftest import RET_ADDRESS
 from conftest import STACK_ADDRESS
 from unicorn.riscv_const import UC_RISCV_REG_PC
@@ -24,6 +22,8 @@ from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import CMP_REG
 from gigue.constants import HIT_CASE_REG
+from gigue.constants import DATA_REG
+from gigue.constants import DATA_SIZE
 from gigue.constants import RA
 from gigue.constants import SP
 from gigue.helpers import bytes_to_int
