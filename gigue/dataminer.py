@@ -10,33 +10,35 @@ def raise_no_strategy_error(generation_strategy):
 
 
 class Dataminer:
-    def __init__(self, size):
-        self.size = align(size, 8)
-
-    def mine_random(self, i):
+    @staticmethod
+    def mine_random(*args, **kwargs):
         return random.randbytes(8)
 
-    def mine_iterative32(self, i):
+    @staticmethod
+    def mine_iterative32(i, *args, **kwargs):
         i = min(0xFFFF, i)
         return int_to_bytes32(i // 4) + int_to_bytes32(i // 4 + 1)
 
-    def mine_iterative64(self, i):
+    @staticmethod
+    def mine_iterative64(i):
         i = min(0xFFFFFFFF, i)
         return int_to_bytes64(i // 8)
 
-    def generate_data(self, generation_strategy):
+    @staticmethod
+    def generate_data(generation_strategy, size):
+        size = align(size, 8)
         bin_data = b""
         if not hasattr(Dataminer, "mine_" + generation_strategy):
             raise_no_strategy_error(generation_strategy)
 
         generation_method = getattr(Dataminer, "mine_" + generation_strategy)
-        for i in range(0, self.size, 8):
-            bin_data += generation_method(self, i)
+        for i in range(0, size, 8):
+            bin_data += generation_method(i)
         return bin_data
 
 
 if __name__ == "__main__":
-    miner = Dataminer(104)
-    data = miner.generate_data("iterative32")
+    miner = Dataminer()
+    data = miner.generate_data("iterative32", 8 * 10)
     print(data)
     print(len(data))

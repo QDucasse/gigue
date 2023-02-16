@@ -7,10 +7,10 @@ from typing import Union
 from gigue.builder import InstructionBuilder
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
-from gigue.constants import DATA_REG
-from gigue.constants import HIT_CASE_REG
 from gigue.constants import CMP_REG
+from gigue.constants import DATA_REG
 from gigue.constants import DATA_SIZE
+from gigue.constants import HIT_CASE_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.dataminer import Dataminer
 from gigue.helpers import align
@@ -125,7 +125,7 @@ class Generator:
 
         # Data info
         self.data_size = data_size
-        self.miner: Dataminer = Dataminer(data_size)
+        self.miner: Dataminer = Dataminer()
         self.data_bin: bytes = b""
         self.data_generation_strategy: str = data_generation_strategy
         self.data_bin_file: str = output_data_bin_file
@@ -318,7 +318,9 @@ class Generator:
         return self.full_bin
 
     def generate_data_binary(self):
-        self.data_bin = self.miner.generate_data(self.data_generation_strategy)
+        self.data_bin = self.miner.generate_data(
+            self.data_generation_strategy, self.data_size
+        )
         return self.data_bin
 
     #  Binary Writing
