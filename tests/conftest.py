@@ -7,16 +7,28 @@ from unicorn import UcError
 from unicorn.riscv_const import UC_RISCV_REG_PC
 from unicorn.riscv_const import UC_RISCV_REG_RA
 from unicorn.riscv_const import UC_RISCV_REG_SP
+from unicorn.riscv_const import UC_RISCV_REG_T6
 from unicorn.unicorn_const import UC_ARCH_RISCV
 from unicorn.unicorn_const import UC_MODE_RISCV64
 
 from gigue.constants import CALLER_SAVED_REG
+from gigue.constants import DATA_REG
+from gigue.constants import DATA_SIZE
+from gigue.dataminer import Dataminer
 from gigue.disassembler import Disassembler
 from gigue.instructions import IInstruction
 
 ADDRESS = 0x1000
 STACK_ADDRESS = 0x9000
+DATA_ADDRESS = 0xE000
 RET_ADDRESS = 0xBEE0
+
+# Check for correct test data reg, config vs unicorn one
+# Note: Unicorn's 0 is the code for invalid reg so everything is shifted!
+# Warning: TEST_DATA_REG should only be used in this file and the rest
+#          should transparently use DATA_REG
+assert DATA_REG + 1 == UC_RISCV_REG_T6
+TEST_DATA_REG = DATA_REG + 1
 
 
 @pytest.fixture
@@ -47,6 +59,12 @@ def uc_emul_full_setup(uc_emul_setup):
     # Zero out registers
     for reg in CALLER_SAVED_REG:
         uc_emul.reg_write(reg, 0)
+    # Write data address in data reg
+    uc_emul.reg_write(TEST_DATA_REG, DATA_ADDRESS)
+    # Write data to memory
+    miner = Dataminer()
+    data_bytes = miner.generate_data("iterative32", DATA_SIZE)
+    uc_emul.mem_write(DATA_ADDRESS, data_bytes)
     # Write RET ADDRESS in RA
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     # Write STACK ADDRESS in SP

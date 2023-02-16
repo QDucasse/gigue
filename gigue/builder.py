@@ -82,12 +82,11 @@ class InstructionBuilder:
         imm = random.randint(0, 0xFFFFFFFF)
         return constr(rd=rd, imm=imm)
 
-    # TODO: Should be a regular instance method?
     @classmethod
-    def define_memory_access_alignment(name):
+    def define_memory_access_alignment(cls, name):
         for key in InstructionBuilder.ALIGNMENT.keys():
-            if name.contains(key):
-                return InstructionBuilder.ALIGNMENT[name]
+            if key in name:
+                return InstructionBuilder.ALIGNMENT[key]
 
     @staticmethod
     def build_random_s_instruction(registers, data_reg, data_size, *args, **kwargs):
@@ -98,7 +97,7 @@ class InstructionBuilder:
         rs1 = data_reg
         rs2 = random.choice(registers)
         alignment = InstructionBuilder.define_memory_access_alignment(name)
-        imm = align(random.randint(0, data_size), alignment)
+        imm = align(random.randint(0, min(data_size, 0x7FF)), alignment)
         return constr(rs1=rs1, rs2=rs2, imm=imm)
 
     @staticmethod
@@ -110,18 +109,17 @@ class InstructionBuilder:
         rd = random.choice(registers)
         rs1 = data_reg
         alignment = InstructionBuilder.define_memory_access_alignment(name)
-        imm = align(random.randint(0, data_size), alignment)
+        imm = align(random.randint(0, min(data_size, 0x7FF)), alignment)
         return constr(rd=rd, rs1=rs1, imm=imm)
 
-    # TODO: Should be a regular instance method?
+    # TODO: There should be a better way?
     @classmethod
     def size_offset(cls, max_offset):
-        possible_offsets = set([max_offset])
+        possible_offsets = set([4, max_offset])
         for i in range(1, max_offset // 12 + 1):
             possible_offsets.add(i * 12 + max_offset % 12)
         if max_offset % 12 == 8:
             possible_offsets.add(8)
-        possible_offsets.add(4)
         return list(possible_offsets)
 
     @staticmethod
@@ -266,7 +264,3 @@ class InstructionBuilder:
         # Jump back to return address
         instructions.append(IInstruction.ret())
         return instructions
-
-    @staticmethod
-    def consolidate_bytes(instructions):
-        return b"".join([instr.generate_bytes() for instr in instructions])

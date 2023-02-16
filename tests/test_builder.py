@@ -21,13 +21,96 @@ from unicorn.riscv_const import UC_RISCV_REG_T1
 from gigue.builder import InstructionBuilder
 from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import CMP_REG
-from gigue.constants import HIT_CASE_REG
 from gigue.constants import DATA_REG
 from gigue.constants import DATA_SIZE
+from gigue.constants import HIT_CASE_REG
 from gigue.constants import RA
 from gigue.constants import SP
 from gigue.helpers import bytes_to_int
 from gigue.helpers import int_to_bytes64
+
+# =================================
+#        Random instructions
+# =================================
+
+
+@pytest.mark.parametrize("execution_number", range(30))
+def test_build_random_r_instruction(execution_number):
+    instr_builder = InstructionBuilder()
+    instr = instr_builder.build_random_r_instruction(CALLER_SAVED_REG)
+    assert instr.rd in CALLER_SAVED_REG
+    assert instr.rs1 in CALLER_SAVED_REG
+    assert instr.rs2 in CALLER_SAVED_REG
+
+
+@pytest.mark.parametrize("execution_number", range(30))
+def test_build_random_i_instruction(execution_number):
+    instr_builder = InstructionBuilder()
+    instr = instr_builder.build_random_i_instruction(CALLER_SAVED_REG)
+    assert instr.rd in CALLER_SAVED_REG
+    assert instr.rs1 in CALLER_SAVED_REG
+    assert 0 <= instr.imm <= 0xFFF
+
+
+@pytest.mark.parametrize("execution_number", range(10))
+def test_build_random_u_instruction(execution_number):
+    instr_builder = InstructionBuilder()
+    instr = instr_builder.build_random_u_instruction(CALLER_SAVED_REG)
+    assert instr.rd in CALLER_SAVED_REG
+    assert 0 <= instr.imm <= 0xFFFFFFFF
+
+
+@pytest.mark.parametrize("execution_number", range(5))
+def test_build_random_j_instruction(execution_number):
+    instr_builder = InstructionBuilder()
+    instr = instr_builder.build_random_j_instruction(CALLER_SAVED_REG, 0x7FF)
+    assert instr.rd in CALLER_SAVED_REG
+    assert 0 <= instr.imm <= 0xFFF
+    assert instr.imm % 2 == 0
+
+
+@pytest.mark.parametrize("execution_number", range(10))
+def test_build_random_b_instruction(execution_number):
+    instr_builder = InstructionBuilder()
+    instr = instr_builder.build_random_b_instruction(CALLER_SAVED_REG, 0x7FF)
+    assert instr.rs1 in CALLER_SAVED_REG
+    assert instr.rs2 in CALLER_SAVED_REG
+    assert 0 <= instr.imm <= 0xFFF
+    assert instr.imm % 2 == 0
+
+
+@pytest.mark.parametrize(
+    "max_offset,expected_offsets",
+    [
+        (8, [4, 8]),
+        (12, [4, 12]),
+        (24, [4, 12, 24]),
+        (36, [4, 12, 24, 36]),
+        (16, [4, 16]),
+        (20, [4, 8, 20]),
+    ],
+)
+def test_size_offset(max_offset, expected_offsets):
+    assert sorted(InstructionBuilder.size_offset(max_offset)) == expected_offsets
+
+
+@pytest.mark.parametrize(
+    "max_offset,expected_offset",
+    [
+        (8, [4, 8]),
+        (12, [4, 12]),
+        (24, [4, 12, 24]),
+        (36, [4, 12, 24, 36]),
+        (16, [4, 16]),
+        (20, [4, 8, 20]),
+    ],
+)
+def test_check_random_b_instruction_offset(max_offset, expected_offset, disasm_setup):
+    instr_builder = InstructionBuilder()
+    instr = instr_builder.build_random_b_instruction(CALLER_SAVED_REG, max_offset)
+    disasm = disasm_setup
+    assert disasm.extract_imm_b(instr.generate()) in expected_offset
+
 
 # =================================
 #        Specific structures
@@ -147,89 +230,6 @@ def test_build_epilogue(used_s_regs, local_var_nb, contains_call, disasm_setup):
 
 
 # =================================
-#        Random instructions
-# =================================
-
-
-@pytest.mark.parametrize("execution_number", range(30))
-def test_build_random_r_instruction(execution_number):
-    instr_builder = InstructionBuilder()
-    instr = instr_builder.build_random_r_instruction(CALLER_SAVED_REG)
-    assert instr.rd in CALLER_SAVED_REG
-    assert instr.rs1 in CALLER_SAVED_REG
-    assert instr.rs2 in CALLER_SAVED_REG
-
-
-@pytest.mark.parametrize("execution_number", range(30))
-def test_build_random_i_instruction(execution_number):
-    instr_builder = InstructionBuilder()
-    instr = instr_builder.build_random_i_instruction(CALLER_SAVED_REG)
-    assert instr.rd in CALLER_SAVED_REG
-    assert instr.rs1 in CALLER_SAVED_REG
-    assert 0 <= instr.imm <= 0xFFF
-
-
-@pytest.mark.parametrize("execution_number", range(10))
-def test_build_random_u_instruction(execution_number):
-    instr_builder = InstructionBuilder()
-    instr = instr_builder.build_random_u_instruction(CALLER_SAVED_REG)
-    assert instr.rd in CALLER_SAVED_REG
-    assert 0 <= instr.imm <= 0xFFFFFFFF
-
-
-@pytest.mark.parametrize("execution_number", range(5))
-def test_build_random_j_instruction(execution_number):
-    instr_builder = InstructionBuilder()
-    instr = instr_builder.build_random_j_instruction(CALLER_SAVED_REG, 0x7FF)
-    assert instr.rd in CALLER_SAVED_REG
-    assert 0 <= instr.imm <= 0xFFF
-    assert instr.imm % 2 == 0
-
-
-@pytest.mark.parametrize("execution_number", range(10))
-def test_build_random_b_instruction(execution_number):
-    instr_builder = InstructionBuilder()
-    instr = instr_builder.build_random_b_instruction(CALLER_SAVED_REG, 0x7FF)
-    assert instr.rs1 in CALLER_SAVED_REG
-    assert instr.rs2 in CALLER_SAVED_REG
-    assert 0 <= instr.imm <= 0xFFF
-    assert instr.imm % 2 == 0
-
-
-@pytest.mark.parametrize(
-    "max_offset,expected_offsets",
-    [
-        (8, [4, 8]),
-        (12, [4, 12]),
-        (24, [4, 12, 24]),
-        (36, [4, 12, 24, 36]),
-        (16, [4, 16]),
-        (20, [4, 8, 20]),
-    ],
-)
-def test_size_offset(max_offset, expected_offsets):
-    assert sorted(InstructionBuilder.size_offset(max_offset)) == expected_offsets
-
-
-@pytest.mark.parametrize(
-    "max_offset,expected_offset",
-    [
-        (8, [4, 8]),
-        (12, [4, 12]),
-        (24, [4, 12, 24]),
-        (36, [4, 12, 24, 36]),
-        (16, [4, 16]),
-        (20, [4, 8, 20]),
-    ],
-)
-def test_check_random_b_instruction_offset(max_offset, expected_offset, disasm_setup):
-    instr_builder = InstructionBuilder()
-    instr = instr_builder.build_random_b_instruction(CALLER_SAVED_REG, max_offset)
-    disasm = disasm_setup
-    assert disasm.extract_imm_b(instr.generate()) in expected_offset
-
-
-# =================================
 #      Disassembly/Execution
 # =================================
 
@@ -265,7 +265,10 @@ def test_build_ret(cap_disasm_setup):
 def test_build_random_instruction_disassembly_smoke(execution_number, cap_disasm_setup):
     instr_builder = InstructionBuilder()
     instr = instr_builder.build_random_instruction(
-        registers=CALLER_SAVED_REG, max_offset=0x7FF, data_reg=DATA_REG, data_size=DATA_SIZE
+        registers=CALLER_SAVED_REG,
+        max_offset=0x7FF,
+        data_reg=DATA_REG,
+        data_size=DATA_SIZE,
     )
     bytes = instr.generate_bytes()
     # Disassembly
@@ -298,28 +301,82 @@ def test_build_random_riu_disassembly_execution_smoke(
 
 
 @pytest.mark.parametrize("execution_number", range(5))
-def test_random_j_disassembly_execution_smoke(execution_number, uc_emul_full_setup):
+def test_random_j_disassembly_execution_smoke(
+    execution_number, cap_disasm_setup, uc_emul_full_setup
+):
     instr_builder = InstructionBuilder()
     instr = instr_builder.build_random_j_instruction(
         CALLER_SAVED_REG, (RET_ADDRESS - ADDRESS) & 0xFFFFF
     )
+    bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
+    next(cap_disasm.disasm(bytes, ADDRESS))
     # Emulation
     uc_emul = uc_emul_full_setup
-    bytes = instr.generate_bytes()
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, 0, count=1)
     uc_emul.emu_stop()
 
 
 @pytest.mark.parametrize("execution_number", range(10))
-def test_random_b_disassembly_execution_smoke(execution_number, uc_emul_full_setup):
+def test_random_b_disassembly_execution_smoke(
+    execution_number, cap_disasm_setup, uc_emul_full_setup
+):
     instr_builder = InstructionBuilder()
     instr = instr_builder.build_random_b_instruction(
         CALLER_SAVED_REG, (RET_ADDRESS - ADDRESS) & 0x7FF
     )
     bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
+    next(cap_disasm.disasm(bytes, ADDRESS))
     # Emulation
     uc_emul = uc_emul_full_setup
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.emu_start(ADDRESS, 0, count=1)
+    uc_emul.emu_stop()
+
+
+@pytest.mark.parametrize("execution_number", range(5))
+def test_random_s_disassembly_execution_smoke(
+    execution_number, uc_emul_full_setup, cap_disasm_setup
+):
+    instr_builder = InstructionBuilder()
+    instr = instr_builder.build_random_s_instruction(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
+    i = next(cap_disasm.disasm(bytes, ADDRESS))
+    print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # Emulation
+    uc_emul = uc_emul_full_setup
+    read_data_reg = hex(uc_emul.reg_read(UC_RISCV_REG_T1))
+    print(read_data_reg)
+    # print(hex(uc_emul.mem_read(, 8) + 4))
+    bytes = instr.generate_bytes()
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.emu_start(ADDRESS, 0, count=1)
+    uc_emul.emu_stop()
+
+
+@pytest.mark.parametrize("execution_number", range(5))
+def test_random_l_disassembly_execution_smoke(
+    execution_number, uc_emul_full_setup, cap_disasm_setup
+):
+    instr_builder = InstructionBuilder()
+    instr = instr_builder.build_random_l_instruction(
+        registers=CALLER_SAVED_REG, data_reg=DATA_REG, data_size=DATA_SIZE
+    )
+    bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
+    next(cap_disasm.disasm(bytes, ADDRESS))
+    # Emulation
+    uc_emul = uc_emul_full_setup
+    bytes = instr.generate_bytes()
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, 0, count=1)
     uc_emul.emu_stop()
@@ -329,11 +386,15 @@ def test_random_b_disassembly_execution_smoke(execution_number, uc_emul_full_set
 # \__________________
 
 
+def consolidate_bytes(instructions):
+    return b"".join([instr.generate_bytes() for instr in instructions])
+
+
 @pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
 def test_build_method_call_execution(offset, uc_emul_full_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_method_call(offset)
-    bytes = instr_builder.consolidate_bytes(instrs)
+    bytes = consolidate_bytes(instrs)
     # Disassembly
     # cap_disasm = cap_disasm_setup
     # for i in cap_disasm.disasm(bytes, ADDRESS):
@@ -355,7 +416,7 @@ def test_build_method_call_execution(offset, uc_emul_full_setup):
 def test_build_pic_call_execution(offset, uc_emul_full_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_pic_call(offset, 5, 5)
-    bytes = instr_builder.consolidate_bytes(instrs)
+    bytes = consolidate_bytes(instrs)
     # Disassembly
     # cap_disasm = cap_disasm_setup
     # for i in cap_disasm.disasm(bytes, ADDRESS):
@@ -378,7 +439,7 @@ def test_build_switch_pic_execution(
     instrs = instr_builder.build_switch_case(
         case_number=case_number, method_offset=offset
     )
-    bytes = instr_builder.consolidate_bytes(instrs)
+    bytes = consolidate_bytes(instrs)
     # Disassembly
     # cap_disasm = cap_disasm_setup
     # for i in cap_disasm.disasm(bytes, ADDRESS):
@@ -404,7 +465,7 @@ def test_build_prologue_execution(
     instrs = instr_builder.build_prologue(
         used_s_regs=used_s_regs, local_var_nb=local_var_nb, contains_call=contains_call
     )
-    bytes = instr_builder.consolidate_bytes(instrs)
+    bytes = consolidate_bytes(instrs)
     # Disassembly
     # cap_disasm = cap_disasm_setup
     # for i in cap_disasm.disasm(bytes, ADDRESS):
@@ -444,7 +505,7 @@ def test_build_epilogue_execution(
     instrs = instr_builder.build_epilogue(
         used_s_regs=used_s_regs, local_var_nb=local_var_nb, contains_call=contains_call
     )
-    bytes = instr_builder.consolidate_bytes(instrs)
+    bytes = consolidate_bytes(instrs)
     # Disassembly
     # cap_disasm = cap_disasm_setup
     # for i in cap_disasm.disasm(bytes, ADDRESS):
