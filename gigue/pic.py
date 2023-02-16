@@ -107,9 +107,7 @@ class PIC:
             self.switch_instructions.append(switch_case)
         self.switch_instructions.append([self.builder.build_ret()])
 
-    def fill_with_instructions(
-        self, registers, data_reg, data_size, weights
-    ):
+    def fill_with_instructions(self, registers, data_reg, data_size, weights):
         self.add_case_methods(
             registers=registers, data_reg=data_reg, data_size=data_size, weights=weights
         )

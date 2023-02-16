@@ -91,9 +91,7 @@ class Method:
         for _ in range(self.body_size):
             self.instructions.append(self.builder.build_nop())
 
-    def fill_with_instructions(
-        self, registers, data_reg, data_size, weights
-    ):
+    def fill_with_instructions(self, registers, data_reg, data_size, weights):
         # Generate prologue
         prologue_instructions = self.builder.build_prologue(
             self.used_s_regs, self.local_vars_nb, not self.is_leaf
