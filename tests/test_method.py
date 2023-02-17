@@ -1,9 +1,10 @@
 import pytest
 from conftest import ADDRESS
 from conftest import RET_ADDRESS
+from conftest import TEST_CALLER_SAVED_REG
 from unicorn.riscv_const import UC_RISCV_REG_RA
+from unicorn.riscv_const import UC_RISCV_REG_T6
 
-from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import DATA_REG
 from gigue.constants import DATA_SIZE
 from gigue.constants import INSTRUCTION_WEIGHTS
@@ -55,7 +56,7 @@ def test_instructions_filling(
         used_s_regs=used_s_regs,
     )
     method.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
@@ -104,25 +105,25 @@ def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
         call_number=0,
     )
     method.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
     callee1.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
     callee2.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
     callee3.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
@@ -178,25 +179,25 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
         method_max_call_depth=0,
     )
     method.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
     callee1.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
     callee2.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
     callee3.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
@@ -244,19 +245,19 @@ def test_patch_calls_check_recursive_loop_call():
         call_number=0,
     )
     method.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
     callee1.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
     callee2.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
@@ -281,13 +282,13 @@ def test_patch_calls_check_mutual_loop_call():
         call_number=1,
     )
     method.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
     callee.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
@@ -306,12 +307,14 @@ def test_patch_calls_check_mutual_loop_call():
 @pytest.mark.parametrize(
     "weights",
     [
-        [100, 0, 0, 0, 0],  # Only R Instructions
-        [0, 100, 0, 0, 0],  # Only I Instructions
-        [0, 0, 100, 0, 0],  # Only U Instructions
-        [0, 0, 0, 100, 0],  # Only J Instructions
-        [0, 0, 0, 0, 100],  # Only B Instructions
-        [35, 40, 10, 5, 10],
+        # [100, 0, 0, 0, 0, 0, 0],  # Only R Instructions
+        # [0, 100, 0, 0, 0, 0, 0],  # Only I Instructions
+        # [0, 0, 100, 0, 0, 0, 0],  # Only U Instructions
+        # [0, 0, 0, 100, 0, 0, 0],  # Only J Instructions
+        # [0, 0, 0, 0, 100, 0, 0],  # Only B Instructions
+        [0, 0, 0, 0, 0, 100, 0],  # Only Stores
+        [0, 0, 0, 0, 0, 0, 100],  # Only Loads
+        # INSTRUCTION_WEIGHTS,
     ],
 )
 def test_instructions_disassembly_execution_smoke(
@@ -323,7 +326,7 @@ def test_instructions_disassembly_execution_smoke(
         call_number=3,
     )
     method.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=weights,
@@ -331,13 +334,17 @@ def test_instructions_disassembly_execution_smoke(
     bytes = method.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
-    next(cap_disasm.disasm(bytes, ADDRESS))
-    # for i in cap_disasm.disasm(bytes, ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # i = next(cap_disasm.disasm(bytes, ADDRESS))
+    # print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    for i in cap_disasm.disasm(bytes, ADDRESS):
+        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Emulation
     uc_emul = uc_emul_full_setup
+    print(hex(uc_emul.reg_read(UC_RISCV_REG_T6)))
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     uc_emul.mem_write(ADDRESS, bytes)
+    # from conftest import instrument_execution
+    # instrument_execution(uc_emul, ADDRESS)
     uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()
 
@@ -367,25 +374,25 @@ def test_patch_calls_disassembly_execution(
         call_number=0,
     )
     method.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
     callee1.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
     callee2.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
     callee3.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
@@ -440,7 +447,7 @@ if __name__ == "__main__":
     callee2 = Method(address=0x1200, body_size=2, call_number=0)
     callee3 = Method(address=0x1300, body_size=2, call_number=0)
     method.fill_with_instructions(
-        registers=CALLER_SAVED_REG,
+        registers=TEST_CALLER_SAVED_REG,
         data_reg=DATA_REG,
         data_size=DATA_SIZE,
         weights=[35, 40, 10, 5, 10],
@@ -456,7 +463,7 @@ if __name__ == "__main__":
         uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     # Zero out registers
-    for reg in CALLER_SAVED_REG:
+    for reg in TEST_CALLER_SAVED_REG:
         uc_emul.reg_write(reg, 0)
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     for addr in range(ADDRESS, RET_ADDRESS + 4, 4):

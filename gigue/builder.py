@@ -45,10 +45,10 @@ class InstructionBuilder:
     B_INSTRUCTIONS = ["beq", "bge", "bgeu", "blt", "bltu", "bne"]
 
     ALIGNMENT = {
-        "b": 8,
-        "h": 16,
-        "w": 32,
-        "d": 64,
+        "b": 1,
+        "h": 2,
+        "w": 4,
+        "d": 8,
     }
 
     @staticmethod
@@ -149,6 +149,8 @@ class InstructionBuilder:
                 "build_random_u_instruction",
                 "build_random_j_instruction",
                 "build_random_b_instruction",
+                "build_random_s_instruction",
+                "build_random_l_instruction",
             ],
             weights,
         )[0]

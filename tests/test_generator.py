@@ -2,6 +2,10 @@ import pytest
 from capstone import CS_ARCH_RISCV
 from capstone import CS_MODE_RISCV64
 from capstone import Cs
+from conftest import DATA_ADDRESS
+from conftest import TEST_DATA_REG
+from conftest import TEST_DATA_SIZE
+from conftest import UC_DATA_REG
 from unicorn import Uc
 from unicorn.riscv_const import UC_RISCV_REG_RA
 from unicorn.riscv_const import UC_RISCV_REG_SP
@@ -251,6 +255,8 @@ def test_execute_generated_binaries(
         pics_method_max_size=method_max_size,
         pics_max_cases=2,
         pics_ratio=pics_ratio,
+        data_reg=TEST_DATA_REG,
+        data_size=TEST_DATA_SIZE,
     )
     generator.fill_jit_code()
     generator.patch_jit_calls()
@@ -284,6 +290,7 @@ def test_execute_generated_binaries(
     # Capstone disasm:
     # for i in cap_disasm.disasm(jit_binary, JIT_START_ADDRESS):
     #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    data_binary = generator.generate_data_binary()
     uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
     uc_emul.mem_map(INTERPRETER_START_ADDRESS, 2 * 1024 * 1024)
     # Fill memory with nops up to END_ADDRESS
@@ -295,8 +302,11 @@ def test_execute_generated_binaries(
     # Write STACK ADDRESS in SP and END_ADDRESS in RA
     uc_emul.reg_write(UC_RISCV_REG_SP, STACK_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_RA, END_ADDRESS)
+    # Write the DATA_ADDRESS in DATA_REG
+    uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS)
     uc_emul.mem_write(INTERPRETER_START_ADDRESS, interpreter_binary)
     uc_emul.mem_write(JIT_START_ADDRESS, jit_binary)
+    uc_emul.mem_write(DATA_ADDRESS, data_binary)
     uc_emul.emu_start(INTERPRETER_START_ADDRESS, END_ADDRESS)
     # instrument_execution(uc_emul)
     # instrument_stack(uc_emul)

@@ -1,11 +1,11 @@
 import pytest
 from conftest import ADDRESS
 from conftest import DATA_ADDRESS
+from conftest import TEST_DATA_REG
 from unicorn import UcError
 from unicorn.riscv_const import UC_RISCV_REG_T1
 from unicorn.riscv_const import UC_RISCV_REG_T6
 
-from gigue.constants import DATA_REG
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.helpers import to_signed
 from gigue.helpers import to_unsigned
@@ -332,7 +332,7 @@ def test_capstone_ebreak(cap_disasm_setup, uc_emul_setup):
 )
 def test_unicorn_iinstr_loads(name, expected, cap_disasm_setup, uc_emul_setup):
     constr = getattr(IInstruction, name)
-    instr = constr(rs1=DATA_REG, rd=6, imm=0)
+    instr = constr(rs1=TEST_DATA_REG, rd=6, imm=0)
     bytes = instr.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
@@ -356,7 +356,7 @@ def test_unicorn_iinstr_loads(name, expected, cap_disasm_setup, uc_emul_setup):
 @pytest.mark.parametrize("imm", [0x0, 0x1, 0xF, 0x1F, 0x7FF, -0x1, -0xF, -0x1F, -0x7FF])
 def test_unicorn_iinstr_loads_smoke(name, imm, uc_emul_setup):
     constr = getattr(IInstruction, name)
-    instr = constr(rs1=DATA_REG, rd=6, imm=imm)
+    instr = constr(rs1=TEST_DATA_REG, rd=6, imm=imm)
     bytes = instr.generate_bytes()
     # Emulation
     uc_emul = uc_emul_setup
@@ -530,7 +530,7 @@ def test_capstone_sinstr(name, imm, cap_disasm_setup):
 )
 def test_unicorn_sinstr(name, expected, cap_disasm_setup, uc_emul_setup):
     constr = getattr(SInstruction, name)
-    instr = constr(rs1=DATA_REG, rs2=6, imm=0)
+    instr = constr(rs1=TEST_DATA_REG, rs2=6, imm=0)
     bytes = instr.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
@@ -554,7 +554,7 @@ def test_unicorn_sinstr(name, expected, cap_disasm_setup, uc_emul_setup):
 @pytest.mark.parametrize("imm", [0x0, 0x1, 0x1F, 0x7FF, -0x0, -0x1, -0x1F, -0x7FF])
 def test_unicorn_sinstr_smoke(name, imm, cap_disasm_setup, uc_emul_setup):
     constr = getattr(SInstruction, name)
-    instr = constr(rs1=DATA_REG, rs2=6, imm=imm)
+    instr = constr(rs1=TEST_DATA_REG, rs2=6, imm=imm)
     bytes = instr.generate_bytes()
     # Disassembly
     # cap_disasm = cap_disasm_setup
