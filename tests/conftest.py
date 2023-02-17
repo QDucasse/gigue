@@ -77,7 +77,7 @@ def uc_emul_full_setup(uc_emul_setup):
 # =================================
 
 
-def instrument_execution(uc_emul, start_address):
+def instrument_execution(uc_emul, start_address, ret_address=RET_ADDRESS):
     previous_pc = start_address
     try:
         while True:
@@ -90,6 +90,10 @@ def instrument_execution(uc_emul, start_address):
             previous_pc = pc
     except UcError:
         pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+        ra = uc_emul.reg_read(UC_RISCV_REG_RA)
+        if pc == ra:
+            assert True
+            return
         print(f"Exception !!! PC:{hex(pc)}")
         assert False
 

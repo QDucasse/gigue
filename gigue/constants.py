@@ -1,5 +1,5 @@
-# [R, I, U, J, B]
-INSTRUCTION_WEIGHTS = [35, 40, 10, 5, 10]
+# [R, I, U, J, B, stores, loads]
+INSTRUCTION_WEIGHTS = [25, 30, 10, 5, 10, 19, 10]
 
 # Register info
 CALLER_SAVED_REG = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31]
@@ -66,6 +66,7 @@ INSTRUCTIONS_INFO = {
     "lh": InstructionInfo("lh", 0b0000011, 0b001, "I"),
     "lhu": InstructionInfo("lhu", 0b0000011, 0b101, "I"),
     "lw": InstructionInfo("lw", 0b0000011, 0b010, "I"),
+    "lwu": InstructionInfo("lwu", 0b0000011, 0b110, "I"),
     # Load upper immediate
     "lui": InstructionInfo("lui", 0b0110111, 0b000, "U"),
     # Muls

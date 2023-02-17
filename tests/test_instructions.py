@@ -1,7 +1,11 @@
 import pytest
 from conftest import ADDRESS
+from conftest import DATA_ADDRESS
 from unicorn import UcError
+from unicorn.riscv_const import UC_RISCV_REG_T1
+from unicorn.riscv_const import UC_RISCV_REG_T6
 
+from gigue.constants import DATA_REG
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.helpers import to_signed
 from gigue.helpers import to_unsigned
@@ -213,6 +217,8 @@ def test_unicorn_smoke_rinstr(name, uc_emul_setup):
         "ld",
         "lh",
         "lhu",
+        "lw",
+        "lwu",
         "ori",
         "slti",
         "sltiu",
@@ -288,7 +294,7 @@ def test_capstone_iinstr_shifts(name, imm, cap_disasm_setup):
     assert instr_disasm.op_str == "t0, t1, " + imm_str(imm)
 
 
-@pytest.mark.parametrize("name", ["lb", "lbu", "ld", "lh", "lhu"])
+@pytest.mark.parametrize("name", ["lb", "lbu", "ld", "lh", "lhu", "lw", "lwu"])
 @pytest.mark.parametrize("imm", [0x0, 0x1, 0xF, 0x1F, 0x7FF, -0x1, -0xF, -0x1F, -0x7FF])
 def test_capstone_iinstr_loads(name, imm, cap_disasm_setup):
     constr = getattr(IInstruction, name)
@@ -310,6 +316,56 @@ def test_capstone_ebreak(cap_disasm_setup, uc_emul_setup):
         uc_emul = uc_emul_setup
         uc_emul.mem_write(ADDRESS, bytes)
         uc_emul.emu_start(ADDRESS, ADDRESS + 4)
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        ("lb", 0xFFFFFFFFFFFFFFFF),
+        ("lbu", 0xFF),
+        ("ld", 0xFFFFFFFFFFFFFFFF),
+        ("lh", 0xFFFFFFFFFFFFFFFF),
+        ("lhu", 0xFFFF),
+        ("lw", 0xFFFFFFFFFFFFFFFF),
+        ("lwu", 0xFFFFFFFF),
+    ],
+)
+def test_unicorn_iinstr_loads(name, expected, cap_disasm_setup, uc_emul_setup):
+    constr = getattr(IInstruction, name)
+    instr = constr(rs1=DATA_REG, rd=6, imm=0)
+    bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
+    print(
+        "0x%x:\t%s\t%s"
+        % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str)
+    )
+    # Emulation
+    uc_emul = uc_emul_setup
+    uc_emul.reg_write(UC_RISCV_REG_T6, DATA_ADDRESS)
+    uc_emul.reg_write(UC_RISCV_REG_T1, 0x0)
+    uc_emul.mem_write(DATA_ADDRESS, b"\xff\xff\xff\xff\xff\xff\xff\xff")
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.emu_start(ADDRESS, ADDRESS + 4)
+    uc_emul.emu_stop()
+    assert uc_emul.reg_read(UC_RISCV_REG_T1) == expected
+
+
+@pytest.mark.parametrize("name", ["lb", "lbu", "ld", "lh", "lhu", "lw", "lwu"])
+@pytest.mark.parametrize("imm", [0x0, 0x1, 0xF, 0x1F, 0x7FF, -0x1, -0xF, -0x1F, -0x7FF])
+def test_unicorn_iinstr_loads_smoke(name, imm, uc_emul_setup):
+    constr = getattr(IInstruction, name)
+    instr = constr(rs1=DATA_REG, rd=6, imm=imm)
+    bytes = instr.generate_bytes()
+    # Emulation
+    uc_emul = uc_emul_setup
+    uc_emul.reg_write(
+        UC_RISCV_REG_T6, DATA_ADDRESS + 0x7FF
+    )  # To test negatives values!
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.emu_start(ADDRESS, ADDRESS + 4)
+    uc_emul.emu_stop()
 
 
 # =================================
@@ -451,7 +507,7 @@ def test_correct_encoding_sinstr(name, imm, disasm_setup):
 
 
 @pytest.mark.parametrize("name", ["sb", "sd", "sh", "sw"])
-@pytest.mark.parametrize("imm", [0x7FF, 0x1F, 0x7C0])
+@pytest.mark.parametrize("imm", [0x0, 0x1, 0x1F, 0x7FF, -0x0, -0x1, -0x1F, -0x7FF])
 def test_capstone_sinstr(name, imm, cap_disasm_setup):
     constr = getattr(SInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
@@ -461,6 +517,57 @@ def test_capstone_sinstr(name, imm, cap_disasm_setup):
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
     assert instr_disasm.op_str == "t1, " + imm_str(imm) + "(t0)"
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        ("sb", b"\xff\x00\x00\x00\x00\x00\x00\x00"),
+        ("sh", b"\xff\xff\x00\x00\x00\x00\x00\x00"),
+        ("sw", b"\xff\xff\xff\xff\x00\x00\x00\x00"),
+        ("sd", b"\xff\xff\xff\xff\xff\xff\xff\xff"),
+    ],
+)
+def test_unicorn_sinstr(name, expected, cap_disasm_setup, uc_emul_setup):
+    constr = getattr(SInstruction, name)
+    instr = constr(rs1=DATA_REG, rs2=6, imm=0)
+    bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
+    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
+    print(
+        "0x%x:\t%s\t%s"
+        % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str)
+    )
+    # Emulation
+    uc_emul = uc_emul_setup
+    uc_emul.reg_write(UC_RISCV_REG_T6, DATA_ADDRESS)
+    uc_emul.reg_write(UC_RISCV_REG_T1, 0xFFFFFFFFFFFFFFFF)
+    uc_emul.mem_write(DATA_ADDRESS, b"\x00\x00\x00\x00\x00\x00\x00\x00")
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.emu_start(ADDRESS, ADDRESS + 4)
+    uc_emul.emu_stop()
+    assert uc_emul.mem_read(DATA_ADDRESS, 8) == expected
+
+
+@pytest.mark.parametrize("name", ["sb", "sd", "sh", "sw"])
+@pytest.mark.parametrize("imm", [0x0, 0x1, 0x1F, 0x7FF, -0x0, -0x1, -0x1F, -0x7FF])
+def test_unicorn_sinstr_smoke(name, imm, cap_disasm_setup, uc_emul_setup):
+    constr = getattr(SInstruction, name)
+    instr = constr(rs1=DATA_REG, rs2=6, imm=imm)
+    bytes = instr.generate_bytes()
+    # Disassembly
+    # cap_disasm = cap_disasm_setup
+    # instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
+    # print("0x%x:\t%s\t%s" % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str))
+    # Emulation
+    uc_emul = uc_emul_setup
+    uc_emul.reg_write(
+        UC_RISCV_REG_T6, DATA_ADDRESS + 0x7FF
+    )  # To test negative offsets!
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.emu_start(ADDRESS, ADDRESS + 4)
+    uc_emul.emu_stop()
 
 
 # =================================

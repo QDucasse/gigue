@@ -217,6 +217,10 @@ class IInstruction(Instruction):
         return cls.i_instr("lw", rd, rs1, imm)
 
     @classmethod
+    def lwu(cls, rd, rs1, imm):
+        return cls.i_instr("lwu", rd, rs1, imm)
+
+    @classmethod
     def nop(cls):
         return cls.i_instr("addi", 0, 0, 0)
 
