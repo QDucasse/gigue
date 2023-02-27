@@ -8,6 +8,10 @@ from unicorn.riscv_const import UC_RISCV_REG_T6
 from gigue.constants import DATA_REG
 from gigue.constants import DATA_SIZE
 from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.exceptions import CallNumberException
+from gigue.exceptions import EmptySectionException
+from gigue.exceptions import MutualCallException
+from gigue.exceptions import RecursiveCallException
 from gigue.helpers import window
 from gigue.method import Method
 from gigue.pic import PIC
@@ -25,12 +29,18 @@ def test_initialization():
 
 
 def test_error_initialization():
-    with pytest.raises(ValueError):
+    with pytest.raises(CallNumberException):
         Method(
             address=0x7FFFFF,
             body_size=10,
             call_number=5,
         )
+
+
+def test_error_total_size_while_empty():
+    m = Method(address=0x7FFFFF, body_size=30, call_number=5)
+    with pytest.raises(EmptySectionException):
+        m.total_size()
 
 
 def test_fill_with_nops(cap_disasm_setup):
@@ -262,11 +272,11 @@ def test_patch_calls_check_recursive_loop_call():
         data_size=DATA_SIZE,
         weights=INSTRUCTION_WEIGHTS,
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(RecursiveCallException):
         callee1.patch_calls([callee1, callee2, method])
-    with pytest.raises(ValueError):
+    with pytest.raises(RecursiveCallException):
         callee2.patch_calls([callee1, callee2, method])
-    with pytest.raises(ValueError):
+    with pytest.raises(RecursiveCallException):
         method.patch_calls([callee1, callee2, method])
 
 
@@ -294,7 +304,7 @@ def test_patch_calls_check_mutual_loop_call():
         weights=INSTRUCTION_WEIGHTS,
     )
     callee.patch_calls([method])
-    with pytest.raises(ValueError):
+    with pytest.raises(MutualCallException):
         method.patch_calls([callee])
 
 
@@ -307,14 +317,14 @@ def test_patch_calls_check_mutual_loop_call():
 @pytest.mark.parametrize(
     "weights",
     [
-        # [100, 0, 0, 0, 0, 0, 0],  # Only R Instructions
-        # [0, 100, 0, 0, 0, 0, 0],  # Only I Instructions
-        # [0, 0, 100, 0, 0, 0, 0],  # Only U Instructions
-        # [0, 0, 0, 100, 0, 0, 0],  # Only J Instructions
-        # [0, 0, 0, 0, 100, 0, 0],  # Only B Instructions
+        [100, 0, 0, 0, 0, 0, 0],  # Only R Instructions
+        [0, 100, 0, 0, 0, 0, 0],  # Only I Instructions
+        [0, 0, 100, 0, 0, 0, 0],  # Only U Instructions
+        [0, 0, 0, 100, 0, 0, 0],  # Only J Instructions
+        [0, 0, 0, 0, 100, 0, 0],  # Only B Instructions
         [0, 0, 0, 0, 0, 100, 0],  # Only Stores
         [0, 0, 0, 0, 0, 0, 100],  # Only Loads
-        # INSTRUCTION_WEIGHTS,
+        INSTRUCTION_WEIGHTS,
     ],
 )
 def test_instructions_disassembly_execution_smoke(

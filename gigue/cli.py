@@ -15,13 +15,17 @@ Why does this file exist, and why not put this in __main__?
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 import argparse
+import logging
 import os
 import sys
 
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
+from gigue.exceptions import GeneratorException
 from gigue.generator import Generator
 from gigue.helpers import ObjDict
+
+logger = logging.getLogger(__name__)
 
 
 class Parser(argparse.ArgumentParser):
@@ -151,30 +155,36 @@ def main(argv=None):
     if not os.path.exists(BIN_DIR):
         os.makedirs(BIN_DIR)
 
-    g = Generator(
-        # Addresses
-        jit_start_address=args.jitaddr,
-        interpreter_start_address=args.intaddr,
-        # General
-        registers=args.regs,
-        jit_elements_nb=args.nbelt,
-        # Data
-        data_reg=args.datareg,
-        data_generation_strategy=args.datagen,
-        data_size=args.datasize,
-        # Methods
-        method_max_size=args.metmaxsize,
-        max_call_depth=args.maxcalldepth,
-        max_call_nb=args.maxcallnb,
-        # PICs
-        pics_ratio=args.picratio,
-        pics_method_max_size=args.picmetmaxsize,
-        pics_max_cases=args.picmaxcases,
-        pics_cmp_reg=args.piccmpreg,
-        pics_hit_case_reg=args.pichitcasereg,
-        # Files
-        output_bin_file=args.out,
-        output_data_bin_file=args.outdata,
-    )
-    g.main()
+    try:
+        gen = Generator(
+            # Addresses
+            jit_start_address=args.jitaddr,
+            interpreter_start_address=args.intaddr,
+            # General
+            registers=args.regs,
+            jit_elements_nb=args.nbelt,
+            # Data
+            data_reg=args.datareg,
+            data_generation_strategy=args.datagen,
+            data_size=args.datasize,
+            # Methods
+            method_max_size=args.metmaxsize,
+            max_call_depth=args.maxcalldepth,
+            max_call_nb=args.maxcallnb,
+            # PICs
+            pics_ratio=args.picratio,
+            pics_method_max_size=args.picmetmaxsize,
+            pics_max_cases=args.picmaxcases,
+            pics_cmp_reg=args.piccmpreg,
+            pics_hit_case_reg=args.pichitcasereg,
+            # Files
+            output_bin_file=args.out,
+            output_data_bin_file=args.outdata,
+        )
+    except GeneratorException as err:
+        logging.exception(err)
+        raise
+
+    gen.main()
+
     return 0

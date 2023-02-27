@@ -1,37 +1,21 @@
+import logging
 import random
 from typing import List
 
 from gigue.builder import InstructionBuilder
+from gigue.exceptions import CallNumberException
+from gigue.exceptions import EmptySectionException
+from gigue.exceptions import MutualCallException
+from gigue.exceptions import RecursiveCallException
 from gigue.instructions import Instruction
 
-
-def raise_call_number_value_error(call_number, size):
-    max_call_number = size // 3
-    raise ValueError(
-        f"ValueError: Call number should be <= {max_call_number} and is {call_number}."
-        + "\n  Number of calls in a method cannot be greater than size // 3 "
-        + "\n  (note: //3 because a call is composed of max three instructions in"
-        " PICs)."
-    )
-
-
-def raise_call_patch_recursive_error(method, callees):
-    raise ValueError(
-        "ValueError: infinite call loop as {} is in {}".format(method, callees)
-    )
+logger = logging.getLogger(__name__)
 
 
 def raise_incorrect_callee_number_error(method, callees):
     raise ValueError(
         f"ValueError: incorrect number of callees in method: got {len(callees)},"
         f" expecting {method.call_nb}"
-    )
-
-
-def raise_mutual_call_error(method, callee):
-    raise ValueError(
-        f"ValueError: mutual call between method at {method.address} and callee at"
-        f" {callee.address}"
     )
 
 
@@ -51,7 +35,15 @@ class Method:
         self.used_s_regs: int = used_s_regs
         self.local_vars_nb: int = local_vars_nb
 
-        self.check_call_number(call_number)
+        if call_number > Method.compute_max_call_number(self.body_size):
+            max_call_number = self.body_size // 3
+            raise CallNumberException(
+                f"Call number should be <= {max_call_number} and is {call_number}."
+                + "\n  Number of calls in a method cannot be greater than size // 3 "
+                + "\n  (note: //3 because a call is composed of max three"
+                " instructions in"
+                " PICs)."
+            )
         self.call_number: int = call_number
 
         self.is_leaf: bool = self.call_number == 0
@@ -72,19 +64,12 @@ class Method:
         # a given method body size.
         return body_size // 3
 
-    def get_max_call_number(self):
-        return Method.compute_max_call_number(self.body_size)
-
-    def check_call_number(self, call_number):
-        if call_number > self.get_max_call_number():
-            raise_call_number_value_error(call_number, self.body_size)
-
     def get_callees(self):
         return self.callees
 
     def total_size(self):
         if self.prologue_size == 0 or self.epilogue_size == 0:
-            raise ValueError
+            raise EmptySectionException("Prologue or epilogue has not been set.")
         return self.body_size + self.prologue_size + self.epilogue_size
 
     def fill_with_nops(self):
@@ -136,14 +121,19 @@ class Method:
     def patch_calls(self, callees):
         # Check for recursive call
         if self in callees:
-            raise_call_patch_recursive_error(self, callees)
+            raise RecursiveCallException(
+                f"Infinite call loop as {self} is in {callees}."
+            )
         # Check correct length
         if len(callees) != self.call_number:
             raise_incorrect_callee_number_error(self, callees)
         # Check for mutual call
         for callee in callees:
             if self in callee.get_callees():
-                raise_mutual_call_error(self, callee)
+                raise MutualCallException(
+                    f"ValueError: mutual call between method at {self.address} and"
+                    f" callee at {callee.address}"
+                )
 
         self.callees = callees
 

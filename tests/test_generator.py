@@ -14,6 +14,7 @@ from unicorn.unicorn_const import UC_MODE_RISCV64
 
 from gigue.constants import CALLER_SAVED_REG
 from gigue.disassembler import Disassembler
+from gigue.exceptions import WrongAddressException
 from gigue.generator import Generator
 from gigue.instructions import IInstruction
 from gigue.method import Method
@@ -29,6 +30,27 @@ JIT_START_ADDRESS = 0x3000
 STACK_ADDRESS = 0x10000
 END_ADDRESS = 0xFFF0
 cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+
+
+# =================================
+#          Initialization
+# =================================
+
+
+def test_not_implemented():
+    with pytest.raises(WrongAddressException):
+        Generator(
+            jit_start_address=0,
+            interpreter_start_address=INTERPRETER_START_ADDRESS,
+            jit_elements_nb=10,
+            method_max_size=10,
+            max_call_depth=2,
+            max_call_nb=2,
+            pics_method_max_size=10,
+            pics_max_cases=2,
+            pics_ratio=0.5,
+        )
+
 
 # =================================
 #          Filling tests

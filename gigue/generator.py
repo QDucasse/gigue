@@ -1,3 +1,4 @@
+import logging
 import random
 from collections import defaultdict
 from typing import Dict
@@ -13,6 +14,7 @@ from gigue.constants import DATA_SIZE
 from gigue.constants import HIT_CASE_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.dataminer import Dataminer
+from gigue.exceptions import WrongAddressException
 from gigue.helpers import align
 from gigue.helpers import flatten_list
 from gigue.helpers import gaussian_between
@@ -20,19 +22,7 @@ from gigue.instructions import Instruction
 from gigue.method import Method
 from gigue.pic import PIC
 
-
-def raise_address_range_error(int_address, jit_address):
-    raise ValueError(
-        f"ValueError: Interpretation loop start address (here {hex(int_address)} should"
-        f" be lower than jit start address (here {hex(jit_address)}))"
-    )
-
-
-def raise_not_implemented():
-    raise ValueError(
-        "ValueError: Functionality not yet implemented, please give both an interpreter"
-        " start address and a jit start address"
-    )
+logger = logging.getLogger(__name__)
 
 
 class Generator:
@@ -72,16 +62,22 @@ class Generator:
         # The memory layout in memory will result in a single .text section:
         #    Interpretation loop | nops | JIT functions
         if interpreter_start_address > jit_start_address:
-            raise_address_range_error(
-                int_address=interpreter_start_address, jit_address=jit_start_address
+            raise WrongAddressException(
+                "Interpretation loop start address (here"
+                f" {hex(interpreter_start_address)} should be lower than jit start"
+                f" address (here {hex(jit_start_address)}))"
             )
 
         # JIT code is at a fixed address?
         # For now we dont handle auto sized JIT code
-        self.fixed_jit = True
-        if jit_start_address == 0:
-            self.fixed_jit = False
-            raise_not_implemented()
+        # self.fixed_jit = True
+        # if jit_start_address == 0:
+        #     self.fixed_jit = False
+        #     raise NotYetImplementedException(
+        #         "Functionality not yet implemented, please give both an interpreter"
+        #         " start address and a jit start address"
+        #     )
+
         self.jit_start_address: int = align(jit_start_address, 4)
         self.interpreter_start_address: int = align(interpreter_start_address, 4)
 
