@@ -32,6 +32,7 @@ SECTIONS
   .text : { *(.text) }
 
   /* data segment */
+  /* . = ALIGN(0x1000); */
   .data : { *(.data) }
 
   .sdata : {

@@ -13,9 +13,12 @@ gigue_size:
 
     .global main
 main:
-    la t6, tab
-    call gigue_start
+    la t6, tab             # Load the data address in t6
+    call gigue_start       # Call the generated binary
     j exit
+    
+    # addi    a7, x0, 93     # Set ecall to exit (93) function
+    # ecall                  # Call linux to terminate the program
 
 .section .data
 tab: 

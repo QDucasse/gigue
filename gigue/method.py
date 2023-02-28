@@ -153,7 +153,8 @@ class Method:
             # Compute the offset
             offset = callee.address - (self.address + ind * 4)
             # print(
-            #     f"Offset: {hex(callee.address)} - ({hex(self.address)} + {hex(ind*4)}) = {hex(offset)}"
+            #     f"Offset: {hex(callee.address)} - ({hex(self.address)}
+            #     + {hex(ind*4)}) = {hex(offset)}"
             # )
             call_instructions = self.builder.build_element_call(callee, offset)
             # Add the two instructions for the call
