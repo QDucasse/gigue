@@ -10,15 +10,14 @@ from setuptools import setup
 
 setup(
     name="gigue",
-    version="0.0.0",
+    version="0.1.0",
     license="BSD-2-Clause",
     description="Interpretation loop and JIT code generator for RISC-V",
     author="Quentin Ducasse",
     author_email="quentin.ducasse@ensta-bretagne.org",
     url="https://github.com/qducasse/gigue",
-    packages=find_packages("src"),
-    package_dir={"": "src"},
-    py_modules=[splitext(basename(path))[0] for path in glob("src/*.py")],
+    packages=find_packages(),
+    py_modules=[splitext(basename(path))[0] for path in glob("gigue/*.py")],
     include_package_data=True,
     zip_safe=False,
     classifiers=[
@@ -30,10 +29,7 @@ setup(
         "Operating System :: POSIX",
         "Operating System :: Microsoft :: Windows",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: Implementation :: CPython",
@@ -44,7 +40,7 @@ setup(
         # 'Programming Language :: Python :: Implementation :: Stackless',
         "Topic :: Utilities",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     install_requires=["capstone==5.0.0rc2", "unicorn==2.0.0rc7"],
     entry_points={
         "console_scripts": [

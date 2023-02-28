@@ -4,12 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-gigue = {editable = true, path = "."}
 
 [dev-packages]
+pytest = "*"
 capstone = "*"
 unicorn = "*"
-pytest = "*"
 
 [requires]
 python_version = "3.9"

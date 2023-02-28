@@ -18,7 +18,11 @@ class Disassembler:
 
     @staticmethod
     def get_instruction_type(instruction):
-        return find_instr_for_opcode(instruction & 0x3F).type
+        return find_instr_for_opcode(instruction & 0x7F).type
+
+    @staticmethod
+    def get_instruction_name(instruction):
+        return find_instr_for_opcode(instruction & 0x7F).name
 
     def extract_opcode7(self, instruction):
         return self.extract_info(instruction, 7, 0)
@@ -85,7 +89,8 @@ class Disassembler:
         signed_offset_low = self.sign_extend(offset_low, 12)
         signed_offset_high = self.sign_extend(offset_high, 32)
         print(
-            "Disassembler:\nlowo {}\nhigho {}\nsignlowo {}\nsignhigho {}\nsum {}\n__________".format(
+            "Disassembler:\nlowo {}\nhigho {}\nsignlowo {}\nsignhigho {}\nsum"
+            " {}\n__________".format(
                 hex(offset_low),
                 hex(offset_high),
                 hex(signed_offset_low),

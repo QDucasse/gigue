@@ -1,12 +1,24 @@
-# [R, I, U, J, B]
-INSTRUCTION_WEIGHTS = [35, 40, 10, 5, 10]
+# [R, I, U, J, B, stores, loads]
+INSTRUCTION_WEIGHTS = [25, 30, 10, 5, 10, 19, 10]
+
+# Register info
 CALLER_SAVED_REG = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31]
 CALLEE_SAVED_REG = [8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+
+# RISCV shortcuts
 RA = 1
 SP = 2
+
+# Paths
+BIN_DIR = "bin/"
+
+# PICs info
 HIT_CASE_REG = 5
 CMP_REG = 6
-BIN_DIR = "bin/"
+
+# Data info
+DATA_REG = 31
+DATA_SIZE = 0x100
 
 
 class InstructionInfo:
@@ -54,6 +66,7 @@ INSTRUCTIONS_INFO = {
     "lh": InstructionInfo("lh", 0b0000011, 0b001, "I"),
     "lhu": InstructionInfo("lhu", 0b0000011, 0b101, "I"),
     "lw": InstructionInfo("lw", 0b0000011, 0b010, "I"),
+    "lwu": InstructionInfo("lwu", 0b0000011, 0b110, "I"),
     # Load upper immediate
     "lui": InstructionInfo("lui", 0b0110111, 0b000, "U"),
     # Muls
@@ -98,6 +111,8 @@ INSTRUCTIONS_INFO = {
     # Xors
     "xor": InstructionInfo("xor", 0b0110011, 0b100, "R"),
     "xori": InstructionInfo("xori", 0b0010011, 0b100, "I"),
+    # Breakpoint
+    "ebreak": InstructionInfo("ebreak", 0b1110011, 0b000, "I"),
 }
 
 

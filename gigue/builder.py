@@ -6,6 +6,7 @@ from gigue.constants import HIT_CASE_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.constants import RA
 from gigue.constants import SP
+from gigue.helpers import align
 from gigue.instructions import BInstruction
 from gigue.instructions import IInstruction
 from gigue.instructions import JInstruction
@@ -43,6 +44,13 @@ class InstructionBuilder:
     S_INSTRUCTIONS = ["sb", "sd", "sh", "sw"]
     B_INSTRUCTIONS = ["beq", "bge", "bgeu", "blt", "bltu", "bne"]
 
+    ALIGNMENT = {
+        "b": 1,
+        "h": 2,
+        "w": 4,
+        "d": 8,
+    }
+
     @staticmethod
     def build_nop():
         return IInstruction.nop()
@@ -52,14 +60,14 @@ class InstructionBuilder:
         return IInstruction.ret()
 
     @staticmethod
-    def build_random_r_instruction(registers):
+    def build_random_r_instruction(registers, *args, **kwargs):
         name = random.choice(InstructionBuilder.R_INSTRUCTIONS)
         constr = getattr(RInstruction, name)
         rd, rs1, rs2 = tuple(random.choices(registers, k=3))
         return constr(rd=rd, rs1=rs1, rs2=rs2)
 
     @staticmethod
-    def build_random_i_instruction(registers):
+    def build_random_i_instruction(registers, *args, **kwargs):
         name = random.choice(InstructionBuilder.I_INSTRUCTIONS)
         constr = getattr(IInstruction, name)
         rd, rs1 = tuple(random.choices(registers, k=2))
@@ -67,54 +75,103 @@ class InstructionBuilder:
         return constr(rd=rd, rs1=rs1, imm=imm)
 
     @staticmethod
-    def build_random_u_instruction(registers):
+    def build_random_u_instruction(registers, *args, **kwargs):
         name = random.choice(InstructionBuilder.U_INSTRUCTIONS)
         constr = getattr(UInstruction, name)
         rd = random.choice(registers)
         imm = random.randint(0, 0xFFFFFFFF)
         return constr(rd=rd, imm=imm)
 
+    @classmethod
+    def define_memory_access_alignment(cls, name):
+        for key in InstructionBuilder.ALIGNMENT.keys():
+            if key in name:
+                return InstructionBuilder.ALIGNMENT[key]
+
     @staticmethod
-    def build_random_j_instruction(registers, max_offset):
+    def build_random_s_instruction(registers, data_reg, data_size, *args, **kwargs):
+        name = random.choice(InstructionBuilder.S_INSTRUCTIONS)
+        constr = getattr(SInstruction, name)
+        # Note: sd, rs2, off(rs1) stores the contents of rs2
+        # at the address in rs1 + offset
+        rs1 = data_reg
+        rs2 = random.choice(registers)
+        alignment = InstructionBuilder.define_memory_access_alignment(name)
+        imm = align(random.randint(0, min(data_size, 0x7FF)), alignment)
+        return constr(rs1=rs1, rs2=rs2, imm=imm)
+
+    @staticmethod
+    def build_random_l_instruction(registers, data_reg, data_size, *args, **kwargs):
+        name = random.choice(InstructionBuilder.I_INSTRUCTIONS_LOAD)
+        constr = getattr(IInstruction, name)
+        # Note: ld, rd, off(rs1) loads the value at the address
+        # stored in rs1 + off in rd
+        rd = random.choice(registers)
+        rs1 = data_reg
+        alignment = InstructionBuilder.define_memory_access_alignment(name)
+        imm = align(random.randint(0, min(data_size, 0x7FF)), alignment)
+        return constr(rd=rd, rs1=rs1, imm=imm)
+
+    # TODO: There should be a better way?
+    @classmethod
+    def size_offset(cls, max_offset):
+        possible_offsets = set([4, max_offset])
+        for i in range(1, max_offset // 12 + 1):
+            possible_offsets.add(i * 12 + max_offset % 12)
+        if max_offset % 12 == 8:
+            possible_offsets.add(8)
+        return list(possible_offsets)
+
+    @staticmethod
+    def build_random_j_instruction(registers, max_offset, *args, **kwargs):
         # Jump to stay in the method and keep aligment
         rd = random.choice(registers)
-        offset = max(random.randrange(0, max(4, max_offset), 4), 4)
+        offset = random.choice(InstructionBuilder.size_offset(max_offset))
         return JInstruction.jal(rd, offset)
 
-    # TODO: stores
-    # TODO: loads
-
     @staticmethod
-    def build_random_b_instruction(registers, max_offset):
+    def build_random_b_instruction(registers, max_offset, *args, **kwargs):
         name = random.choice(InstructionBuilder.B_INSTRUCTIONS)
         constr = getattr(BInstruction, name)
         rs1, rs2 = random.choices(registers, k=2)
-        offset = max(random.randrange(0, max(4, max_offset), 4), 4)
+        # offset = max(random.randrange(0, max(12, max_offset), 12), 12)
+        offset = random.choice(InstructionBuilder.size_offset(max_offset))
         return constr(rs1=rs1, rs2=rs2, imm=offset)
 
-    def build_random_instruction(self, registers, max_offset, weights=None):
-        if weights is None:
-            weights = INSTRUCTION_WEIGHTS
-        method_name, needs_max_offset = random.choices(
+    @staticmethod
+    def build_random_instruction(
+        registers, max_offset, data_reg, data_size, weights=INSTRUCTION_WEIGHTS
+    ):
+        method_name = random.choices(
             [
-                ("build_random_r_instruction", False),
-                ("build_random_i_instruction", False),
-                ("build_random_u_instruction", False),
-                ("build_random_j_instruction", True),
-                ("build_random_b_instruction", True),
+                "build_random_r_instruction",
+                "build_random_i_instruction",
+                "build_random_u_instruction",
+                "build_random_j_instruction",
+                "build_random_b_instruction",
+                "build_random_s_instruction",
+                "build_random_l_instruction",
             ],
             weights,
         )[0]
         method = getattr(InstructionBuilder, method_name)
-        instruction = (
-            method(registers, max_offset) if needs_max_offset else method(registers)
+        instruction = method(
+            registers=registers,
+            max_offset=max_offset,
+            data_reg=data_reg,
+            data_size=data_size,
         )
         return instruction
 
+    # Visitor to build either a PIC or method
+    @staticmethod
+    def build_element_call(elt, offset):
+        return elt.accept_build_call(offset)
+
     @staticmethod
     def build_method_call(offset):
-        if offset < 0x8:
-            raise Exception
+        # if offset < 0x8:
+        #     raise Exception
         offset_low = offset & 0xFFF
         # The right part handles the low offset sign extension (that should be mitigated)
         offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
@@ -127,9 +184,7 @@ class InstructionBuilder:
         return [UInstruction.auipc(1, offset_high), IInstruction.jalr(1, 1, offset_low)]
 
     @staticmethod
-    def build_pic_call(offset, hit_case, hit_case_reg=None):
-        if hit_case_reg is None:
-            hit_case_reg = HIT_CASE_REG
+    def build_pic_call(offset, hit_case, hit_case_reg=HIT_CASE_REG):
         if offset < 0x8:
             raise Exception
         offset_low = offset & 0xFFF
@@ -150,17 +205,15 @@ class InstructionBuilder:
         ]
 
     @staticmethod
-    def build_switch_case(case_number, method_offset, hit_case_reg=None, cmp_reg=None):
+    def build_switch_case(
+        case_number, method_offset, hit_case_reg=HIT_CASE_REG, cmp_reg=CMP_REG
+    ):
         # Switch for one case:
         #   1 - Loading the value to compare in the compare register
         #   2 - Compare to the current case (should be in the hit case register)
         #   3 - Jump to the corresponding method if equal
         #   4 - Go to the next case if not
         # Note: beq is not used to cover a wider range (2Mb rather than 8kb)
-        if hit_case_reg is None:
-            hit_case_reg = HIT_CASE_REG
-        if cmp_reg is None:
-            cmp_reg = CMP_REG
         return [
             IInstruction.addi(rd=cmp_reg, rs1=0, imm=case_number),
             BInstruction.bne(rs1=cmp_reg, rs2=hit_case_reg, imm=8),
@@ -171,49 +224,45 @@ class InstructionBuilder:
     def build_prologue(used_s_regs, local_var_nb, contains_call):
         # An example prologue would be:
         # addi sp sp -16 (+local vars)
-        # sw s0 0(sp)
-        # sw s1 4(sp)
-        # sw s2 8(sp)
-        # sw ra 12(sp)
+        # sd s0 0(sp)
+        # sd s1 4(sp)
+        # sd s2 8(sp)
+        # sd ra 12(sp)
         instructions = []
-        stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+        stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
         # Decrement sp by number of s registers + local variable space
         instructions.append(IInstruction.addi(rd=SP, rs1=SP, imm=-stack_space))
         # Store any saved registers used
         for i in range(used_s_regs):
             instructions.append(
-                SInstruction.sw(rs1=SP, rs2=CALLEE_SAVED_REG[i], imm=i * 4)
+                SInstruction.sd(rs1=SP, rs2=CALLEE_SAVED_REG[i], imm=i * 8)
             )
         # Store ra is a function call is made
         if contains_call:
-            instructions.append(SInstruction.sw(rs1=SP, rs2=RA, imm=used_s_regs * 4))
+            instructions.append(SInstruction.sd(rs1=SP, rs2=RA, imm=used_s_regs * 8))
         return instructions
 
     @staticmethod
     def build_epilogue(used_s_regs, local_var_nb, contains_call):
         # An example epilogue would be:
-        # lw s0 0(sp)
-        # lw s1 4(sp
-        # lw s2 8(sp
-        # lw ra 12(sp)
+        # ld s0 0(sp)
+        # ld s1 4(sp
+        # ld s2 8(sp
+        # ld ra 12(sp)
         # addi sp sp 16 (+local vars)
         # jr ra
         instructions = []
-        stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 4
+        stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
         # Reload saved registers used
         for i in range(used_s_regs):
             instructions.append(
-                IInstruction.lw(rd=CALLEE_SAVED_REG[i], rs1=SP, imm=i * 4)
+                IInstruction.ld(rd=CALLEE_SAVED_REG[i], rs1=SP, imm=i * 8)
             )
         # Reload ra (if necessary)
         if contains_call:
-            instructions.append(IInstruction.lw(rd=RA, rs1=SP, imm=used_s_regs * 4))
+            instructions.append(IInstruction.ld(rd=RA, rs1=SP, imm=used_s_regs * 8))
         # Increment sp to previous value
         instructions.append(IInstruction.addi(rd=SP, rs1=SP, imm=stack_space))
         # Jump back to return address
         instructions.append(IInstruction.ret())
         return instructions
-
-    @staticmethod
-    def consolidate_bytes(instructions):
-        return b"".join([instr.generate_bytes() for instr in instructions])

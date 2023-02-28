@@ -1,14 +1,18 @@
+import logging
 import random
 from typing import List
-from typing import Optional
 
 from gigue.builder import InstructionBuilder
-from gigue.constants import CALLER_SAVED_REG
 from gigue.constants import CMP_REG
 from gigue.constants import HIT_CASE_REG
-from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.exceptions import CallNumberException
+from gigue.exceptions import EmptySectionException
+from gigue.helpers import flatten_list
+from gigue.helpers import gaussian_between
 from gigue.instructions import Instruction
 from gigue.method import Method
+
+logger = logging.getLogger(__name__)
 
 
 class PIC:
@@ -17,25 +21,20 @@ class PIC:
         address: int,
         case_number: int,
         method_max_size: int,
-        method_max_calls: int,
-        registers: List[int],
-        hit_case_reg: Optional[int] = None,
-        cmp_reg: Optional[int] = None,
+        method_max_call_number: int,
+        method_max_call_depth: int,
+        hit_case_reg: int = HIT_CASE_REG,
+        cmp_reg: int = CMP_REG,
     ):
-        # TODO: Store case method call depth
         self.case_number: int = case_number
         self.address: int = address
-        self.registers: List[int] = registers
         self.method_max_size: int = method_max_size
-        self.method_max_calls: int = method_max_calls
+        self.method_max_call_number: int = method_max_call_number
+        self.method_max_call_depth: int = method_max_call_depth
         # hit_case_reg: register in which the case_nb that should be ran is loaded
         # cmp_reg: register in which the running case nb is stored before comparison
         # Comparison and current registers
-        if cmp_reg is None:
-            cmp_reg = CMP_REG
         self.cmp_reg: int = cmp_reg
-        if hit_case_reg is None:
-            hit_case_reg = HIT_CASE_REG
         self.hit_case_reg: int = hit_case_reg
 
         self.builder: InstructionBuilder = InstructionBuilder()
@@ -44,6 +43,12 @@ class PIC:
         self.instructions: List[Instruction] = []
         self.machine_code: List[int] = []
         self.bytes: bytes = b""
+
+    def log_prefix(self):
+        return f"🍏 {hex(self.address)}:"
+
+    def get_callees(self):
+        return list(set(flatten_list([method.callees for method in self.methods])))
 
     def get_switch_size(self):
         # switch corresponds to:
@@ -57,26 +62,51 @@ class PIC:
         return 3 * self.case_number + 1
 
     def total_size(self):
-        return self.get_switch_size() + sum(
-            [method.total_size() for method in self.methods]
-        )
+        try:
+            total_size = self.get_switch_size() + sum(
+                [method.total_size() for method in self.methods]
+            )
+        except EmptySectionException as err:
+            logger.exception(err)
+            raise
+        return total_size
 
-    def add_case_methods(self, weights=None):
-        if weights is None:
-            weights = INSTRUCTION_WEIGHTS
+    def accept_build_call(self, method_offset):
+        hit_case = random.randint(1, self.case_number)
+        # The -4 comes from the addi that has to be mitigated
+        return self.builder.build_pic_call(method_offset - 4, hit_case)
+
+    def add_case_methods(self, *args, **kwargs):
+        logger.info(f"{self.log_prefix()} Adding case methods.")
         method_address = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
-            size = random.randint(3, self.method_max_size)
-            call_nb = random.randint(0, min(self.method_max_calls, size // 2 - 1))
-            case_method = Method(
-                address=method_address,
-                body_size=size,
-                call_number=call_nb,
-                registers=CALLER_SAVED_REG,
+            body_size = gaussian_between(3, self.method_max_size)
+            max_call_nb = min(
+                self.method_max_call_number, Method.compute_max_call_number(body_size)
             )
-            case_method.fill_with_instructions(weights)
-            self.methods.append(case_method)
-            method_address += case_method.total_size() * 4
+            call_nb = abs(gaussian_between(-max_call_nb, max_call_nb))
+            call_depth = abs(
+                gaussian_between(
+                    -self.method_max_call_depth, self.method_max_call_depth
+                )
+            )
+            try:
+                case_method = Method(
+                    address=method_address,
+                    body_size=body_size,
+                    call_number=call_nb,
+                    call_depth=call_depth,
+                )
+                case_method.fill_with_instructions(*args, **kwargs)
+                self.methods.append(case_method)
+                method_address += case_method.total_size() * 4
+            except CallNumberException as err:
+                logger.exception(err)
+                raise
+            except EmptySectionException as err:
+                logger.exception(err)
+                raise
+        logger.info(f"{self.log_prefix()} Case methods added.")
 
     def add_switch_instructions(self):
         # WARNING!!!! hit case starts at 1
@@ -99,9 +129,13 @@ class PIC:
             self.switch_instructions.append(switch_case)
         self.switch_instructions.append([self.builder.build_ret()])
 
-    def fill_with_instructions(self, weights=None):
-        self.add_case_methods(weights)
+    def fill_with_instructions(self, registers, data_reg, data_size, weights):
+        logger.info(f"{self.log_prefix()} Filling PIC (case methods and switch).")
+        self.add_case_methods(
+            registers=registers, data_reg=data_reg, data_size=data_size, weights=weights
+        )
         self.add_switch_instructions()
+        logger.info(f"{self.log_prefix()} PIC filled.")
 
     def generate(self):
         for case in self.switch_instructions:
@@ -114,6 +148,3 @@ class PIC:
             self.bytes += b"".join([instr.generate_bytes() for instr in case])
         self.bytes += b"".join([method.generate_bytes() for method in self.methods])
         return self.bytes
-
-    def accept_build(self, generator, method_offset):
-        return generator.build_pic_call(self, method_offset)

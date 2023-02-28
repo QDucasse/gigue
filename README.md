@@ -6,8 +6,9 @@
 
 ## Installation
 
-```
-pip install gigue
+The project was developed using `pipenv` and can be installed with:
+```bash
+$ pipenv install gigue
 ```
 
 
@@ -42,27 +43,30 @@ The project consists of three main parts:
 > Note: a RISC-V compilation toolchain needs to be installed
 
 Once the binaries are generated in the `bin/` directory, they can be transformed to ELF files using:
-```
-riscv64-unknown-linux-gnu-objcopy --input-target=binary --output-target=elf32-little jit.bin jit.elf
-riscv64-unknown-linux-gnu-readelf -a jit.elf  
+```bash
+$ riscv64-unknown-linux-gnu-objcopy --input-target=binary --output-target=elf32-little jit.bin jit.elf
+$ riscv64-unknown-linux-gnu-readelf -a jit.elf  
 ```
 
 They can be disassembled with either of the following:
-```
-riscv64-unknown-linux-gnu-objdump -m riscv -b binary --adjust-vma=0x1000 -D jit.elf
-riscv64-unknown-linux-gnu-objdump -m riscv  --adjust-vma=0x1000 -D jit.elf
+```bash
+$ riscv64-unknown-linux-gnu-objdump -m riscv -b binary --adjust-vma=0x1000 -D jit.elf
+$ riscv64-unknown-linux-gnu-objdump -m riscv  --adjust-vma=0x1000 -D jit.elf
 ```
 
 
 ## Development
 
-To run all the tests run:
+The project was developed using `pipenv` and can be installed and run with:
+```bash
+$ pipenv install
+$ pipenv shell
+$ python -m gigue
+```
 
+To run all the tests on all environments or specific ones, run:
 ```
-tox
-```
-
-To run only one tox environment (e.g. `check`) run:
-```
-tox -e check
+$ tox           # all environments
+$ tox -e check  # run the linters and type checker (do it before pushing!)
+$ tox -e py39   # run one environment
 ```

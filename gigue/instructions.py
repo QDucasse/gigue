@@ -1,7 +1,7 @@
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.helpers import format_to
 from gigue.helpers import format_to_aligned
-from gigue.helpers import int_to_bytes
+from gigue.helpers import int_to_bytes32
 from gigue.helpers import to_unsigned
 
 
@@ -14,7 +14,7 @@ class Instruction:
         self.machine_instruction = 0
 
     def generate_bytes(self):
-        return int_to_bytes(self.generate())
+        return int_to_bytes32(self.generate())
 
     def generate(self):
         raise NotImplementedError("Please Implement this method")
@@ -217,6 +217,10 @@ class IInstruction(Instruction):
         return cls.i_instr("lw", rd, rs1, imm)
 
     @classmethod
+    def lwu(cls, rd, rs1, imm):
+        return cls.i_instr("lwu", rd, rs1, imm)
+
+    @classmethod
     def nop(cls):
         return cls.i_instr("addi", 0, 0, 0)
 
@@ -265,6 +269,10 @@ class IInstruction(Instruction):
     @classmethod
     def xori(cls, rd, rs1, imm):
         return cls.i_instr("xori", rd, rs1, imm)
+
+    @classmethod
+    def ebreak(cls):
+        return cls.i_instr("ebreak", 0, 0, 1)
 
 
 # TODO: Doc
