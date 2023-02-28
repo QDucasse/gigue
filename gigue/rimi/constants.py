@@ -1,7 +1,26 @@
 from gigue.constants import InstructionInfo
 
 RIMI_INSTRUCTIONS_INFO = {
-    # TODO: Change correct opcodes!
+    # Duplicated loads
+    "lb1": InstructionInfo("lb1", 0b0110011, 0b000, "I"),
+    "lbu1": InstructionInfo("lbu1", 0b0110011, 0b000, "I"),
+    "lh1": InstructionInfo("lh1", 0b0110011, 0b000, "I"),
+    "lhu1": InstructionInfo("lhu1", 0b0110011, 0b000, "I"),
     "lw1": InstructionInfo("lw1", 0b0110011, 0b000, "I"),
+    "lwu1": InstructionInfo("lwu1", 0b0110011, 0b000, "I"),
+    "ld1": InstructionInfo("ld1", 0b0110011, 0b000, "I"),
+    # Duplicated stores
+    "sb1": InstructionInfo("sb1", 0b0100011, 0b010, "S"),
+    "sbu1": InstructionInfo("sbu1", 0b0100011, 0b010, "S"),
+    "sh1": InstructionInfo("sh1", 0b0100011, 0b010, "S"),
+    "shu1": InstructionInfo("shu1", 0b0100011, 0b010, "S"),
     "sw1": InstructionInfo("sw1", 0b0100011, 0b010, "S"),
+    "swu1": InstructionInfo("swu1", 0b0100011, 0b010, "S"),
+    "sd1": InstructionInfo("sd1", 0b0100011, 0b010, "S"),
+    # Domain switching routines
+    "jalx": InstructionInfo("jalx", 0b1101111, 0b000, "J"),
+    "jalrx": InstructionInfo("jalrx", 0b1100111, 0b000, "I"),
+    # Shadow stack instructions
+    "sws": InstructionInfo("sws", 0b0100011, 0b010, "S"),
+    "lws": InstructionInfo("lws", 0b0110011, 0b000, "I"),
 }
