@@ -57,6 +57,9 @@ class Method:
         # a given method body size.
         return body_size // 3
 
+    def log_prefix(self):
+        return f"🍎 {hex(self.address)}:"
+
     def get_callees(self):
         return self.callees
 
@@ -70,6 +73,7 @@ class Method:
             self.instructions.append(self.builder.build_nop())
 
     def fill_with_instructions(self, registers, data_reg, data_size, weights):
+        logger.info(f"{self.log_prefix()} Filling method.")
         # Generate prologue
         prologue_instructions = self.builder.build_prologue(
             self.used_s_regs, self.local_vars_nb, not self.is_leaf
@@ -96,6 +100,7 @@ class Method:
         )
         self.instructions += epilogue_instructions
         self.epilogue_size = len(epilogue_instructions)
+        logger.info(f"{self.log_prefix()} Method filled.")
 
     def generate(self):
         self.machine_code = [
@@ -112,6 +117,7 @@ class Method:
         return self.builder.build_method_call(method_offset)
 
     def patch_calls(self, callees):
+        logger.info(f"{self.log_prefix()} Patching method calls.")
         # Check for recursive call
         if self in callees:
             raise RecursiveCallException(
@@ -152,10 +158,5 @@ class Method:
             call_instructions = self.builder.build_element_call(callee, offset)
             # Add the two instructions for the call
             self.instructions[ind : ind + len(call_instructions)] = call_instructions
-        # print(
-        #     "{} calls to patch with {} (addr {})".format(
-        #         self.call_number,
-        #         [hex(callee.address) for callee in callees],
-        #         self.address,
-        #     )
-        # )
+
+        logger.info(f"{self.log_prefix()} Method calls patched.")

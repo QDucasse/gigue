@@ -17,13 +17,14 @@ Why does this file exist, and why not put this in __main__?
 import argparse
 import logging
 import os
+import random
 import sys
 
 from gigue.constants import BIN_DIR
 from gigue.constants import CALLER_SAVED_REG
 from gigue.exceptions import GeneratorException
 from gigue.generator import Generator
-from gigue.helpers import ObjDict
+from gigue.helpers import bytes_to_int
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,14 @@ class Parser(argparse.ArgumentParser):
         self.add_parse_arguments()
 
     def add_parse_arguments(self):
+        # Seed
+        self.add_argument(
+            "-S",
+            "--seed",
+            type=int,
+            default=bytes_to_int(os.urandom(16)),
+            help="Start address of the interpretation loop",
+        )
         # Addresses
         self.add_argument(
             "-I",
@@ -85,7 +94,7 @@ class Parser(argparse.ArgumentParser):
         )
         # Method info
         self.add_argument(
-            "-S",
+            "-M",
             "--metmaxsize",
             type=int,
             default=50,
@@ -149,11 +158,12 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     parser = Parser()
-    parsed_args = parser.parse(argv)
-    args = ObjDict(parsed_args.__dict__)
+    args = parser.parse(argv)
 
     if not os.path.exists(BIN_DIR):
         os.makedirs(BIN_DIR)
+
+    logger.info("🌳 Instanciating Generator.")
 
     try:
         gen = Generator(
@@ -184,6 +194,12 @@ def main(argv=None):
     except GeneratorException as err:
         logging.exception(err)
         raise
+
+    random.seed(args.seed)
+    logger.info(
+        "🌱 Setting up seed as"
+        f" {args.seed if isinstance(args.seed, int) else bytes_to_int(args.seed)}"
+    )
 
     gen.main()
 

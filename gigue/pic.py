@@ -44,6 +44,9 @@ class PIC:
         self.machine_code: List[int] = []
         self.bytes: bytes = b""
 
+    def log_prefix(self):
+        return f"🍏 {hex(self.address)}:"
+
     def get_callees(self):
         return list(set(flatten_list([method.callees for method in self.methods])))
 
@@ -74,6 +77,7 @@ class PIC:
         return self.builder.build_pic_call(method_offset - 4, hit_case)
 
     def add_case_methods(self, *args, **kwargs):
+        logger.info(f"{self.log_prefix()} Adding case methods.")
         method_address = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
             body_size = gaussian_between(3, self.method_max_size)
@@ -102,6 +106,7 @@ class PIC:
             except EmptySectionException as err:
                 logger.exception(err)
                 raise
+        logger.info(f"{self.log_prefix()} Case methods added.")
 
     def add_switch_instructions(self):
         # WARNING!!!! hit case starts at 1
@@ -125,10 +130,12 @@ class PIC:
         self.switch_instructions.append([self.builder.build_ret()])
 
     def fill_with_instructions(self, registers, data_reg, data_size, weights):
+        logger.info(f"{self.log_prefix()} Filling PIC (case methods and switch).")
         self.add_case_methods(
             registers=registers, data_reg=data_reg, data_size=data_size, weights=weights
         )
         self.add_switch_instructions()
+        logger.info(f"{self.log_prefix()} PIC filled.")
 
     def generate(self):
         for case in self.switch_instructions:

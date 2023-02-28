@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 from capstone import CS_ARCH_RISCV
 from capstone import CS_MODE_RISCV64
@@ -115,3 +117,14 @@ def instrument_stack(uc_emul, start_address):
         sp = uc_emul.reg_read(UC_RISCV_REG_SP)
         print(f"Exception !!! PC:{hex(pc)}, RA:{hex(ra)}, SP:{hex(sp)}")
         assert False
+
+
+# =================================
+#           Loggers
+# =================================
+
+
+def pytest_configure():
+    """Disable the logs when testing"""
+    logger = logging.getLogger("gigue")
+    logger.setLevel(logging.ERROR)

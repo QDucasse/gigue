@@ -130,6 +130,12 @@ class Generator:
         self.data_generation_strategy: str = data_generation_strategy
         self.data_bin_file: str = output_data_bin_file
 
+    def log_jit_prefix(self):
+        return "🧺"
+
+    def log_int_prefix(self):
+        return "🥧"
+
     #  JIT element generation
     # \______________________
 
@@ -153,8 +159,8 @@ class Generator:
                 call_depth=call_depth,
             )
             logger.info(
-                f"{hex(address)}: Method added with size ({body_size}), call nb"
-                f" ({call_nb}) and call depth ({call_depth})"
+                f"{self.log_jit_prefix()} {method.log_prefix()} Method added with size"
+                f" ({body_size}), call nb ({call_nb}) and call depth ({call_depth})"
             )
         except CallNumberException as err:
             logger.exception(err)
@@ -173,7 +179,10 @@ class Generator:
                 call_number=0,
                 call_depth=0,
             )
-            logger.info(f"{hex(address)}: Leaf method added with size {body_size}")
+            logger.info(
+                f"{self.log_jit_prefix()} {method.log_prefix()} Leaf method added with"
+                f" size {body_size}"
+            )
         except CallNumberException as err:
             logger.exception(err)
             raise
@@ -193,7 +202,10 @@ class Generator:
             hit_case_reg=self.pics_hit_case_reg,
             cmp_reg=self.pics_cmp_reg,
         )
-        logger.info(f"{hex(address)}: PIC added with {cases_nb} cases")
+        logger.info(
+            f"{self.log_jit_prefix()} {pic.log_prefix()} PIC added with"
+            f" {cases_nb} cases"
+        )
         self.jit_elements.append(pic)
         for method in pic.methods:
             self.call_depth_dict[method.call_depth].append(method)
@@ -215,7 +227,6 @@ class Generator:
             data_size=self.data_size,
             weights=self.weights,
         )
-        logger.info(f"{hex(leaf_method.address)}: Leaf method filled.")
         try:
             current_address += leaf_method.total_size() * 4
             current_element_count += 1
@@ -234,9 +245,6 @@ class Generator:
                 data_reg=self.data_reg,
                 data_size=self.data_size,
                 weights=self.weights,
-            )
-            logger.info(
-                f"{hex(current_element.address)}: Element '{code_type}' filled."
             )
             try:
                 current_address += current_element.total_size() * 4
@@ -261,7 +269,9 @@ class Generator:
         for elt in self.jit_elements:
             # TODO: make pic method to patch elements
             if isinstance(elt, PIC):
-                logger.info(f"{hex(elt.address)}: Patching PIC calls.")
+                logger.info(
+                    f"{self.log_jit_prefix()} {elt.log_prefix()} Patching PIC calls."
+                )
                 for method in elt.methods:
                     if method.call_depth == 0:
                         continue
@@ -279,7 +289,10 @@ class Generator:
                 if elt.call_depth == 0:
                     continue
                 try:
-                    logger.info(f"{hex(elt.address)}: Patching method calls.")
+                    logger.info(
+                        f"{self.log_jit_prefix()} {elt.log_prefix()} Patching method"
+                        " calls."
+                    )
                     elt.patch_calls(
                         self.extract_callees(elt.call_depth, elt.call_number)
                     )
@@ -314,8 +327,8 @@ class Generator:
             self.interpreter_instructions += call_instructions
             current_address += len(call_instructions) * 4
             logger.info(
-                f"{hex(current_address)}: Adding call to JIT element at"
-                f" {hex(element.address)}."
+                f"{self.log_int_prefix()} {hex(current_address)}: Adding call to JIT"
+                f" element at {hex(element.address)}."
             )
         epilogue_instructions = self.builder.build_epilogue(10, 0, True)
         # Update sizes
