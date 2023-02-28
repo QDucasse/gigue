@@ -1,13 +1,18 @@
+import logging
 import random
 from typing import List
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CMP_REG
 from gigue.constants import HIT_CASE_REG
+from gigue.exceptions import CallNumberException
+from gigue.exceptions import EmptySectionException
 from gigue.helpers import flatten_list
 from gigue.helpers import gaussian_between
 from gigue.instructions import Instruction
 from gigue.method import Method
+
+logger = logging.getLogger(__name__)
 
 
 class PIC:
@@ -54,9 +59,14 @@ class PIC:
         return 3 * self.case_number + 1
 
     def total_size(self):
-        return self.get_switch_size() + sum(
-            [method.total_size() for method in self.methods]
-        )
+        try:
+            total_size = self.get_switch_size() + sum(
+                [method.total_size() for method in self.methods]
+            )
+        except EmptySectionException as err:
+            logger.exception(err)
+            raise
+        return total_size
 
     def accept_build_call(self, method_offset):
         hit_case = random.randint(1, self.case_number)
@@ -76,15 +86,22 @@ class PIC:
                     -self.method_max_call_depth, self.method_max_call_depth
                 )
             )
-            case_method = Method(
-                address=method_address,
-                body_size=body_size,
-                call_number=call_nb,
-                call_depth=call_depth,
-            )
-            case_method.fill_with_instructions(*args, **kwargs)
-            self.methods.append(case_method)
-            method_address += case_method.total_size() * 4
+            try:
+                case_method = Method(
+                    address=method_address,
+                    body_size=body_size,
+                    call_number=call_nb,
+                    call_depth=call_depth,
+                )
+                case_method.fill_with_instructions(*args, **kwargs)
+                self.methods.append(case_method)
+                method_address += case_method.total_size() * 4
+            except CallNumberException as err:
+                logger.exception(err)
+                raise
+            except EmptySectionException as err:
+                logger.exception(err)
+                raise
 
     def add_switch_instructions(self):
         # WARNING!!!! hit case starts at 1

@@ -12,13 +12,6 @@ from gigue.instructions import Instruction
 logger = logging.getLogger(__name__)
 
 
-def raise_incorrect_callee_number_error(method, callees):
-    raise ValueError(
-        f"ValueError: incorrect number of callees in method: got {len(callees)},"
-        f" expecting {method.call_nb}"
-    )
-
-
 class Method:
     def __init__(
         self,
@@ -126,12 +119,15 @@ class Method:
             )
         # Check correct length
         if len(callees) != self.call_number:
-            raise_incorrect_callee_number_error(self, callees)
+            raise CallNumberException(
+                f"Incorrect number of callees in method: got {len(callees)},"
+                f" expecting {self.call_nb}"
+            )
         # Check for mutual call
         for callee in callees:
             if self in callee.get_callees():
                 raise MutualCallException(
-                    f"ValueError: mutual call between method at {self.address} and"
+                    f"Mutual call between method at {self.address} and"
                     f" callee at {callee.address}"
                 )
 

@@ -14,6 +14,10 @@ from gigue.constants import DATA_SIZE
 from gigue.constants import HIT_CASE_REG
 from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.dataminer import Dataminer
+from gigue.exceptions import CallNumberException
+from gigue.exceptions import EmptySectionException
+from gigue.exceptions import MutualCallException
+from gigue.exceptions import RecursiveCallException
 from gigue.exceptions import WrongAddressException
 from gigue.helpers import align
 from gigue.helpers import flatten_list
@@ -141,12 +145,20 @@ class Generator:
             if call_nb == 0
             else abs(gaussian_between(-self.max_call_depth, self.max_call_depth))
         )
-        method = Method(
-            address=address,
-            body_size=body_size,
-            call_number=call_nb,
-            call_depth=call_depth,
-        )
+        try:
+            method = Method(
+                address=address,
+                body_size=body_size,
+                call_number=call_nb,
+                call_depth=call_depth,
+            )
+            logger.info(
+                f"{hex(address)}: Method added with size ({body_size}), call nb"
+                f" ({call_nb}) and call depth ({call_depth})"
+            )
+        except CallNumberException as err:
+            logger.exception(err)
+            raise
         self.jit_elements.append(method)
         self.call_depth_dict[call_depth].append(method)
         self.method_count += 1
@@ -154,12 +166,17 @@ class Generator:
 
     def add_leaf_method(self, address):
         body_size = gaussian_between(3, self.method_max_size)
-        method = Method(
-            address=address,
-            body_size=body_size,
-            call_number=0,
-            call_depth=0,
-        )
+        try:
+            method = Method(
+                address=address,
+                body_size=body_size,
+                call_number=0,
+                call_depth=0,
+            )
+            logger.info(f"{hex(address)}: Leaf method added with size {body_size}")
+        except CallNumberException as err:
+            logger.exception(err)
+            raise
         self.jit_elements.append(method)
         self.call_depth_dict[0].append(method)
         self.method_count += 1
@@ -176,6 +193,7 @@ class Generator:
             hit_case_reg=self.pics_hit_case_reg,
             cmp_reg=self.pics_cmp_reg,
         )
+        logger.info(f"{hex(address)}: PIC added with {cases_nb} cases")
         self.jit_elements.append(pic)
         for method in pic.methods:
             self.call_depth_dict[method.call_depth].append(method)
@@ -186,6 +204,7 @@ class Generator:
     # \________________________
 
     def fill_jit_code(self):
+        logger.info("Phase 1: Filling JIT code")
         current_address = self.jit_start_address
         current_element_count = 0
         # Add a first leaf method
@@ -196,8 +215,13 @@ class Generator:
             data_size=self.data_size,
             weights=self.weights,
         )
-        current_address += leaf_method.total_size() * 4
-        current_element_count += 1
+        logger.info(f"{hex(leaf_method.address)}: Leaf method filled.")
+        try:
+            current_address += leaf_method.total_size() * 4
+            current_element_count += 1
+        except EmptySectionException as err:
+            logger.exception(err)
+            raise
         # Add other methods
         while current_element_count < self.jit_elements_nb:
             code_type = random.choices(
@@ -211,8 +235,16 @@ class Generator:
                 data_size=self.data_size,
                 weights=self.weights,
             )
-            current_address += current_element.total_size() * 4
-            current_element_count += 1
+            logger.info(
+                f"{hex(current_element.address)}: Element '{code_type}' filled."
+            )
+            try:
+                current_address += current_element.total_size() * 4
+                current_element_count += 1
+            except EmptySectionException as err:
+                logger.exception(err)
+                raise
+        logger.info("Phase 1: JIT code elements filled!")
 
     def extract_callees(self, call_depth, nb):
         possible_callees = flatten_list(
@@ -225,23 +257,48 @@ class Generator:
         return random.choices(possible_callees, k=nb)
 
     def patch_jit_calls(self):
+        logger.info("Phase 2: Patching calls")
         for elt in self.jit_elements:
+            # TODO: make pic method to patch elements
             if isinstance(elt, PIC):
+                logger.info(f"{hex(elt.address)}: Patching PIC calls.")
                 for method in elt.methods:
                     if method.call_depth == 0:
                         continue
-                    method.patch_calls(
-                        self.extract_callees(method.call_depth, method.call_number)
-                    )
+                    try:
+                        method.patch_calls(
+                            self.extract_callees(method.call_depth, method.call_number)
+                        )
+                    except RecursiveCallException as err:
+                        logger.exception(err)
+                        raise
+                    except MutualCallException as err:
+                        logger.exception(err)
+                        raise
             elif isinstance(elt, Method):
                 if elt.call_depth == 0:
                     continue
-                elt.patch_calls(self.extract_callees(elt.call_depth, elt.call_number))
+                try:
+                    logger.info(f"{hex(elt.address)}: Patching method calls.")
+                    elt.patch_calls(
+                        self.extract_callees(elt.call_depth, elt.call_number)
+                    )
+                except RecursiveCallException as err:
+                    logger.exception(err)
+                    raise
+                except MutualCallException as err:
+                    logger.exception(err)
+                    raise
+                except CallNumberException as err:
+                    logger.exception(err)
+                    raise
+        logger.info("Phase 2: Calls patched!")
 
     #  Interpretation loop filling
     # \___________________________
 
     def fill_interpretation_loop(self):
+        logger.info("Phase 3: Filling interpretation loop")
         prologue_instructions = self.builder.build_prologue(10, 0, True)
         self.interpreter_instructions += prologue_instructions
         current_address = (
@@ -256,11 +313,16 @@ class Generator:
             )
             self.interpreter_instructions += call_instructions
             current_address += len(call_instructions) * 4
+            logger.info(
+                f"{hex(current_address)}: Adding call to JIT element at"
+                f" {hex(element.address)}."
+            )
         epilogue_instructions = self.builder.build_epilogue(10, 0, True)
         # Update sizes
         self.interpreter_prologue_size = len(prologue_instructions)
         self.interpreter_epilogue_size = len(epilogue_instructions)
         self.interpreter_instructions += epilogue_instructions
+        logger.info("Phase 3: Interpretation loop filled!")
 
     #  Machine code generation
     # \_______________________
