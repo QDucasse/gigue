@@ -67,36 +67,36 @@ class RIMISInstruction(SInstruction):
         )
 
     @classmethod
-    def sb1(cls, rd, rs1, imm):
-        return cls.s_instr("sb1", rd, rs1, imm)
+    def sb1(cls, rs1, rs2, imm):
+        return cls.s_instr("sb1", rs1, rs2, imm)
 
     @classmethod
-    def sbu1(cls, rd, rs1, imm):
-        return cls.s_instr("sbu1", rd, rs1, imm)
+    def sbu1(cls, rs1, rs2, imm):
+        return cls.s_instr("sbu1", rs1, rs2, imm)
 
     @classmethod
-    def sh1(cls, rd, rs1, imm):
-        return cls.s_instr("sh1", rd, rs1, imm)
+    def sh1(cls, rs1, rs2, imm):
+        return cls.s_instr("sh1", rs1, rs2, imm)
 
     @classmethod
-    def shu1(cls, rd, rs1, imm):
-        return cls.s_instr("shu1", rd, rs1, imm)
+    def shu1(cls, rs1, rs2, imm):
+        return cls.s_instr("shu1", rs1, rs2, imm)
 
     @classmethod
-    def sw1(cls, rd, rs1, imm):
-        return cls.s_instr("sw1", rd, rs1, imm)
+    def sw1(cls, rs1, rs2, imm):
+        return cls.s_instr("sw1", rs1, rs2, imm)
 
     @classmethod
-    def swu1(cls, rd, rs1, imm):
-        return cls.s_instr("swu1", rd, rs1, imm)
+    def swu1(cls, rs1, rs2, imm):
+        return cls.s_instr("swu1", rs1, rs2, imm)
 
     @classmethod
-    def sd1(cls, rd, rs1, imm):
-        return cls.s_instr("sd1", rd, rs1, imm)
+    def sd1(cls, rs1, rs2, imm):
+        return cls.s_instr("sd1", rs1, rs2, imm)
 
     @classmethod
-    def sws(cls, rd, rs1, imm):
-        return cls.s_instr("sws", rd, rs1, imm)
+    def sws(cls, rs1, rs2, imm):
+        return cls.s_instr("sws", rs1, rs2, imm)
 
 
 class RIMIJInstruction(JInstruction):
