@@ -1,5 +1,8 @@
 from gigue.constants import InstructionInfo
 
+RIMI_SHADOW_STACK_REG = 31
+
+
 RIMI_INSTRUCTIONS_INFO = {
     # Duplicated loads
     "lb1": InstructionInfo("lb1", 0b0000011, 0b000, "I"),

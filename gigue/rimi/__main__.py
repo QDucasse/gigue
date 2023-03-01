@@ -2,10 +2,6 @@ from gigue.instructions import IInstruction
 from gigue.instructions import SInstruction
 from gigue.rimi.instructions import RIMIIInstruction
 from gigue.rimi.instructions import RIMISInstruction
-from capstone import CS_ARCH_RISCV
-from capstone import CS_MODE_RISCV64
-from capstone import Cs
-
 
 if __name__ == "__main__":
     # Example with base address for domain 0 in t0 (x5), domain 1 in t1 (x6)
@@ -31,6 +27,10 @@ if __name__ == "__main__":
         file.write(bytes)
 
     # Disassembly
-    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
-    for i in cap_disasm.disasm(bytes, 0x1000):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    # from capstone import CS_ARCH_RISCV
+    # from capstone import CS_MODE_RISCV64
+    # from capstone import Cs
+
+    # cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+    # for i in cap_disasm.disasm(bytes, 0x1000):
+    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
