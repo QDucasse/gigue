@@ -1,5 +1,8 @@
+from typing import Dict
+from typing import Optional
+
 # [R, I, U, J, B, stores, loads]
-INSTRUCTION_WEIGHTS = [25, 30, 10, 5, 10, 19, 10]
+INSTRUCTION_WEIGHTS = [25, 30, 10, 5, 10, 10, 10]
 
 # Register info
 CALLER_SAVED_REG = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31]
@@ -23,13 +26,44 @@ DATA_SIZE = 0x100
 
 class InstructionInfo:
     def __init__(
-        self, name: str, opcode7: int, opcode3: int, instr_type: str, top7: int = 0
+        self,
+        name: str,
+        opcode7: int,
+        opcode3: Optional[int],
+        instr_type: str,
+        top7: Optional[int] = 0,
     ):
         self.name: str = name
         self.opcode7: int = opcode7
-        self.opcode3: int = opcode3
-        self.top7: int = top7
+        self.opcode3: Optional[int] = opcode3
+        self.top7: Optional[int] = top7
         self.instr_type: str = instr_type
+
+
+class CustomInstructionInfo(InstructionInfo):
+    def __init__(
+        self,
+        name: str,
+        custom_nb: int,
+        xd: int = 0,
+        xs1: int = 0,
+        xs2: int = 0,
+        top7: int = 0,
+    ):
+        custom_instr_info = INSTRUCTIONS_INFO["custom-" + str(custom_nb)]
+        opcode7 = custom_instr_info.opcode7
+        opcode3 = xd << 2 + xs1 << 1 + xs2
+        self.xd = xd
+        self.xs1 = xs1
+        self.xs2 = xs2
+        instr_type = custom_instr_info.instr_type
+        super().__init__(
+            name=name,
+            opcode7=opcode7,
+            opcode3=opcode3,
+            instr_type=instr_type,
+            top7=top7,
+        )
 
 
 def find_instr_for_opcode(opcode):
@@ -38,7 +72,7 @@ def find_instr_for_opcode(opcode):
             return info
 
 
-INSTRUCTIONS_INFO = {
+INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     # Adds
     "add": InstructionInfo("add", 0b0110011, 0b000, "R"),
     "addi": InstructionInfo("addi", 0b0010011, 0b000, "I"),
@@ -113,6 +147,11 @@ INSTRUCTIONS_INFO = {
     "xori": InstructionInfo("xori", 0b0010011, 0b100, "I"),
     # Breakpoint
     "ebreak": InstructionInfo("ebreak", 0b1110011, 0b000, "I"),
+    # Custom
+    "custom-0": InstructionInfo("custom-0", 0b0001011, None, "R"),
+    "custom-1": InstructionInfo("custom-1", 0b0101011, None, "R"),
+    "custom-2": InstructionInfo("custom-2", 0b1011011, None, "R"),
+    "custom-3": InstructionInfo("custom-3", 0b1111011, None, "R"),
 }
 
 

@@ -1,8 +1,14 @@
+import logging
+from typing import Dict
+
 from gigue.constants import INSTRUCTIONS_INFO
+from gigue.constants import CustomInstructionInfo
 from gigue.helpers import format_to
 from gigue.helpers import format_to_aligned
 from gigue.helpers import int_to_bytes32
 from gigue.helpers import to_unsigned
+
+logger = logging.getLogger(__name__)
 
 
 # TODO: Doc
@@ -44,13 +50,13 @@ class RInstruction(Instruction):
     @classmethod
     def r_instr(cls, name, rd, rs1, rs2):
         return cls(
-            name,
-            INSTRUCTIONS_INFO[name].opcode7,
-            INSTRUCTIONS_INFO[name].opcode3,
-            rd,
-            rs1,
-            rs2,
-            INSTRUCTIONS_INFO[name].top7,
+            name=name,
+            opcode7=INSTRUCTIONS_INFO[name].opcode7,
+            opcode3=INSTRUCTIONS_INFO[name].opcode3,
+            rd=rd,
+            rs1=rs1,
+            rs2=rs2,
+            top7=INSTRUCTIONS_INFO[name].top7,
         )
 
     # TODO: Autogenerate?
@@ -135,6 +141,41 @@ class RInstruction(Instruction):
         return cls.r_instr("xor", rd, rs1, rs2)
 
 
+class CustomInstruction(RInstruction):
+    # The instructions info are not known this time and should be provided
+    CUSTOM_INSTRUCTIONS_INFO: Dict[str, CustomInstructionInfo] = {}
+
+    def __init__(self, name, xd, xs1, xs2, *args, **kwargs):
+        self.xd = format_to(xd, 1)
+        self.xs1 = format_to(xs1, 1)
+        self.xs2 = format_to(xs2, 1)
+        opcode3 = format_to(self.xd << 2 + self.xs1 << 1 + self.xs2, 3)
+        super().__init__(name=name, opcode3=opcode3, *args, **kwargs)
+
+    @classmethod
+    def custom_instr(cls, name, rd, rs1, rs2):
+        try:
+            custom_instr_info = cls.CUSTOM_INSTRUCTIONS_INFO[name]
+        except KeyError as err:
+            logger.exception(err)
+            logger.exception(
+                "The dictionary with custom info is empty, are you sure it is provided"
+                " in the subclass?"
+            )
+            raise
+        return cls(
+            xd=custom_instr_info.xd,
+            xs1=custom_instr_info.xs1,
+            xs2=custom_instr_info.xs2,
+            name=name,
+            opcode7=custom_instr_info.opcode7,
+            rd=rd,
+            rs1=rs1,
+            rs2=rs2,
+            top7=custom_instr_info.top7,
+        )
+
+
 # TODO: Doc
 class IInstruction(Instruction):
     def __init__(self, name, opcode7, opcode3, rd, rs1, imm, top7=0):
@@ -156,13 +197,13 @@ class IInstruction(Instruction):
     @classmethod
     def i_instr(cls, name, rd, rs1, imm):
         return cls(
-            name,
-            INSTRUCTIONS_INFO[name].opcode7,
-            INSTRUCTIONS_INFO[name].opcode3,
-            rd,
-            rs1,
-            imm,
-            INSTRUCTIONS_INFO[name].top7,
+            name=name,
+            opcode7=INSTRUCTIONS_INFO[name].opcode7,
+            opcode3=INSTRUCTIONS_INFO[name].opcode3,
+            rd=rd,
+            rs1=rs1,
+            imm=imm,
+            top7=INSTRUCTIONS_INFO[name].top7,
         )
 
     # TODO: Autogenerate
@@ -290,7 +331,7 @@ class UInstruction(Instruction):
 
     @classmethod
     def u_instr(cls, name, rd, imm):
-        return cls(name, INSTRUCTIONS_INFO[name].opcode7, rd, imm)
+        return cls(name=name, opcode7=INSTRUCTIONS_INFO[name].opcode7, rd=rd, imm=imm)
 
     # TODO: Autogenerate
     @classmethod
