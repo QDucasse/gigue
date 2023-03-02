@@ -256,7 +256,7 @@ class InstructionBuilder:
         return instructions
 
     @staticmethod
-    def build_epilogue(used_s_regs, local_var_nb, contains_call):
+    def build_epilogue(used_s_regs, local_var_nb, contains_call, *args, **kwargs):
         # An example epilogue would be:
         # ld s0 0(sp)
         # ld s1 4(sp)
