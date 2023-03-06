@@ -80,7 +80,9 @@ class Method:
         logger.info(f"{self.log_prefix()} Filling method.")
         # Generate prologue
         prologue_instructions = self.builder.build_prologue(
-            self.used_s_regs, self.local_vars_nb, not self.is_leaf
+            used_s_regs=self.used_s_regs,
+            local_var_nb=self.local_vars_nb,
+            contains_call=not self.is_leaf,
         )
         self.instructions += prologue_instructions
         self.prologue_size = len(prologue_instructions)
