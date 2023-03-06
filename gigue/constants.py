@@ -52,7 +52,7 @@ class CustomInstructionInfo(InstructionInfo):
     ):
         custom_instr_info = INSTRUCTIONS_INFO["custom-" + str(custom_nb)]
         opcode7 = custom_instr_info.opcode7
-        opcode3 = xd << 2 + xs1 << 1 + xs2
+        opcode3 = (xd << 2) + (xs1 << 1) + xs2
         self.xd = xd
         self.xs1 = xs1
         self.xs2 = xs2

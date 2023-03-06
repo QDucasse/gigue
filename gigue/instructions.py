@@ -149,7 +149,7 @@ class CustomInstruction(RInstruction):
         self.xd = format_to(xd, 1)
         self.xs1 = format_to(xs1, 1)
         self.xs2 = format_to(xs2, 1)
-        opcode3 = format_to(self.xd << 2 + self.xs1 << 1 + self.xs2, 3)
+        opcode3 = format_to((self.xd << 2) + (self.xs1 << 1) + self.xs2, 3)
         super().__init__(name=name, opcode3=opcode3, *args, **kwargs)
 
     @classmethod
