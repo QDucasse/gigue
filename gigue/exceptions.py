@@ -91,3 +91,24 @@ class UnknownInstructionException(DisassemblerException):
     """
 
     pass
+
+
+# =============================
+#      Builder exceptions
+# =============================
+
+
+class BuilderException(Exception):
+    """
+    Raise a builder exception. Easier to catch!
+    """
+
+    pass
+
+
+class WrongOffsetException(Exception):
+    """
+    Offset is incorrect.
+    """
+
+    pass

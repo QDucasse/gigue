@@ -4,7 +4,11 @@ from typing import List
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CMP_REG, HIT_CASE_REG
-from gigue.exceptions import CallNumberException, EmptySectionException
+from gigue.exceptions import (
+    BuilderException,
+    CallNumberException,
+    EmptySectionException,
+)
 from gigue.helpers import flatten_list, gaussian_between
 from gigue.instructions import Instruction
 from gigue.method import Method
@@ -37,6 +41,7 @@ class PIC:
         self.builder: InstructionBuilder = InstructionBuilder()
         self.switch_instructions: List[Instruction] = []
         self.methods: List[Method] = []
+        self.callers: List[Method] = []
         self.instructions: List[Instruction] = []
         self.machine_code: List[int] = []
         self.bytes: bytes = b""
@@ -70,8 +75,13 @@ class PIC:
 
     def accept_build_call(self, method_offset):
         hit_case = random.randint(1, self.case_number)
-        # The -4 comes from the addi that has to be mitigated
-        return self.builder.build_pic_call(method_offset - 4, hit_case)
+        try:
+            # The -4 comes from the addi that has to be mitigated
+            instrs = self.builder.build_pic_call(method_offset - 4, hit_case)
+        except BuilderException as err:
+            logger.exception(err)
+            raise
+        return instrs
 
     def add_case_methods(self, *args, **kwargs):
         logger.info(f"{self.log_prefix()} Adding case methods.")
