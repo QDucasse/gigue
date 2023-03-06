@@ -29,25 +29,20 @@ class Disassembler:
     # ===================================
 
     def get_instruction_type(self, instruction):
-        return self.find_instr_for_opcode(instruction).type
+        return self.get_instruction_info(instruction).type
 
     def get_instruction_name(self, instruction):
         return self.get_instruction_info(instruction).name
 
     def get_instruction_info(self, instruction):
         for info in self.instructions_info.values():
-            opcode7 = self.extract_opcode7(instruction)
-            opcode3 = self.extract_opcode3(instruction)
-            top7 = self.extract_top7(instruction)
-            if (
-                opcode7 == info.opcode7
-                and opcode3 == info.opcode3
-                and top7 == info.top7
-            ):
+            if (info.cmp_mask & instruction) == info.cmp_val:
                 return info
         raise UnknownInstructionException(
             f"No match for instruction {hex(instruction)}. Extracted opcode7"
-            f" ({hex(opcode7)}), opcode3 ({opcode3}) and top7 ({top7})."
+            f" ({hex(self.extract_opcode7(instruction))}), opcode3"
+            f" ({self.extract_opcode3(instruction)}) and top7"
+            f" ({self.extract_top7(instruction)})."
         )
 
     # ===================================

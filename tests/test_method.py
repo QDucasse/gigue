@@ -140,7 +140,6 @@ def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
     )
     method.patch_calls([callee1, callee2, callee3])
     # Capstone disassembly
-    # bytes_method = method.generate_bytes()
     # cap_disasm = cap_disasm_setup
     # for i in cap_disasm.disasm(method.generate_bytes(), ADDRESS):
     #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
