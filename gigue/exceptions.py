@@ -70,3 +70,24 @@ class RecursiveCallException(MethodException):
     """
 
     pass
+
+
+# =============================
+#    Disassembler exceptions
+# =============================
+
+
+class DisassemblerException(Exception):
+    """
+    Raise a disassembler exception. Easier to catch!
+    """
+
+    pass
+
+
+class UnknownInstructionException(DisassemblerException):
+    """
+    Raised when no match is detected while disassembling an instruction.
+    """
+
+    pass
