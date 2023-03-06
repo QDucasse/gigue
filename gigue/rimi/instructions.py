@@ -1,6 +1,4 @@
-from gigue.instructions import IInstruction
-from gigue.instructions import JInstruction
-from gigue.instructions import SInstruction
+from gigue.instructions import IInstruction, JInstruction, SInstruction
 from gigue.rimi.constants import RIMI_INSTRUCTIONS_INFO
 
 

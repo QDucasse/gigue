@@ -6,28 +6,79 @@
 import random
 
 from gigue.builder import InstructionBuilder
-from gigue.constants import CALLEE_SAVED_REG
-from gigue.constants import HIT_CASE_REG
-from gigue.constants import RA
-from gigue.constants import SP
+from gigue.constants import HIT_CASE_REG, RA
 from gigue.helpers import align
-from gigue.instructions import IInstruction
-from gigue.instructions import UInstruction
+from gigue.instructions import IInstruction, UInstruction
 from gigue.rimi.constants import RIMI_SHADOW_STACK_REG
-from gigue.rimi.instructions import RIMIIInstruction
-from gigue.rimi.instructions import RIMIJInstruction
-from gigue.rimi.instructions import RIMISInstruction
+from gigue.rimi.instructions import RIMIIInstruction, RIMIJInstruction, RIMISInstruction
 
 
-class RIMIInstructionBuilder(InstructionBuilder):
+class RIMIShadowStackInstructionBuilder(InstructionBuilder):
+    @staticmethod
+    def build_prologue(contains_call, *args, **kwargs):
+        # An example prologue would be:
+        # Regular call stack!
+        # addi sp sp -12 (+local vars)
+        # sd s0 0(sp) ...
+        # sd s1 4(sp) ...
+        # sd s2 8(sp) ...
+        # REMOVED -- sd ra 12(sp) --
+        # Shadow stack!
+        # addi ssreg ssreg -4
+        # sws  ra, 0(ssreg)
+        instructions = InstructionBuilder.build_prologue(contains_call, *args, **kwargs)
+        # Shadow stack
+        instructions.append(
+            IInstruction.addi(
+                rd=RIMI_SHADOW_STACK_REG, rs1=RIMI_SHADOW_STACK_REG, imm=-4
+            )
+        )
+        sws_instr = RIMISInstruction.sws(rs1=RIMI_SHADOW_STACK_REG, rs2=RA, imm=0)
+        if contains_call:
+            # Overwrite the ra store
+            instructions[-1] = sws_instr
+        else:
+            # Otherwise simply add it!
+            instructions.append(sws_instr)
+        return instructions
+
+    @staticmethod
+    def build_epilogue(contains_call, *args, **kwargs):
+        # An example epilogue would be:
+        # Regular call stack!
+        # ld s0 0(sp)
+        # ld s1 4(sp
+        # ld s2 8(sp
+        # REMOVED -- ld ra 12(sp) --
+        # lws ra 0(sp)
+        # addi ssreg ssreg 4
+        # addi sp sp 12 (+local vars)
+        # ret
+        instructions = InstructionBuilder.build_epilogue(contains_call, *args, **kwargs)
+        # Shadow stack load ()
+        lws_instr = RIMIIInstruction.lws(rd=RA, rs1=RIMI_SHADOW_STACK_REG, imm=0)
+        if contains_call:
+            # Overwrite the ra load
+            instructions[-2] = lws_instr
+        else:
+            # Otherwise insert it
+            instructions[-2:-2] = lws_instr
+
+        instructions[-2:-2] = IInstruction.addi(
+            rd=RIMI_SHADOW_STACK_REG, rs1=RIMI_SHADOW_STACK_REG, imm=4
+        )
+        return instructions
+
+
+class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
     RIMI_S_INSTRUCTIONS = ["sb1", "sh1", "sw1", "sd1"]
     RIMI_I_INSTRUCTIONS_LOAD = ["lb1", "lbu1", "lh1", "lhu1", "lw1", "lwu1", "ld1"]
 
     # JIT Code modifications
     # 1. New instructions for stores/loads
     # 2. Domain change routines in calls/returns
-    # 3. Shadow stack instructions
-    # \______________________________________________
+    # 3. Shadow stack instructions - derived from the superclass
+    # \_________________________________________________________
 
     # 1. Duplicated instructions
     # \_________________________
@@ -64,7 +115,8 @@ class RIMIInstructionBuilder(InstructionBuilder):
         # if offset < 0x8:
         #     raise Exception
         offset_low = offset & 0xFFF
-        # The right part handles the low offset sign extension (that should be mitigated)
+        # The right part handles the low offset sign
+        # extension (that should be mitigated)
         offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
         # print("offset: {}/{} -> olow: {} + ohigh: {}".format(
         #     hex(offset),
@@ -82,7 +134,8 @@ class RIMIInstructionBuilder(InstructionBuilder):
         if offset < 0x8:
             raise Exception
         offset_low = offset & 0xFFF
-        # The right part handles the low offset sign extension (that should be mitigated)
+        # The right part handles the low offset sign
+        # extension (that should be mitigated)
         offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
         # print("offset: {}/{} -> olow: {} + ohigh: {}".format(
         #     hex(offset),
@@ -102,66 +155,5 @@ class RIMIInstructionBuilder(InstructionBuilder):
     # \___________________________
 
     # TODO: Choose shadow stack implementation:
-    # 1. unique call stack, the shadow stack itself
+    # 1. unique call stack, the shadow stack itself <--
     # 2. duplicated call stack, needs a check
-
-    @staticmethod
-    def build_prologue(*args, **kwargs):
-        # An example prologue would be:
-        # Regular call stack!
-        # addi sp sp -16 (+local vars)
-        # sd s0 0(sp) ...
-        # sd s1 4(sp) ...
-        # sd s2 8(sp) ...
-        # sd ra 12(sp)
-        # Shadow stack! > load both and compare?
-        # addi ssreg ssreg -4
-        # sws  ra, 0(ssreg)
-        instructions = InstructionBuilder.build_prologue(*args, **kwargs)
-        # Shadow stack
-        instructions.append(
-            IInstruction.addi(
-                rd=RIMI_SHADOW_STACK_REG, rs1=RIMI_SHADOW_STACK_REG, imm=-4
-            )
-        )
-        instructions.append(
-            RIMISInstruction.sws(rs1=RIMI_SHADOW_STACK_REG, rs2=RA, imm=0)
-        )
-        return instructions
-
-    @staticmethod
-    def build_epilogue(used_s_regs, local_var_nb, contains_call):
-        # An example epilogue would be:
-        # Regular call stack!
-        # ld s0 0(sp)
-        # ld s1 4(sp
-        # ld s2 8(sp
-        # ld ra 12(sp)  > load both and compare?
-        # addi sp sp 16 (+local vars)
-        # lws ra 12(sp)
-        # jalrx
-        instructions = []
-        stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
-        # Reload saved registers used
-        for i in range(used_s_regs):
-            instructions.append(
-                IInstruction.ld(rd=CALLEE_SAVED_REG[i], rs1=SP, imm=i * 8)
-            )
-        # Reload ra (if necessary)
-        if contains_call:
-            instructions.append(IInstruction.ld(rd=RA, rs1=SP, imm=used_s_regs * 8))
-        # Increment sp to previous value
-        instructions.append(IInstruction.addi(rd=SP, rs1=SP, imm=stack_space))
-        # Shadow stack load
-        instructions.append(
-            RIMIIInstruction.lws(rd=RA, rs1=RIMI_SHADOW_STACK_REG, imm=0)
-        )
-        instructions.append(
-            IInstruction.addi(
-                rd=RIMI_SHADOW_STACK_REG, rs1=RIMI_SHADOW_STACK_REG, imm=4
-            )
-        )
-        # Jump back to return address
-        instructions.append(RIMIIInstruction.jalrx())
-        instructions.append(IInstruction.ret())
-        return instructions

@@ -21,6 +21,6 @@ RIMI_INSTRUCTIONS_INFO = {
     "jalx": InstructionInfo("jalx", 0b1101111, 0b000, "J"),
     "jalrx": InstructionInfo("jalrx", 0b1100111, 0b000, "I"),
     # Shadow stack instructions
-    "sws": InstructionInfo("sws", 0b0100011, 0b010, "S"),
-    "lws": InstructionInfo("lws", 0b0110011, 0b000, "I"),
+    "sws": InstructionInfo("sws", 0b0100011, 0b111, "S"),
+    "lws": InstructionInfo("lws", 0b0000011, 0b111, "I"),
 }

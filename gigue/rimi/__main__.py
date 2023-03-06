@@ -1,7 +1,5 @@
-from gigue.instructions import IInstruction
-from gigue.instructions import SInstruction
-from gigue.rimi.instructions import RIMIIInstruction
-from gigue.rimi.instructions import RIMISInstruction
+from gigue.instructions import IInstruction, SInstruction
+from gigue.rimi.instructions import RIMIIInstruction, RIMISInstruction
 
 if __name__ == "__main__":
     # Example with base address for domain 0 in t0 (x5), domain 1 in t1 (x6)
