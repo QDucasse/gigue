@@ -1,17 +1,14 @@
 import pytest
-from conftest import ADDRESS
-from conftest import RET_ADDRESS
-from conftest import TEST_CALLER_SAVED_REG
-from unicorn.riscv_const import UC_RISCV_REG_RA
-from unicorn.riscv_const import UC_RISCV_REG_T6
+from conftest import ADDRESS, RET_ADDRESS, TEST_CALLER_SAVED_REG
+from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_T6
 
-from gigue.constants import DATA_REG
-from gigue.constants import DATA_SIZE
-from gigue.constants import INSTRUCTION_WEIGHTS
-from gigue.exceptions import CallNumberException
-from gigue.exceptions import EmptySectionException
-from gigue.exceptions import MutualCallException
-from gigue.exceptions import RecursiveCallException
+from gigue.constants import DATA_REG, DATA_SIZE, INSTRUCTION_WEIGHTS
+from gigue.exceptions import (
+    CallNumberException,
+    EmptySectionException,
+    MutualCallException,
+    RecursiveCallException,
+)
 from gigue.helpers import window
 from gigue.method import Method
 from gigue.pic import PIC
@@ -441,12 +438,9 @@ def test_patch_calls_disassembly_execution(
 
 
 if __name__ == "__main__":
-    from capstone import CS_ARCH_RISCV
-    from capstone import CS_MODE_RISCV64
-    from capstone import Cs
+    from capstone import CS_ARCH_RISCV, CS_MODE_RISCV64, Cs
     from unicorn import Uc
-    from unicorn.unicorn_const import UC_ARCH_RISCV
-    from unicorn.unicorn_const import UC_MODE_RISCV64
+    from unicorn.unicorn_const import UC_ARCH_RISCV, UC_MODE_RISCV64
 
     from gigue.instructions import IInstruction
 
@@ -479,7 +473,9 @@ if __name__ == "__main__":
         uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     uc_emul.mem_write(ADDRESS, bytes)
-    # for i in cap_disasm.disasm(uc_emul.mem_read(ADDRESS, ADDRESS + 32), ADDRESS): # RET_ADDRESS - ADDRESS + 8
+    # for i in cap_disasm.disasm(
+    #     uc_emul.mem_read(ADDRESS, ADDRESS + 32), ADDRESS
+    # ):  # RET_ADDRESS - ADDRESS + 8
     #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()

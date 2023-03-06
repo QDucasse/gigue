@@ -1,18 +1,22 @@
 import random
 
-from gigue.constants import CALLEE_SAVED_REG
-from gigue.constants import CMP_REG
-from gigue.constants import HIT_CASE_REG
-from gigue.constants import INSTRUCTION_WEIGHTS
-from gigue.constants import RA
-from gigue.constants import SP
+from gigue.constants import (
+    CALLEE_SAVED_REG,
+    CMP_REG,
+    HIT_CASE_REG,
+    INSTRUCTION_WEIGHTS,
+    RA,
+    SP,
+)
 from gigue.helpers import align
-from gigue.instructions import BInstruction
-from gigue.instructions import IInstruction
-from gigue.instructions import JInstruction
-from gigue.instructions import RInstruction
-from gigue.instructions import SInstruction
-from gigue.instructions import UInstruction
+from gigue.instructions import (
+    BInstruction,
+    IInstruction,
+    JInstruction,
+    RInstruction,
+    SInstruction,
+    UInstruction,
+)
 
 
 class InstructionBuilder:
@@ -173,7 +177,8 @@ class InstructionBuilder:
         # if offset < 0x8:
         #     raise Exception
         offset_low = offset & 0xFFF
-        # The right part handles the low offset sign extension (that should be mitigated)
+        # The right part handles the low offset sign
+        # extension (that should be mitigated)
         offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
         # print("offset: {}/{} -> olow: {} + ohigh: {}".format(
         #     hex(offset),
@@ -188,7 +193,8 @@ class InstructionBuilder:
         if offset < 0x8:
             raise Exception
         offset_low = offset & 0xFFF
-        # The right part handles the low offset sign extension (that should be mitigated)
+        # The right part handles the low offset
+        # sign extension (that should be mitigated)
         offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
         # print("offset: {}/{} -> olow: {} + ohigh: {}".format(
         #     hex(offset),

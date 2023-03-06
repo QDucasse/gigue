@@ -1,33 +1,33 @@
 import pytest
-from conftest import ADDRESS
-from conftest import RET_ADDRESS
-from conftest import STACK_ADDRESS
-from conftest import TEST_CALLER_SAVED_REG
-from conftest import TEST_DATA_REG
-from conftest import TEST_DATA_SIZE
-from unicorn.riscv_const import UC_RISCV_REG_PC
-from unicorn.riscv_const import UC_RISCV_REG_RA
-from unicorn.riscv_const import UC_RISCV_REG_S0
-from unicorn.riscv_const import UC_RISCV_REG_S1
-from unicorn.riscv_const import UC_RISCV_REG_S2
-from unicorn.riscv_const import UC_RISCV_REG_S3
-from unicorn.riscv_const import UC_RISCV_REG_S4
-from unicorn.riscv_const import UC_RISCV_REG_S5
-from unicorn.riscv_const import UC_RISCV_REG_S6
-from unicorn.riscv_const import UC_RISCV_REG_S7
-from unicorn.riscv_const import UC_RISCV_REG_S8
-from unicorn.riscv_const import UC_RISCV_REG_S9
-from unicorn.riscv_const import UC_RISCV_REG_SP
-from unicorn.riscv_const import UC_RISCV_REG_T0
-from unicorn.riscv_const import UC_RISCV_REG_T1
+from conftest import (
+    ADDRESS,
+    RET_ADDRESS,
+    STACK_ADDRESS,
+    TEST_CALLER_SAVED_REG,
+    TEST_DATA_REG,
+    TEST_DATA_SIZE,
+)
+from unicorn.riscv_const import (
+    UC_RISCV_REG_PC,
+    UC_RISCV_REG_RA,
+    UC_RISCV_REG_S0,
+    UC_RISCV_REG_S1,
+    UC_RISCV_REG_S2,
+    UC_RISCV_REG_S3,
+    UC_RISCV_REG_S4,
+    UC_RISCV_REG_S5,
+    UC_RISCV_REG_S6,
+    UC_RISCV_REG_S7,
+    UC_RISCV_REG_S8,
+    UC_RISCV_REG_S9,
+    UC_RISCV_REG_SP,
+    UC_RISCV_REG_T0,
+    UC_RISCV_REG_T1,
+)
 
 from gigue.builder import InstructionBuilder
-from gigue.constants import CMP_REG
-from gigue.constants import HIT_CASE_REG
-from gigue.constants import RA
-from gigue.constants import SP
-from gigue.helpers import bytes_to_int
-from gigue.helpers import int_to_bytes64
+from gigue.constants import CMP_REG, HIT_CASE_REG, RA, SP
+from gigue.helpers import bytes_to_int, int_to_bytes64
 
 # =================================
 #        Random instructions

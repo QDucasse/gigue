@@ -3,12 +3,9 @@ import random
 from typing import List
 
 from gigue.builder import InstructionBuilder
-from gigue.constants import CMP_REG
-from gigue.constants import HIT_CASE_REG
-from gigue.exceptions import CallNumberException
-from gigue.exceptions import EmptySectionException
-from gigue.helpers import flatten_list
-from gigue.helpers import gaussian_between
+from gigue.constants import CMP_REG, HIT_CASE_REG
+from gigue.exceptions import CallNumberException, EmptySectionException
+from gigue.helpers import flatten_list, gaussian_between
 from gigue.instructions import Instruction
 from gigue.method import Method
 

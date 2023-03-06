@@ -1,16 +1,9 @@
 import pytest
-from capstone import CS_ARCH_RISCV
-from capstone import CS_MODE_RISCV64
-from capstone import Cs
-from conftest import DATA_ADDRESS
-from conftest import TEST_DATA_REG
-from conftest import TEST_DATA_SIZE
-from conftest import UC_DATA_REG
+from capstone import CS_ARCH_RISCV, CS_MODE_RISCV64, Cs
+from conftest import DATA_ADDRESS, TEST_DATA_REG, TEST_DATA_SIZE, UC_DATA_REG
 from unicorn import Uc
-from unicorn.riscv_const import UC_RISCV_REG_RA
-from unicorn.riscv_const import UC_RISCV_REG_SP
-from unicorn.unicorn_const import UC_ARCH_RISCV
-from unicorn.unicorn_const import UC_MODE_RISCV64
+from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_SP
+from unicorn.unicorn_const import UC_ARCH_RISCV, UC_MODE_RISCV64
 
 from gigue.constants import CALLER_SAVED_REG
 from gigue.disassembler import Disassembler
@@ -130,15 +123,21 @@ def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
     # disasm = disasm_setup
     # elt_addresses = [elt.address for elt in generator.jit_elements]
     # mc_code = generator.generate_interpreter_machine_code()
-    # for i, instr in enumerate(mc_code[generator.interpreter_prologue_size:-generator.interpreter_epilogue_size]):
+    # for i, instr in enumerate(
+    #     mc_code[
+    #         generator.interpreter_prologue_size : -generator.interpreter_epilogue_size
+    #     ]
+    # ):
     #     print(instr)
     #     if disasm.get_instruction_name(instr) == "addi":
     #         if disasm.get_instruction_name(mc_code[i + 1]) == "auipc":
     #             if disasm.get_instruction_name(mc_code[i + 2]) == "jalr":
-    #                 assert disasm.extract_call_offset(mc_code[i + 1 : i + 3]) in elt_addresses
+    #                 assert (
+    #                     disasm.extract_call_offset(mc_code[i + 1 : i + 3])
+    #                     in elt_addresses
+    #                 )
     #     elif disasm.get_instruction_name(instr) == "auipc":
     #         if disasm.get_instruction_name(mc_code[i + 1]) == "jalr":
-    #             print("huh")
     #             assert disasm.extract_call_offset(mc_code[i : i + 2]) in elt_addresses
 
 
@@ -213,8 +212,12 @@ def test_generate_interpreter_machine_code(
     # for jit_element, call_instruction in zip(
     #     generator.jit_elements, generator.interpreter_machine_code
     # ):
-    #     # print("{}: {} | {}".format(i, jit_element, call_instruction))
-    #     # print("higho: {}, lowo: {}".format(hex(call_instruction[0].imm), hex(call_instruction[1].imm)))
+    #     print("{}: {} | {}".format(i, jit_element, call_instruction))
+    #     print(
+    #         "higho: {}, lowo: {}".format(
+    #             hex(call_instruction[0].imm), hex(call_instruction[1].imm)
+    #         )
+    #     )
     #     is_pic = False
     #     if len(call_instruction) == 3:  # pic with 3 instructions
     #         call_instruction = call_instruction[1:]

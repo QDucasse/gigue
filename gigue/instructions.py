@@ -1,12 +1,8 @@
 import logging
 from typing import Dict
 
-from gigue.constants import INSTRUCTIONS_INFO
-from gigue.constants import CustomInstructionInfo
-from gigue.helpers import format_to
-from gigue.helpers import format_to_aligned
-from gigue.helpers import int_to_bytes32
-from gigue.helpers import to_unsigned
+from gigue.constants import INSTRUCTIONS_INFO, CustomInstructionInfo
+from gigue.helpers import format_to, format_to_aligned, int_to_bytes32, to_unsigned
 
 logger = logging.getLogger(__name__)
 

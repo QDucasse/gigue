@@ -1,17 +1,15 @@
 import logging
 
 import pytest
-from capstone import CS_ARCH_RISCV
-from capstone import CS_MODE_RISCV64
-from capstone import Cs
-from unicorn import Uc
-from unicorn import UcError
-from unicorn.riscv_const import UC_RISCV_REG_PC
-from unicorn.riscv_const import UC_RISCV_REG_RA
-from unicorn.riscv_const import UC_RISCV_REG_SP
-from unicorn.riscv_const import UC_RISCV_REG_T6
-from unicorn.unicorn_const import UC_ARCH_RISCV
-from unicorn.unicorn_const import UC_MODE_RISCV64
+from capstone import CS_ARCH_RISCV, CS_MODE_RISCV64, Cs
+from unicorn import Uc, UcError
+from unicorn.riscv_const import (
+    UC_RISCV_REG_PC,
+    UC_RISCV_REG_RA,
+    UC_RISCV_REG_SP,
+    UC_RISCV_REG_T6,
+)
+from unicorn.unicorn_const import UC_ARCH_RISCV, UC_MODE_RISCV64
 
 from gigue.constants import CALLER_SAVED_REG
 from gigue.dataminer import Dataminer
