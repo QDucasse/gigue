@@ -1,5 +1,7 @@
 import pytest
 from conftest import ADDRESS
+from conftest import handle_custom_instruction
+from unicorn import UcError
 
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.disassembler import Disassembler
@@ -33,3 +35,23 @@ def test_capstone_fixer(name, cap_disasm_custom_setup, fixer_disasm_setup):
     assert instr_info.xd == fix_disasm.extract_xd(mc)
     assert instr_info.xs1 == fix_disasm.extract_xs1(mc)
     assert instr_info.xs2 == fix_disasm.extract_xs2(mc)
+
+
+@pytest.mark.parametrize("name", ["cficall", "cfiret"])
+def test_unicorn_fixer(name, cap_disasm_custom_setup, uc_emul_setup, fixer_disasm_setup):
+    constr = getattr(FIXERCustomInstruction, name)
+    instr = constr(rd=0, rs1=5, rs2=0)
+    bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_custom_setup
+    print(next(cap_disasm.disasm(bytes, ADDRESS)))
+    # Emulation
+    uc_emul = uc_emul_setup
+    uc_emul.mem_write(ADDRESS, bytes)
+    try:
+        print(hex(ADDRESS))
+        uc_emul.emu_start(ADDRESS, ADDRESS + 4)
+    except UcError:
+        fixer_disasm = fixer_disasm_setup
+        handle_custom_instruction(uc_emul, fixer_disasm, )
+    uc_emul.emu_stop()

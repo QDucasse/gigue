@@ -18,6 +18,7 @@ from unicorn.unicorn_const import (
 
 from gigue.constants import CALLER_SAVED_REG, DATA_REG
 from gigue.dataminer import Dataminer
+from gigue.helpers import bytes_to_int
 from gigue.disassembler import Disassembler
 from gigue.exceptions import UnknownInstructionException
 from gigue.helpers import bytes_to_int
