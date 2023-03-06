@@ -255,8 +255,8 @@ class InstructionBuilder:
     def build_epilogue(used_s_regs, local_var_nb, contains_call):
         # An example epilogue would be:
         # ld s0 0(sp)
-        # ld s1 4(sp
-        # ld s2 8(sp
+        # ld s1 4(sp)
+        # ld s2 8(sp)
         # ld ra 12(sp)
         # addi sp sp 16 (+local vars)
         # jr ra

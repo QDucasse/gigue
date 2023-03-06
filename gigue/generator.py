@@ -312,7 +312,9 @@ class Generator:
 
     def fill_interpretation_loop(self):
         logger.info("Phase 3: Filling interpretation loop")
-        prologue_instructions = self.builder.build_prologue(10, 0, True)
+        prologue_instructions = self.builder.build_prologue(
+            used_s_regs=10, local_var_nb=0, contains_call=True
+        )
         self.interpreter_instructions += prologue_instructions
         current_address = (
             self.interpreter_start_address + len(prologue_instructions) * 4
