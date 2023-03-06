@@ -8,6 +8,7 @@ from gigue.constants import (
     RA,
     SP,
 )
+from gigue.exceptions import WrongOffsetException
 from gigue.helpers import align
 from gigue.instructions import (
     BInstruction,
@@ -174,8 +175,10 @@ class InstructionBuilder:
 
     @staticmethod
     def build_method_call(offset):
-        # if offset < 0x8:
-        #     raise Exception
+        if abs(offset) < 8:
+            raise WrongOffsetException(
+                f"Call offset should be greater than 8 (currently {offset})."
+            )
         offset_low = offset & 0xFFF
         # The right part handles the low offset sign
         # extension (that should be mitigated)
@@ -190,8 +193,8 @@ class InstructionBuilder:
 
     @staticmethod
     def build_pic_call(offset, hit_case, hit_case_reg=HIT_CASE_REG):
-        if offset < 0x8:
-            raise Exception
+        if abs(offset) < 8:
+            raise WrongOffsetException("Call offset should be greater than 8.")
         offset_low = offset & 0xFFF
         # The right part handles the low offset
         # sign extension (that should be mitigated)

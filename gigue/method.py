@@ -4,6 +4,7 @@ from typing import List
 
 from gigue.builder import InstructionBuilder
 from gigue.exceptions import (
+    BuilderException,
     CallNumberException,
     EmptySectionException,
     MutualCallException,
@@ -116,7 +117,12 @@ class Method:
         return self.bytes
 
     def accept_build_call(self, method_offset):
-        return self.builder.build_method_call(method_offset)
+        try:
+            instrs = self.builder.build_method_call(method_offset)
+        except BuilderException as err:
+            logger.exception(err)
+            raise
+        return instrs
 
     def patch_calls(self, callees):
         logger.info(f"{self.log_prefix()} Patching method calls.")
