@@ -1,27 +1,27 @@
 import logging
 import random
 from collections import defaultdict
-from typing import Dict
-from typing import List
-from typing import Union
+from typing import Dict, List, Union
 
 from gigue.builder import InstructionBuilder
-from gigue.constants import BIN_DIR
-from gigue.constants import CALLER_SAVED_REG
-from gigue.constants import CMP_REG
-from gigue.constants import DATA_REG
-from gigue.constants import DATA_SIZE
-from gigue.constants import HIT_CASE_REG
-from gigue.constants import INSTRUCTION_WEIGHTS
+from gigue.constants import (
+    BIN_DIR,
+    CALLER_SAVED_REG,
+    CMP_REG,
+    DATA_REG,
+    DATA_SIZE,
+    HIT_CASE_REG,
+    INSTRUCTION_WEIGHTS,
+)
 from gigue.dataminer import Dataminer
-from gigue.exceptions import CallNumberException
-from gigue.exceptions import EmptySectionException
-from gigue.exceptions import MutualCallException
-from gigue.exceptions import RecursiveCallException
-from gigue.exceptions import WrongAddressException
-from gigue.helpers import align
-from gigue.helpers import flatten_list
-from gigue.helpers import gaussian_between
+from gigue.exceptions import (
+    CallNumberException,
+    EmptySectionException,
+    MutualCallException,
+    RecursiveCallException,
+    WrongAddressException,
+)
+from gigue.helpers import align, flatten_list, gaussian_between
 from gigue.instructions import Instruction
 from gigue.method import Method
 from gigue.pic import PIC

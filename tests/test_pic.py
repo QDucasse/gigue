@@ -1,11 +1,12 @@
 import pytest
-from conftest import ADDRESS
-from conftest import RET_ADDRESS
-from conftest import TEST_CALLER_SAVED_REG
-from conftest import TEST_DATA_REG
-from conftest import TEST_DATA_SIZE
-from unicorn.riscv_const import UC_RISCV_REG_RA
-from unicorn.riscv_const import UC_RISCV_REG_T1
+from conftest import (
+    ADDRESS,
+    RET_ADDRESS,
+    TEST_CALLER_SAVED_REG,
+    TEST_DATA_REG,
+    TEST_DATA_SIZE,
+)
+from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_T1
 
 from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.helpers import flatten_list

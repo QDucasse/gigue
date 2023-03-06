@@ -20,8 +20,7 @@ import os
 import random
 import sys
 
-from gigue.constants import BIN_DIR
-from gigue.constants import CALLER_SAVED_REG
+from gigue.constants import BIN_DIR, CALLER_SAVED_REG
 from gigue.exceptions import GeneratorException
 from gigue.generator import Generator
 from gigue.helpers import bytes_to_int

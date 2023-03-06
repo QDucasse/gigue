@@ -1,12 +1,17 @@
 from math import ceil
 from random import gauss
 
-# List manipulation
+# List Helpers
 # \________________
 
 
 def flatten_list(nested_list):
     return [item for sublist in nested_list for item in sublist]
+
+
+def window(arr, k):
+    for i in range(len(arr) - k + 1):
+        yield arr[i : i + k]
 
 
 # Sign extension
@@ -76,12 +81,3 @@ def gaussian_between(low_bound, up_bound):
     int_value = ceil(gauss(mu=mu, sigma=sigma))
     box_value = max(min(int_value, up_bound), low_bound)
     return box_value
-
-
-# List Windows
-# \___________
-
-
-def window(arr, k):
-    for i in range(len(arr) - k + 1):
-        yield arr[i : i + k]

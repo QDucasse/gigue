@@ -1,8 +1,6 @@
 import random
 
-from gigue.helpers import align
-from gigue.helpers import int_to_bytes32
-from gigue.helpers import int_to_bytes64
+from gigue.helpers import align, int_to_bytes32, int_to_bytes64
 
 
 def raise_no_strategy_error(generation_strategy):

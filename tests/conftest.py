@@ -1,17 +1,15 @@
 import logging
 
 import pytest
-from capstone import CS_ARCH_RISCV
-from capstone import CS_MODE_RISCV64
-from capstone import Cs
-from unicorn import Uc
-from unicorn import UcError
-from unicorn.riscv_const import UC_RISCV_REG_PC
-from unicorn.riscv_const import UC_RISCV_REG_RA
-from unicorn.riscv_const import UC_RISCV_REG_SP
-from unicorn.riscv_const import UC_RISCV_REG_T6
-from unicorn.unicorn_const import UC_ARCH_RISCV
-from unicorn.unicorn_const import UC_MODE_RISCV64
+from capstone import CS_ARCH_RISCV, CS_MODE_RISCV64, Cs
+from unicorn import Uc, UcError
+from unicorn.riscv_const import (
+    UC_RISCV_REG_PC,
+    UC_RISCV_REG_RA,
+    UC_RISCV_REG_SP,
+    UC_RISCV_REG_T6,
+)
+from unicorn.unicorn_const import UC_ARCH_RISCV, UC_MODE_RISCV64
 
 from gigue.constants import CALLER_SAVED_REG
 from gigue.dataminer import Dataminer
@@ -35,6 +33,11 @@ TEST_CALLER_SAVED_REG = [reg for reg in CALLER_SAVED_REG if reg != TEST_DATA_REG
 TEST_DATA_SIZE = 1024
 
 
+# =================================
+#   Disassembler/Capstone setup
+# =================================
+
+
 @pytest.fixture
 def disasm_setup():
     disassembler = Disassembler()
@@ -45,6 +48,24 @@ def disasm_setup():
 def cap_disasm_setup():
     cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
     return cap_disasm
+
+
+@pytest.fixture
+def cap_disasm_custom_setup():
+    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+    # Enable skipdata to disassemble custom instructions
+    cap_disasm.skipdata_setup = ("custom", disassemble_custom_callback, None)
+    cap_disasm.skipdata = True
+    return cap_disasm
+
+
+def disassemble_custom_callback(buffer, size, offset, userdata):
+    return 4
+
+
+# =================================
+#         Unicorn setup
+# =================================
 
 
 @pytest.fixture

@@ -1,21 +1,19 @@
 import pytest
-from conftest import ADDRESS
-from conftest import DATA_ADDRESS
-from conftest import TEST_DATA_REG
+from conftest import ADDRESS, DATA_ADDRESS, TEST_DATA_REG
 from unicorn import UcError
-from unicorn.riscv_const import UC_RISCV_REG_T1
-from unicorn.riscv_const import UC_RISCV_REG_T6
+from unicorn.riscv_const import UC_RISCV_REG_T1, UC_RISCV_REG_T6
 
 from gigue.constants import INSTRUCTIONS_INFO
-from gigue.helpers import to_signed
-from gigue.helpers import to_unsigned
-from gigue.instructions import BInstruction
-from gigue.instructions import IInstruction
-from gigue.instructions import Instruction
-from gigue.instructions import JInstruction
-from gigue.instructions import RInstruction
-from gigue.instructions import SInstruction
-from gigue.instructions import UInstruction
+from gigue.helpers import to_signed, to_unsigned
+from gigue.instructions import (
+    BInstruction,
+    IInstruction,
+    Instruction,
+    JInstruction,
+    RInstruction,
+    SInstruction,
+    UInstruction,
+)
 
 # =================================
 #            Helpers
@@ -479,7 +477,8 @@ def test_capstone_jinstr(name, imm, cap_disasm_setup):
     cap_disasm = cap_disasm_setup
     instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
     assert instr_disasm.mnemonic == name
-    # Ugly way to align the value: pass to unsigned, remove last bit then re-sign the value!
+    # Ugly way to align the value: pass to unsigned,
+    # remove last bit then re-sign the value!
     assert instr_disasm.op_str == "t0, " + imm_str(
         to_signed(to_unsigned(imm, 21) & 0x1FFFFE, 21)
     )
@@ -559,7 +558,10 @@ def test_unicorn_sinstr_smoke(name, imm, cap_disasm_setup, uc_emul_setup):
     # Disassembly
     # cap_disasm = cap_disasm_setup
     # instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
-    # print("0x%x:\t%s\t%s" % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str))
+    # print(
+    #     "0x%x:\t%s\t%s"
+    #     % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str)
+    # )
     # Emulation
     uc_emul = uc_emul_setup
     uc_emul.reg_write(
@@ -608,9 +610,7 @@ def test_capstone_binstr(name, imm, cap_disasm_setup):
 
 
 if __name__ == "__main__":
-    from capstone import CS_ARCH_RISCV
-    from capstone import CS_MODE_RISCV64
-    from capstone import Cs
+    from capstone import CS_ARCH_RISCV, CS_MODE_RISCV64, Cs
 
     from gigue.helpers import int_to_bytes32
 

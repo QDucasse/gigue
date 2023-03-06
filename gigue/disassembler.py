@@ -1,10 +1,18 @@
-from gigue.constants import find_instr_for_opcode
+from gigue.constants import INSTRUCTIONS_INFO
+from gigue.exceptions import UnknownInstructionException
 from gigue.helpers import to_signed
 
 
 # TODO: Doc
 class Disassembler:
     DEFAULT_SIGN_EXTENSION = False
+
+    def __init__(self, instructions_info=INSTRUCTIONS_INFO):
+        self.instructions_info = instructions_info
+
+    # ===================================
+    #              Helpers
+    # ===================================
 
     @staticmethod
     def sign_extend(value, bits):
@@ -16,19 +24,61 @@ class Disassembler:
         mask = (1 << size) - 1
         return (instruction & (mask << shift)) >> shift
 
-    @staticmethod
-    def get_instruction_type(instruction):
-        return find_instr_for_opcode(instruction & 0x7F).type
+    # ===================================
+    #     Instruction info extractors
+    # ===================================
 
-    @staticmethod
-    def get_instruction_name(instruction):
-        return find_instr_for_opcode(instruction & 0x7F).name
+    def get_instruction_type(self, instruction):
+        return self.get_instruction_info(instruction).type
+
+    def get_instruction_name(self, instruction):
+        return self.get_instruction_info(instruction).name
+
+    def get_instruction_info(self, instruction):
+        for info in self.instructions_info.values():
+            if (info.cmp_mask & instruction) == info.cmp_val:
+                return info
+        raise UnknownInstructionException(
+            f"No match for instruction {hex(instruction)}. Extracted opcode7"
+            f" ({hex(self.extract_opcode7(instruction))}), opcode3"
+            f" ({self.extract_opcode3(instruction)}) and top7"
+            f" ({self.extract_top7(instruction)})."
+        )
+
+    # ===================================
+    #         Field extraction
+    # ===================================
 
     def extract_opcode7(self, instruction):
         return self.extract_info(instruction, 7, 0)
 
     def extract_opcode3(self, instruction):
         return self.extract_info(instruction, 3, 12)
+
+    def extract_xd(self, instruction):
+        return self.extract_info(instruction, 1, 14)
+
+    def extract_xs1(self, instruction):
+        return self.extract_info(instruction, 1, 13)
+
+    def extract_xs2(self, instruction):
+        return self.extract_info(instruction, 1, 12)
+
+    def extract_rd(self, instruction):
+        return self.extract_info(instruction, 5, 7)
+
+    def extract_rs1(self, instruction):
+        return self.extract_info(instruction, 5, 15)
+
+    def extract_rs2(self, instruction):
+        return self.extract_info(instruction, 5, 20)
+
+    def extract_top7(self, instruction):
+        return self.extract_info(instruction, 7, 25)
+
+    # ===================================
+    #     Immediate value extraction
+    # ===================================
 
     def extract_imm_b(self, instruction, sign_extend=DEFAULT_SIGN_EXTENSION):
         # imm[12|10:5] << 25
@@ -70,18 +120,6 @@ class Disassembler:
             return to_signed(immediate, 32)
         return immediate
 
-    def extract_rd(self, instruction):
-        return self.extract_info(instruction, 5, 7)
-
-    def extract_rs1(self, instruction):
-        return self.extract_info(instruction, 5, 15)
-
-    def extract_rs2(self, instruction):
-        return self.extract_info(instruction, 5, 20)
-
-    def extract_top7(self, instruction):
-        return self.extract_info(instruction, 7, 25)
-
     def extract_call_offset(self, instructions):
         # instructions correspond to [auipc(offset high), jalr(offset low)]
         offset_low = self.extract_imm_i(instructions[1])
@@ -99,6 +137,10 @@ class Disassembler:
             )
         )
         return signed_offset_low + signed_offset_high
+
+    # ===================================
+    #            Disassembly
+    # ===================================
 
     def disassemble(self, instruction):
         instr_type = self.get_instruction_type(instruction)

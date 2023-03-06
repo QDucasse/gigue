@@ -3,10 +3,12 @@ import random
 from typing import List
 
 from gigue.builder import InstructionBuilder
-from gigue.exceptions import CallNumberException
-from gigue.exceptions import EmptySectionException
-from gigue.exceptions import MutualCallException
-from gigue.exceptions import RecursiveCallException
+from gigue.exceptions import (
+    CallNumberException,
+    EmptySectionException,
+    MutualCallException,
+    RecursiveCallException,
+)
 from gigue.instructions import Instruction
 
 logger = logging.getLogger(__name__)

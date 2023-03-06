@@ -1,8 +1,7 @@
 import pytest
 
 from gigue.dataminer import Dataminer
-from gigue.helpers import align
-from gigue.helpers import bytes_to_int
+from gigue.helpers import align, bytes_to_int
 
 
 def test_min_random():
