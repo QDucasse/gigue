@@ -41,6 +41,7 @@ class PIC:
         self.builder: InstructionBuilder = InstructionBuilder()
         self.switch_instructions: List[Instruction] = []
         self.methods: List[Method] = []
+        self.callers: List[Method] = []
         self.instructions: List[Instruction] = []
         self.machine_code: List[int] = []
         self.bytes: bytes = b""

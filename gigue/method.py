@@ -49,6 +49,7 @@ class Method:
         self.builder: InstructionBuilder = InstructionBuilder()
         self.instructions: List[Instruction] = []
         self.callees: List[Method] = []
+        self.callers: List[Method] = []
         self.machine_code: List[int] = []
         self.bytes: bytes = b""
 
@@ -139,6 +140,7 @@ class Method:
             )
         # Check for mutual call
         for callee in callees:
+            callee.callers.append(self)
             if self in callee.get_callees():
                 raise MutualCallException(
                     f"Mutual call between method at {self.address} and"
@@ -168,4 +170,4 @@ class Method:
             # Add the two instructions for the call
             self.instructions[ind : ind + len(call_instructions)] = call_instructions
 
-        logger.info(f"{self.log_prefix()} Method calls patched.")
+        logger.info(f"{self.log_prefix()} Method calls patched and callers updated.")
