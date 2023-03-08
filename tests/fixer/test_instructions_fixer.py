@@ -44,14 +44,13 @@ def test_unicorn_fixer(name, cap_disasm_custom_setup, uc_emul_setup, fixer_disas
     bytes = instr.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_custom_setup
-    print(next(cap_disasm.disasm(bytes, ADDRESS)))
+    next(cap_disasm.disasm(bytes, ADDRESS))
     # Emulation
     uc_emul = uc_emul_setup
     uc_emul.mem_write(ADDRESS, bytes)
     try:
-        print(hex(ADDRESS))
         uc_emul.emu_start(ADDRESS, ADDRESS + 4)
     except UcError:
         fixer_disasm = fixer_disasm_setup
-        handle_custom_instruction(uc_emul, fixer_disasm, )
+        handle_custom_instruction(uc_emul, fixer_disasm, name)
     uc_emul.emu_stop()
