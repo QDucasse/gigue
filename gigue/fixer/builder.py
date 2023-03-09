@@ -2,7 +2,7 @@ from gigue.builder import InstructionBuilder
 from gigue.constants import RA
 from gigue.fixer.constants import FIXER_CMP_REG
 from gigue.fixer.instructions import FIXERCustomInstruction
-from gigue.instructions import BInstruction
+from gigue.instructions import BInstruction, IInstruction
 
 
 class FIXERInstructionBuilder(InstructionBuilder):
@@ -24,14 +24,14 @@ class FIXERInstructionBuilder(InstructionBuilder):
     # Tags around rets
     # \_______________
 
-    # TODO: Branch to fail!!!
+    # If the check does not pass, it goes to ebreak, otherwise jumps over
     @staticmethod
-    def build_epilogue(offset_cfi_fail, *args, **kwargs):
+    def build_epilogue(*args, **kwargs):
         instructions = InstructionBuilder.build_epilogue(*args, **kwargs)
         instructions.insert(
             -1, FIXERCustomInstruction.cfiret(rd=FIXER_CMP_REG, rs1=0, rs2=0)
         )
-        instructions.insert(
-            -1, BInstruction.bne(rs1=RA, rs2=FIXER_CMP_REG, imm=offset_cfi_fail)
-        )
+
+        instructions.insert(-1, BInstruction.beq(rs1=RA, rs2=FIXER_CMP_REG, imm=8))
+        instructions.insert(-1, IInstruction.ebreak())
         return instructions
