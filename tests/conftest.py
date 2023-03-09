@@ -119,7 +119,8 @@ class Handler:
                 assert instr_name == expected
             # Call the handler if it exists
             try:
-                getattr(self.__class__, "handle_" + instr_name)
+                handler_method = getattr(self.__class__, "handle_" + instr_name)
+                handler_method(self, uc_emul)
             except AttributeError as err:
                 # Otherwise stop the simulation and raise an exception
                 uc_emul.emu_stop()
@@ -137,6 +138,7 @@ class Handler:
 # =================================
 #           Instrumenters
 # =================================
+
 
 def instrument_execution(uc_emul, start_address, ret_address=RET_ADDRESS):
     previous_pc = start_address
