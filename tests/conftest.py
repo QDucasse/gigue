@@ -106,18 +106,20 @@ class Handler:
     def handle_example(self, uc_emul):
         pass
 
-    def handle_custom_instruction(self, uc_emul, expected):
+    def handle_custom_instruction(self, uc_emul, expected=None):
         # When catching an exception, Unicorn already
         # forwarded the pc
         pc = uc_emul.reg_read(UC_RISCV_REG_PC) - 4
         instr = bytes_to_int(uc_emul.mem_read(pc, 4))
         try:
-            # Check if the custom instruction is defined and correct
-            instr_info = self.disasm.get_instruction_info(instr)
-            assert instr_info.name == expected
+            # Extracts the instruction name
+            instr_name = self.disasm.get_instruction_info(instr).name
+            # Compare it to the one expected (if needed)
+            if expected:
+                assert instr_name == expected
             # Call the handler if it exists
             try:
-                getattr(self.__class__, "handle_" + expected)
+                getattr(self.__class__, "handle_" + instr_name)
             except AttributeError as err:
                 # Otherwise stop the simulation and raise an exception
                 uc_emul.emu_stop()

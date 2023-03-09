@@ -57,6 +57,10 @@ class InstructionBuilder:
     }
 
     @staticmethod
+    def consolidate_bytes(instructions):
+        return b"".join([instr.generate_bytes() for instr in instructions])
+
+    @staticmethod
     def build_nop():
         return IInstruction.nop()
 
