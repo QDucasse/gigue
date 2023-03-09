@@ -1,6 +1,5 @@
 import pytest
 from capstone import CS_ARCH_RISCV, CS_MODE_RISCV64, Cs
-from conftest import DATA_ADDRESS, TEST_DATA_REG, TEST_DATA_SIZE, UC_DATA_REG
 from unicorn import Uc
 from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_SP
 from unicorn.unicorn_const import UC_ARCH_RISCV, UC_MODE_RISCV64
@@ -12,6 +11,7 @@ from gigue.generator import Generator
 from gigue.instructions import IInstruction
 from gigue.method import Method
 from gigue.pic import PIC
+from tests.conftest import DATA_ADDRESS, TEST_DATA_REG, TEST_DATA_SIZE, UC_DATA_REG
 
 # =================================
 #            Constants

@@ -1,5 +1,4 @@
 import pytest
-from conftest import ADDRESS, RET_ADDRESS, TEST_CALLER_SAVED_REG
 from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_T6
 
 from gigue.constants import DATA_REG, DATA_SIZE, INSTRUCTION_WEIGHTS
@@ -12,6 +11,7 @@ from gigue.exceptions import (
 from gigue.helpers import window
 from gigue.method import Method
 from gigue.pic import PIC
+from tests.conftest import ADDRESS, RET_ADDRESS, TEST_CALLER_SAVED_REG
 
 # =================================
 #             Method

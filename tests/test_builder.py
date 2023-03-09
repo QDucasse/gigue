@@ -1,12 +1,4 @@
 import pytest
-from conftest import (
-    ADDRESS,
-    RET_ADDRESS,
-    STACK_ADDRESS,
-    TEST_CALLER_SAVED_REG,
-    TEST_DATA_REG,
-    TEST_DATA_SIZE,
-)
 from unicorn.riscv_const import (
     UC_RISCV_REG_PC,
     UC_RISCV_REG_RA,
@@ -28,6 +20,14 @@ from unicorn.riscv_const import (
 from gigue.builder import InstructionBuilder
 from gigue.constants import CMP_REG, HIT_CASE_REG, RA, SP
 from gigue.helpers import bytes_to_int, int_to_bytes64
+from tests.conftest import (
+    ADDRESS,
+    RET_ADDRESS,
+    STACK_ADDRESS,
+    TEST_CALLER_SAVED_REG,
+    TEST_DATA_REG,
+    TEST_DATA_SIZE,
+)
 
 # =================================
 #        Random instructions

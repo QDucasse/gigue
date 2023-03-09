@@ -14,6 +14,8 @@ from unicorn.unicorn_const import UC_ARCH_RISCV, UC_MODE_RISCV64
 from gigue.constants import CALLER_SAVED_REG
 from gigue.dataminer import Dataminer
 from gigue.disassembler import Disassembler
+from gigue.exceptions import UnknownInstructionException
+from gigue.helpers import bytes_to_int
 from gigue.instructions import IInstruction
 
 ADDRESS = 0x1000
@@ -97,10 +99,42 @@ def uc_emul_full_setup(uc_emul_setup):
     return uc_emul
 
 
+class Handler:
+    def __init__(self, disasm):
+        self.disasm = disasm
+
+    def handle_example(self, uc_emul):
+        pass
+
+    def handle_custom_instruction(self, uc_emul, expected):
+        # When catching an exception, Unicorn already
+        # forwarded the pc
+        pc = uc_emul.reg_read(UC_RISCV_REG_PC) - 4
+        instr = bytes_to_int(uc_emul.mem_read(pc, 4))
+        try:
+            # Check if the custom instruction is defined and correct
+            instr_info = self.disasm.get_instruction_info(instr)
+            assert instr_info.name == expected
+            # Call the handler if it exists
+            try:
+                getattr(self.__class__, "handle_" + expected)
+            except AttributeError as err:
+                # Otherwise stop the simulation and raise an exception
+                uc_emul.emu_stop()
+                raise AttributeError(
+                    "Custom instruction callback has not been defined."
+                ) from err
+        except UnknownInstructionException:
+            # Otherwise stop the simulation and raise an exception
+            uc_emul.emu_stop()
+            raise
+        # Update the PC if the instruction handling went correctly
+        uc_emul.reg_write(UC_RISCV_REG_PC, pc + 4)
+
+
 # =================================
 #           Instrumenters
 # =================================
-
 
 def instrument_execution(uc_emul, start_address, ret_address=RET_ADDRESS):
     previous_pc = start_address
