@@ -13,11 +13,13 @@ class FIXERInstructionBuilder(InstructionBuilder):
     def build_method_call(*args, **kwargs):
         instructions = [FIXERCustomInstruction.cficall(rd=0, rs1=FIXER_CMP_REG, rs2=0)]
         instructions += InstructionBuilder.build_method_call(*args, **kwargs)
+        return instructions
 
     @staticmethod
     def build_pic_call(*args, **kwargs):
-        instructions = [FIXERCustomInstruction.cficall(rd=0, rs1=FIXER_CMP_REG)]
-        instructions += InstructionBuilder.build_method_call(*args, **kwargs)
+        instructions = [FIXERCustomInstruction.cficall(rd=0, rs1=FIXER_CMP_REG, rs2=0)]
+        instructions += InstructionBuilder.build_pic_call(*args, **kwargs)
+        return instructions
 
     # Tags around rets
     # \_______________
