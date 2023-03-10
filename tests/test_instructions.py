@@ -1,5 +1,4 @@
 import pytest
-from conftest import ADDRESS, DATA_ADDRESS, TEST_DATA_REG
 from unicorn import UcError
 from unicorn.riscv_const import UC_RISCV_REG_T1, UC_RISCV_REG_T6
 
@@ -14,6 +13,7 @@ from gigue.instructions import (
     SInstruction,
     UInstruction,
 )
+from tests.conftest import ADDRESS, DATA_ADDRESS, TEST_DATA_REG
 
 # =================================
 #            Helpers

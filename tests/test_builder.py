@@ -1,12 +1,4 @@
 import pytest
-from conftest import (
-    ADDRESS,
-    RET_ADDRESS,
-    STACK_ADDRESS,
-    TEST_CALLER_SAVED_REG,
-    TEST_DATA_REG,
-    TEST_DATA_SIZE,
-)
 from unicorn.riscv_const import (
     UC_RISCV_REG_PC,
     UC_RISCV_REG_RA,
@@ -28,6 +20,14 @@ from unicorn.riscv_const import (
 from gigue.builder import InstructionBuilder
 from gigue.constants import CMP_REG, HIT_CASE_REG, RA, SP
 from gigue.helpers import bytes_to_int, int_to_bytes64
+from tests.conftest import (
+    ADDRESS,
+    RET_ADDRESS,
+    STACK_ADDRESS,
+    TEST_CALLER_SAVED_REG,
+    TEST_DATA_REG,
+    TEST_DATA_SIZE,
+)
 
 # =================================
 #        Random instructions
@@ -121,10 +121,13 @@ def test_check_random_b_instruction_offset(max_offset, expected_offset, disasm_s
 def test_build_method_call(offset, disasm_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_method_call(offset)
+    gen_instrs = [instr.generate() for instr in instrs]
     assert instrs[0].name == "auipc"
     assert instrs[1].name == "jalr"
     # Disassembly
     disasm = disasm_setup
+    assert disasm.get_instruction_info(gen_instrs[0]).name == "auipc"
+    assert disasm.get_instruction_info(gen_instrs[1]).name == "jalr"
     assert offset == disasm.extract_call_offset([instr.generate() for instr in instrs])
 
 
@@ -139,6 +142,9 @@ def test_build_pic_call(offset, hit_case, disasm_setup):
     assert instrs[2].name == "jalr"
     # Disassembly
     disasm = disasm_setup
+    assert disasm.get_instruction_info(gen_instrs[0]).name == "addi"
+    assert disasm.get_instruction_info(gen_instrs[1]).name == "auipc"
+    assert disasm.get_instruction_info(gen_instrs[2]).name == "jalr"
     assert disasm.extract_rd(gen_instrs[0]) == HIT_CASE_REG
     assert disasm.extract_imm_i(gen_instrs[0]) == hit_case
     assert offset == disasm.extract_call_offset(gen_instrs[1:])
@@ -390,15 +396,11 @@ def test_random_l_disassembly_execution_smoke(
 # \__________________
 
 
-def consolidate_bytes(instructions):
-    return b"".join([instr.generate_bytes() for instr in instructions])
-
-
 @pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
 def test_build_method_call_execution(offset, uc_emul_full_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_method_call(offset)
-    bytes = consolidate_bytes(instrs)
+    bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     # cap_disasm = cap_disasm_setup
     # for i in cap_disasm.disasm(bytes, ADDRESS):
@@ -420,7 +422,7 @@ def test_build_method_call_execution(offset, uc_emul_full_setup):
 def test_build_pic_call_execution(offset, uc_emul_full_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_pic_call(offset, 5, 5)
-    bytes = consolidate_bytes(instrs)
+    bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     # cap_disasm = cap_disasm_setup
     # for i in cap_disasm.disasm(bytes, ADDRESS):
@@ -443,7 +445,7 @@ def test_build_switch_pic_execution(
     instrs = instr_builder.build_switch_case(
         case_number=case_number, method_offset=offset
     )
-    bytes = consolidate_bytes(instrs)
+    bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     # cap_disasm = cap_disasm_setup
     # for i in cap_disasm.disasm(bytes, ADDRESS):
@@ -469,7 +471,7 @@ def test_build_prologue_execution(
     instrs = instr_builder.build_prologue(
         used_s_regs=used_s_regs, local_var_nb=local_var_nb, contains_call=contains_call
     )
-    bytes = consolidate_bytes(instrs)
+    bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     # cap_disasm = cap_disasm_setup
     # for i in cap_disasm.disasm(bytes, ADDRESS):
@@ -509,7 +511,7 @@ def test_build_epilogue_execution(
     instrs = instr_builder.build_epilogue(
         used_s_regs=used_s_regs, local_var_nb=local_var_nb, contains_call=contains_call
     )
-    bytes = consolidate_bytes(instrs)
+    bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     # cap_disasm = cap_disasm_setup
     # for i in cap_disasm.disasm(bytes, ADDRESS):
