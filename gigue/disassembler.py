@@ -126,16 +126,16 @@ class Disassembler:
         offset_high = self.extract_imm_u(instructions[0])
         signed_offset_low = self.sign_extend(offset_low, 12)
         signed_offset_high = self.sign_extend(offset_high, 32)
-        print(
-            "Disassembler:\nlowo {}\nhigho {}\nsignlowo {}\nsignhigho {}\nsum"
-            " {}\n__________".format(
-                hex(offset_low),
-                hex(offset_high),
-                hex(signed_offset_low),
-                hex(signed_offset_high),
-                hex(signed_offset_low + signed_offset_high),
-            )
-        )
+        # print(
+        #     "Disassembler:\nlowo {}\nhigho {}\nsignlowo {}\nsignhigho {}\nsum"
+        #     " {}\n__________".format(
+        #         hex(offset_low),
+        #         hex(offset_high),
+        #         hex(signed_offset_low),
+        #         hex(signed_offset_high),
+        #         hex(signed_offset_low + signed_offset_high),
+        #     )
+        # )
         return signed_offset_low + signed_offset_high
 
     # ===================================

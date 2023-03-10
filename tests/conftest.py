@@ -134,6 +134,16 @@ class Handler:
         # Update the PC if the instruction handling went correctly
         uc_emul.reg_write(UC_RISCV_REG_PC, pc + 4)
 
+    def handle_execution(self, uc_emul, begin, until):
+        current_pc = begin
+        while current_pc != until:
+            try:
+                uc_emul.emu_start(current_pc, until)
+            except UcError:
+                self.handle_custom_instruction(uc_emul)
+            current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+        uc_emul.emu_stop()
+
 
 # =================================
 #           Instrumenters
