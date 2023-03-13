@@ -1,13 +1,10 @@
 import pytest
-
-from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_T3
+from unicorn.riscv_const import UC_RISCV_REG_T3
 
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.disassembler import Disassembler
-from gigue.fixer.constants import FIXER_CMP_REG
-from gigue.fixer.constants import FIXER_INSTRUCTIONS_INFO
+from gigue.fixer.constants import FIXER_CMP_REG, FIXER_INSTRUCTIONS_INFO
 from tests.conftest import Handler
-
 
 # Note: FIXER uses a duplicated call stack stored in the coprocessor memory.
 # To simulate this behavior, we use a software "register" for the handler to
@@ -23,7 +20,7 @@ class FIXERHandler(Handler):
         self.shadow_stack = []
 
     def handle_cficall(self, uc_emul):
-        return_addr = uc_emul.reg_read(UC_RISCV_REG_RA)
+        return_addr = uc_emul.reg_read(UC_FIXER_CMP_REG)
         self.shadow_stack.append(return_addr)
 
     def handle_cfiret(self, uc_emul):

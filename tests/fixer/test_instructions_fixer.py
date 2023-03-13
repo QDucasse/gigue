@@ -2,8 +2,8 @@ import pytest
 from unicorn import UcError
 
 from gigue.constants import RA
-from gigue.fixer.instructions import FIXERCustomInstruction
 from gigue.fixer.constants import FIXER_CMP_REG
+from gigue.fixer.instructions import FIXERCustomInstruction
 from tests.conftest import ADDRESS, RET_ADDRESS
 from tests.fixer.conftest import UC_FIXER_CMP_REG
 
