@@ -91,5 +91,27 @@ class RIMIJInstruction(JInstruction):
         return cls(name, RIMI_INSTRUCTIONS_INFO[name].opcode7, rd, imm)
 
     @classmethod
-    def jalx(cls, rd, rs1, imm):
-        return cls.j_instr("jalx", rd, rs1, imm)
+    def jalx(cls, rd, imm):
+        return cls.j_instr("jalx", rd, imm)
+
+
+if __name__ == "__main__":
+    instructions = [
+        # Base loads/stores in a correct domain
+        IInstruction.lw(rd=30, rs1=5, imm=0),
+        SInstruction.sw(rs1=5, rs2=30, imm=0),
+        # Duplicated load/store in a correct domain
+        RIMIIInstruction.lw1(rd=31, rs1=6, imm=0),
+        RIMISInstruction.sw1(rs1=6, rs2=30, imm=0),
+        # Base load/store in an incorrect domain
+        IInstruction.lw(rd=30, rs1=6, imm=0),
+        SInstruction.sw(rs1=6, rs2=30, imm=0),
+        # Duplicated load/store in an incorrect domain
+        RIMIIInstruction.lw1(rd=31, rs1=5, imm=0),
+        RIMISInstruction.sw1(rs1=5, rs2=30, imm=0),
+    ]
+
+    bytes = b"".join([instr.generate_bytes() for instr in instructions])
+
+    with open("bin/rimi.bin", "bw") as file:
+        file.write(bytes)
