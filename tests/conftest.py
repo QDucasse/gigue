@@ -9,7 +9,7 @@ from unicorn.riscv_const import (
     UC_RISCV_REG_SP,
     UC_RISCV_REG_T6,
 )
-from unicorn.unicorn_const import UC_ARCH_RISCV, UC_MODE_RISCV64
+from unicorn.unicorn_const import UC_ARCH_RISCV, UC_HOOK_INTR, UC_MODE_RISCV64
 
 from gigue.constants import CALLER_SAVED_REG
 from gigue.dataminer import Dataminer
@@ -103,10 +103,10 @@ class Handler:
     def __init__(self, disasm):
         self.disasm = disasm
 
-    def handle_example(self, uc_emul):
+    def handle_template(self, uc_emul, interrupt_no, size, user_data):
         pass
 
-    def handle_custom_instruction(self, uc_emul, expected=None):
+    def handle_custom_instruction(self, uc_emul, intno, user_data):
         # When catching an exception, Unicorn already
         # forwarded the pc
         pc = uc_emul.reg_read(UC_RISCV_REG_PC) - 4
@@ -115,8 +115,8 @@ class Handler:
             # Extracts the instruction name
             instr_name = self.disasm.get_instruction_info(instr).name
             # Compare it to the one expected (if needed)
-            if expected:
-                assert instr_name == expected
+            if user_data:
+                assert instr_name == user_data
             # Call the handler if it exists
             try:
                 handler_method = getattr(self.__class__, "handle_" + instr_name)
@@ -134,15 +134,13 @@ class Handler:
         # Update the PC if the instruction handling went correctly
         uc_emul.reg_write(UC_RISCV_REG_PC, pc + 4)
 
-    def handle_execution(self, uc_emul, begin, until):
-        current_pc = begin
-        while current_pc != until:
-            try:
-                uc_emul.emu_start(current_pc, until)
-            except UcError:
-                self.handle_custom_instruction(uc_emul)
-            current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-        uc_emul.emu_stop()
+    def hook_handler(self, uc_emul):
+        uc_emul.hook_add(UC_HOOK_INTR, self.handle_custom_instruction, user_data=None)
+
+    def hook_handler_expected(self, uc_emul, expected):
+        uc_emul.hook_add(
+            UC_HOOK_INTR, self.handle_custom_instruction, user_data=expected
+        )
 
 
 # =================================
