@@ -20,11 +20,16 @@ class FIXERHandler(Handler):
         self.shadow_stack = []
 
     def handle_cficall(self, uc_emul):
+        print("Handling cficall")
         return_addr = uc_emul.reg_read(UC_FIXER_CMP_REG)
+        print(return_addr)
         self.shadow_stack.append(return_addr)
 
     def handle_cfiret(self, uc_emul):
         uc_emul.reg_write(UC_FIXER_CMP_REG, self.shadow_stack.pop())
+
+    def handle_ecall(self, uc_emul):
+        uc_emul.emu_stop()
 
 
 @pytest.fixture

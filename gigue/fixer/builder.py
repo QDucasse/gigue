@@ -75,5 +75,5 @@ class FIXERInstructionBuilder(InstructionBuilder):
         )
 
         instructions.insert(-1, BInstruction.beq(rs1=RA, rs2=FIXER_CMP_REG, imm=8))
-        instructions.insert(-1, IInstruction.ebreak())
+        instructions.insert(-1, IInstruction.ecall())
         return instructions

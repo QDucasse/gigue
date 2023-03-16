@@ -1,7 +1,5 @@
 import pytest
-from unicorn import UcError
 
-from gigue.constants import RA
 from gigue.fixer.constants import FIXER_CMP_REG
 from gigue.fixer.instructions import FIXERCustomInstruction
 from tests.conftest import ADDRESS, RET_ADDRESS
@@ -35,7 +33,7 @@ def test_unicorn_fixer_cficall(
     uc_emul_full_setup,
     fixer_handler_setup,
 ):
-    instr = FIXERCustomInstruction.cficall(rd=0, rs1=RA, rs2=0)
+    instr = FIXERCustomInstruction.cficall(rd=0, rs1=FIXER_CMP_REG, rs2=0)
     bytes = instr.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_custom_setup
@@ -45,11 +43,10 @@ def test_unicorn_fixer_cficall(
     assert not fixer_handler.shadow_stack
     # Emulation
     uc_emul = uc_emul_full_setup
+    fixer_handler.hook_handler_expected(uc_emul, "cficall")
+    uc_emul.reg_write(UC_FIXER_CMP_REG, RET_ADDRESS)
     uc_emul.mem_write(ADDRESS, bytes)
-    try:
-        uc_emul.emu_start(ADDRESS, ADDRESS + 4)
-    except UcError:
-        fixer_handler.handle_custom_instruction(uc_emul, "cficall")
+    uc_emul.emu_start(ADDRESS, ADDRESS + 4)
     uc_emul.emu_stop()
     assert fixer_handler.shadow_stack[0] == RET_ADDRESS
 
@@ -70,11 +67,9 @@ def test_unicorn_fixer_cfiret(
     fixer_handler.shadow_stack.append(RET_ADDRESS)
     # Emulation
     uc_emul = uc_emul_full_setup
+    fixer_handler.hook_handler_expected(uc_emul, "cfiret")
     uc_emul.mem_write(ADDRESS, bytes)
-    try:
-        uc_emul.emu_start(ADDRESS, ADDRESS + 4)
-    except UcError:
-        fixer_handler.handle_custom_instruction(uc_emul, "cfiret")
+    uc_emul.emu_start(ADDRESS, ADDRESS + 4)
     uc_emul.emu_stop()
     assert not fixer_handler.shadow_stack
     # Compensate for unicorn reg shift

@@ -12,3 +12,7 @@ class FIXERCustomInstruction(CustomInstruction):
     @classmethod
     def cfiret(cls, rd, rs1, rs2):
         return cls.custom_instr("cfiret", rd, rs1, rs2)
+
+    @classmethod
+    def test(cls, rd, rs1, rs2):
+        return cls.custom_instr("test", rd, rs1, rs2)
