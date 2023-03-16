@@ -311,6 +311,10 @@ class IInstruction(Instruction):
     def ebreak(cls):
         return cls.i_instr("ebreak", 0, 0, 1)
 
+    @classmethod
+    def ecall(cls):
+        return cls.i_instr("ecall", 0, 0, 0)
+
 
 # TODO: Doc
 class UInstruction(Instruction):

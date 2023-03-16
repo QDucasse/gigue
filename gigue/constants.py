@@ -28,6 +28,7 @@ OP7_MASK = 0x0000007F
 OP7_OP3_MASK = 0x0000707F
 OP7_OP3_TOP7_MASK = 0xFE000707F
 OP7_OP3_TOP6_MASK = 0xFC000707F
+FULL_MASK = 0xFFFFFFFF
 
 
 class InstructionInfo:
@@ -51,6 +52,15 @@ class InstructionInfo:
         ) & self.cmp_mask
 
 
+class ExceptionInstructionInfo(InstructionInfo):
+    def __init__(self, imm, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.imm = imm
+        self.cmp_val = (
+            self.opcode7 + (self.opcode3 << 12) + (self.imm << 20)
+        ) & self.cmp_mask
+
+
 class CustomInstructionInfo(InstructionInfo):
     def __init__(
         self,
@@ -60,6 +70,7 @@ class CustomInstructionInfo(InstructionInfo):
         xs1: int = 0,
         xs2: int = 0,
         top7: int = 0,
+        cmp_mask: int = OP7_OP3_TOP7_MASK,
     ):
         custom_instr_info = INSTRUCTIONS_INFO["custom-" + str(custom_nb)]
         opcode7 = custom_instr_info.opcode7
@@ -74,13 +85,8 @@ class CustomInstructionInfo(InstructionInfo):
             opcode3=opcode3,
             instr_type=instr_type,
             top7=top7,
+            cmp_mask=cmp_mask,
         )
-
-
-def find_instr_for_opcode(opcode):
-    for info in INSTRUCTIONS_INFO.values():
-        if info.opcode7 == opcode:
-            return info
 
 
 INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
@@ -182,9 +188,12 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     # Xors
     "xor": InstructionInfo("xor", 0b0110011, 0b100, "R", cmp_mask=OP7_OP3_TOP7_MASK),
     "xori": InstructionInfo("xori", 0b0010011, 0b100, "I", cmp_mask=OP7_OP3_MASK),
-    # Breakpoint
-    "ebreak": InstructionInfo(
-        "ebreak", 0b1110011, 0b000, "I", cmp_mask=OP7_OP3_TOP7_MASK
+    # Exceptions
+    "ebreak": ExceptionInstructionInfo(
+        1, "ebreak", 0b1110011, 0b000, "I", cmp_mask=FULL_MASK
+    ),
+    "ecall": ExceptionInstructionInfo(
+        0, "ecall", 0b1110011, 0b000, "I", cmp_mask=FULL_MASK
     ),
     # Custom
     "custom-0": InstructionInfo(
