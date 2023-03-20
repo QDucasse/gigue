@@ -1,7 +1,7 @@
 from gigue.constants import InstructionInfo
 
-RIMI_SHADOW_STACK_REG = 31
-
+RIMI_SHADOW_STACK_REG = 28  # t3
+RIMI_DATA_REG_D1 = 29  # t4
 
 RIMI_INSTRUCTIONS_INFO = {
     # Rules to choose opcodes:
