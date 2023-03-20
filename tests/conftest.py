@@ -9,9 +9,14 @@ from unicorn.riscv_const import (
     UC_RISCV_REG_SP,
     UC_RISCV_REG_T6,
 )
-from unicorn.unicorn_const import UC_ARCH_RISCV, UC_HOOK_INTR, UC_MODE_RISCV64
+from unicorn.unicorn_const import (
+    UC_ARCH_RISCV,
+    UC_HOOK_CODE,
+    UC_HOOK_INTR,
+    UC_MODE_RISCV64,
+)
 
-from gigue.constants import CALLER_SAVED_REG
+from gigue.constants import CALLER_SAVED_REG, DATA_REG
 from gigue.dataminer import Dataminer
 from gigue.disassembler import Disassembler
 from gigue.exceptions import UnknownInstructionException
@@ -27,7 +32,7 @@ RET_ADDRESS = 0xBEE0
 # Note: Unicorn's 0 is the code for invalid reg so everything is shifted!
 # Warning: UC_DATA_REG should only be used in this file and the rest
 #          should transparently use TEST_DATA_REG
-TEST_DATA_REG = 31
+TEST_DATA_REG = DATA_REG
 assert TEST_DATA_REG + 1 == UC_RISCV_REG_T6
 UC_DATA_REG = UC_RISCV_REG_T6
 
@@ -103,9 +108,6 @@ class Handler:
     def __init__(self, disasm):
         self.disasm = disasm
 
-    def handle_template(self, uc_emul, interrupt_no, size, user_data):
-        pass
-
     def handle_custom_instruction(self, uc_emul, intno, user_data):
         # When catching an exception, Unicorn already
         # forwarded the pc
@@ -120,7 +122,7 @@ class Handler:
             # Call the handler if it exists
             try:
                 handler_method = getattr(self.__class__, "handle_" + instr_name)
-                handler_method(self, uc_emul)
+                handler_method(self, uc_emul, pc, instr)
             except AttributeError as err:
                 # Otherwise stop the simulation and raise an exception
                 uc_emul.emu_stop()
@@ -134,6 +136,10 @@ class Handler:
         # Update the PC if the instruction handling went correctly
         uc_emul.reg_write(UC_RISCV_REG_PC, pc + 4)
 
+    def trace_code(self, uc_emul, address, *args, **kwargs):
+        instr = bytes_to_int(uc_emul.mem_read(address, 4))
+        print(f">>> Tracing instruction {hex(instr)} at {hex(address)}")
+
     def hook_handler(self, uc_emul):
         uc_emul.hook_add(UC_HOOK_INTR, self.handle_custom_instruction, user_data=None)
 
@@ -141,6 +147,9 @@ class Handler:
         uc_emul.hook_add(
             UC_HOOK_INTR, self.handle_custom_instruction, user_data=expected
         )
+
+    def hook_tracer(self, uc_emul):
+        uc_emul.hook_add(UC_HOOK_CODE, self.trace_code)
 
 
 # =================================

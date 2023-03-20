@@ -40,7 +40,7 @@ setup(
         "Topic :: Utilities",
     ],
     python_requires=">=3.9",
-    install_requires=["capstone==5.0.0rc2", "unicorn==2.0.0rc7"],
+    install_requires=["capstone==5.0.0rc2", "unicorn==2.0.1.post1"],
     entry_points={
         "console_scripts": [
             "gigue = gigue.cli:main",

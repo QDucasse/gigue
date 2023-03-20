@@ -1,6 +1,6 @@
 import pytest
 from unicorn import UcError
-from unicorn.riscv_const import UC_RISCV_REG_T1, UC_RISCV_REG_T6
+from unicorn.riscv_const import UC_RISCV_REG_T1
 
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.helpers import to_signed, to_unsigned
@@ -13,7 +13,7 @@ from gigue.instructions import (
     SInstruction,
     UInstruction,
 )
-from tests.conftest import ADDRESS, DATA_ADDRESS, TEST_DATA_REG
+from tests.conftest import ADDRESS, DATA_ADDRESS, TEST_DATA_REG, UC_DATA_REG
 
 # =================================
 #            Helpers
@@ -341,7 +341,7 @@ def test_unicorn_iinstr_loads(name, expected, cap_disasm_setup, uc_emul_setup):
     )
     # Emulation
     uc_emul = uc_emul_setup
-    uc_emul.reg_write(UC_RISCV_REG_T6, DATA_ADDRESS)
+    uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_T1, 0x0)
     uc_emul.mem_write(DATA_ADDRESS, b"\xff\xff\xff\xff\xff\xff\xff\xff")
     uc_emul.mem_write(ADDRESS, bytes)
@@ -358,9 +358,7 @@ def test_unicorn_iinstr_loads_smoke(name, imm, uc_emul_setup):
     bytes = instr.generate_bytes()
     # Emulation
     uc_emul = uc_emul_setup
-    uc_emul.reg_write(
-        UC_RISCV_REG_T6, DATA_ADDRESS + 0x7FF
-    )  # To test negatives values!
+    uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS + 0x7FF)  # To test negatives values!
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, ADDRESS + 4)
     uc_emul.emu_stop()
@@ -540,7 +538,7 @@ def test_unicorn_sinstr(name, expected, cap_disasm_setup, uc_emul_setup):
     )
     # Emulation
     uc_emul = uc_emul_setup
-    uc_emul.reg_write(UC_RISCV_REG_T6, DATA_ADDRESS)
+    uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_T1, 0xFFFFFFFFFFFFFFFF)
     uc_emul.mem_write(DATA_ADDRESS, b"\x00\x00\x00\x00\x00\x00\x00\x00")
     uc_emul.mem_write(ADDRESS, bytes)
@@ -564,9 +562,7 @@ def test_unicorn_sinstr_smoke(name, imm, cap_disasm_setup, uc_emul_setup):
     # )
     # Emulation
     uc_emul = uc_emul_setup
-    uc_emul.reg_write(
-        UC_RISCV_REG_T6, DATA_ADDRESS + 0x7FF
-    )  # To test negative offsets!
+    uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS + 0x7FF)  # To test negative offsets!
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, ADDRESS + 4)
     uc_emul.emu_stop()
