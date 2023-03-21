@@ -1,13 +1,9 @@
 import pytest
-from unicorn.riscv_const import (
-    UC_RISCV_REG_RA,
-    UC_RISCV_REG_T3,
-    UC_RISCV_REG_T4,
-)
+from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_T3, UC_RISCV_REG_T4
 
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.disassembler import Disassembler
-from gigue.helpers import int_to_bytes32, int_to_bytes64
+from gigue.helpers import bytes_to_int, int_to_bytes32, int_to_bytes64
 from gigue.instructions import IInstruction, SInstruction
 from gigue.rimi.constants import (
     RIMI_DATA_REG_D1,
@@ -100,7 +96,7 @@ class RIMIHandler(Handler):
         # Read the return address from the shadow stack
         return_address = uc_emul.mem_read(ss_address, 8)
         # Write the return address in RA
-        uc_emul.reg_write(UC_RISCV_REG_RA, return_address)
+        uc_emul.reg_write(UC_RISCV_REG_RA, bytes_to_int(return_address))
 
     # Load duplicate instructions
     # \__________________________
