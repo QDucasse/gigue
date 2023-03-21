@@ -27,6 +27,6 @@ RIMI_INSTRUCTIONS_INFO = {
     "chdom": InstructionInfo("chdom", 0b1110111, 0b000, "I", cmp_mask=OP7_OP3_MASK),
     "retdom": InstructionInfo("retdom", 0b1111111, 0b000, "I", cmp_mask=OP7_OP3_MASK),
     # Shadow stack instructions
-    "sws": InstructionInfo("sws", 0b0111111, 0b111, "S", cmp_mask=OP7_OP3_MASK),
-    "lws": InstructionInfo("lws", 0b0011111, 0b111, "I", cmp_mask=OP7_OP3_MASK),
+    "ss": InstructionInfo("ss", 0b0111111, 0b111, "S", cmp_mask=OP7_OP3_MASK),
+    "ls": InstructionInfo("ls", 0b0011111, 0b111, "I", cmp_mask=OP7_OP3_MASK),
 }

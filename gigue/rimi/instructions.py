@@ -44,8 +44,8 @@ class RIMIIInstruction(IInstruction):
         return cls.i_instr("ld1", rd, rs1, imm)
 
     @classmethod
-    def lws(cls, rd, rs1, imm):
-        return cls.i_instr("lws", rd, rs1, imm)
+    def ls(cls, rd, rs1, imm):
+        return cls.i_instr("ls", rd, rs1, imm)
 
     @classmethod
     def chdom(cls, rd, rs1, imm):
@@ -85,8 +85,8 @@ class RIMISInstruction(SInstruction):
         return cls.s_instr("sd1", rs1, rs2, imm)
 
     @classmethod
-    def sws(cls, rs1, rs2, imm):
-        return cls.s_instr("sws", rs1, rs2, imm)
+    def ss(cls, rs1, rs2, imm):
+        return cls.s_instr("ss", rs1, rs2, imm)
 
 
 if __name__ == "__main__":
