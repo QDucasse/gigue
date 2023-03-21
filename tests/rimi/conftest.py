@@ -47,7 +47,7 @@ class RIMIHandler(Handler):
         # Writing to PC refreshes the emulation
         # uc_emul.reg_write(UC_RISCV_REG_PC, pc)
         # Execute it
-        uc_emul.emu_start(begin=pc, until=pc + 4)
+        uc_emul.emu_start(begin=pc, until=0, timeout=0, count=1)
         # Repatch with the old instruction
         self.patch_instruction(uc_emul, pc, old_instr)
 
@@ -63,7 +63,7 @@ class RIMIHandler(Handler):
     # Info extraction
     # \______________
 
-    def generate_new_load(self, instr, method):
+    def generate_new_iinstr(self, instr, method):
         # Extract info
         rd = self.disasm.extract_rd(instr)
         rs1 = self.disasm.extract_rs1(instr)
@@ -71,7 +71,7 @@ class RIMIHandler(Handler):
         # Generate bytes from given constructor
         return method(rd=rd, rs1=rs1, imm=imm).generate_bytes()
 
-    def generate_new_store(self, instr, method):
+    def generate_new_sinstr(self, instr, method):
         # Extract info
         rs1 = self.disasm.extract_rs1(instr)
         rs2 = self.disasm.extract_rs2(instr)
@@ -102,60 +102,66 @@ class RIMIHandler(Handler):
     # \__________________________
 
     def handle_lb1(self, uc_emul, pc, instr):
-        new_instr = self.generate_new_load(instr, IInstruction.lb)
+        new_instr = self.generate_new_iinstr(instr, IInstruction.lb)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     def handle_lbu1(self, uc_emul, pc, instr):
-        new_instr = self.generate_new_load(instr, IInstruction.lbu)
+        new_instr = self.generate_new_iinstr(instr, IInstruction.lbu)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     def handle_lh1(self, uc_emul, pc, instr):
-        new_instr = self.generate_new_load(instr, IInstruction.lh)
+        new_instr = self.generate_new_iinstr(instr, IInstruction.lh)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     def handle_lhu1(self, uc_emul, pc, instr):
-        new_instr = self.generate_new_load(instr, IInstruction.lhu)
+        new_instr = self.generate_new_iinstr(instr, IInstruction.lhu)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     def handle_lw1(self, uc_emul, pc, instr):
-        new_instr = self.generate_new_load(instr, IInstruction.lw)
+        new_instr = self.generate_new_iinstr(instr, IInstruction.lw)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     def handle_lwu1(self, uc_emul, pc, instr):
-        new_instr = self.generate_new_load(instr, IInstruction.lwu)
+        new_instr = self.generate_new_iinstr(instr, IInstruction.lwu)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     def handle_ld1(self, uc_emul, pc, instr):
-        new_instr = self.generate_new_load(instr, IInstruction.ld)
+        new_instr = self.generate_new_iinstr(instr, IInstruction.ld)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     # Store duplicate instructions
     # \___________________________
 
     def handle_sb1(self, uc_emul, pc, instr):
-        new_instr = self.generate_new_store(instr, SInstruction.sb)
+        new_instr = self.generate_new_sinstr(instr, SInstruction.sb)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     def handle_sh1(self, uc_emul, pc, instr):
-        new_instr = self.generate_new_store(instr, SInstruction.sh)
+        new_instr = self.generate_new_sinstr(instr, SInstruction.sh)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     def handle_sw1(self, uc_emul, pc, instr):
-        new_instr = self.generate_new_store(instr, SInstruction.sw)
+        new_instr = self.generate_new_sinstr(instr, SInstruction.sw)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     def handle_sd1(self, uc_emul, pc, instr):
-        new_instr = self.generate_new_store(instr, SInstruction.sd)
+        new_instr = self.generate_new_sinstr(instr, SInstruction.sd)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     # Domain change instructions
     # \_________________________
 
-    def handle_jalx(self, uc_emul, instr):
-        pass
+    def handle_chdom(self, uc_emul, pc, instr):
+        assert self.current_domain == 0
+        new_instr = self.generate_new_iinstr(instr, IInstruction.jalr)
+        self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
+        self.current_domain = 1
 
-    def handle_jalrx(self, uc_emul, instr):
-        pass
+    def handle_retdom(self, uc_emul, pc, instr):
+        assert self.current_domain == 1
+        new_instr = IInstruction.ret().generate_bytes()
+        self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
+        self.current_domain = 0
 
 
 @pytest.fixture

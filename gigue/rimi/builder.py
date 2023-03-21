@@ -10,7 +10,7 @@ from gigue.constants import HIT_CASE_REG, RA
 from gigue.helpers import align
 from gigue.instructions import IInstruction, UInstruction
 from gigue.rimi.constants import RIMI_SHADOW_STACK_REG
-from gigue.rimi.instructions import RIMIIInstruction, RIMIJInstruction, RIMISInstruction
+from gigue.rimi.instructions import RIMIIInstruction, RIMISInstruction
 
 
 class RIMIShadowStackInstructionBuilder(InstructionBuilder):
@@ -126,7 +126,7 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
         # ))
         return [
             UInstruction.auipc(1, offset_high),
-            RIMIJInstruction.jalx(1, 1, offset_low),
+            RIMIIInstruction.chdom(1, 1, offset_low),
         ]
 
     @staticmethod
@@ -148,7 +148,7 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
         return [
             IInstruction.addi(rd=hit_case_reg, rs1=0, imm=hit_case),
             UInstruction.auipc(rd=1, imm=offset_high),
-            RIMIJInstruction.jalx(rd=1, rs1=1, imm=offset_low),
+            RIMIIInstruction.chdom(rd=1, rs1=1, imm=offset_low),
         ]
 
     # 3. Shadow stack instructions

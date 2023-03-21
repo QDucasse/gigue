@@ -1,4 +1,4 @@
-from gigue.instructions import IInstruction, JInstruction, SInstruction
+from gigue.instructions import IInstruction, SInstruction
 from gigue.rimi.constants import RIMI_INSTRUCTIONS_INFO
 
 
@@ -48,8 +48,12 @@ class RIMIIInstruction(IInstruction):
         return cls.i_instr("lws", rd, rs1, imm)
 
     @classmethod
-    def jalrx(cls):
-        return cls.i_instr("jalrx", 0, 1, 0)
+    def chdom(cls, rd, rs1, imm):
+        return cls.i_instr("chdom", rd, rs1, imm)
+
+    @classmethod
+    def retdom(cls):
+        return cls.i_instr("retdom", 0, 1, 0)
 
 
 class RIMISInstruction(SInstruction):
@@ -83,16 +87,6 @@ class RIMISInstruction(SInstruction):
     @classmethod
     def sws(cls, rs1, rs2, imm):
         return cls.s_instr("sws", rs1, rs2, imm)
-
-
-class RIMIJInstruction(JInstruction):
-    @classmethod
-    def j_instr(cls, name, rd, imm):
-        return cls(name, RIMI_INSTRUCTIONS_INFO[name].opcode7, rd, imm)
-
-    @classmethod
-    def jalx(cls, rd, imm):
-        return cls.j_instr("jalx", rd, imm)
 
 
 if __name__ == "__main__":
