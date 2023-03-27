@@ -105,10 +105,6 @@ def test_switch_instructions_adding(
         weights=INSTRUCTION_WEIGHTS,
     )
     pic.add_switch_instructions()
-    # bytes = pic.generate_bytes()
-    # cap_disasm = cap_disasm_setup
-    # for i in cap_disasm.disasm(bytes, ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Switch instructions should hold the different switch cases and a final ret
     assert len(pic.switch_instructions) == case_nb + 1
     assert len(flatten_list(pic.switch_instructions)) == pic.get_switch_size()
@@ -156,9 +152,8 @@ def test_disassembly_execution(
     pic_bytes = pic.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
-    cap_disasm.disasm(pic_bytes, ADDRESS)
-    # for i in cap_disasm.disasm(pic_bytes, ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    for _ in cap_disasm.disasm(pic_bytes, ADDRESS):
+        pass
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)

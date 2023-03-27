@@ -357,13 +357,9 @@ def test_random_s_disassembly_execution_smoke(
     bytes = instr.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
-    i = next(cap_disasm.disasm(bytes, ADDRESS))
-    print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    next(cap_disasm.disasm(bytes, ADDRESS))
     # Emulation
     uc_emul = uc_emul_full_setup
-    read_data_reg = hex(uc_emul.reg_read(UC_RISCV_REG_T1))
-    print(read_data_reg)
-    # print(hex(uc_emul.mem_read(, 8) + 4))
     bytes = instr.generate_bytes()
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, 0, count=1)
@@ -397,36 +393,34 @@ def test_random_l_disassembly_execution_smoke(
 
 
 @pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
-def test_build_method_call_execution(offset, uc_emul_full_setup):
+def test_build_method_call_execution(offset, uc_emul_full_setup, cap_disasm_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_method_call(offset)
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
-    # cap_disasm = cap_disasm_setup
-    # for i in cap_disasm.disasm(bytes, ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    cap_disasm = cap_disasm_setup
+    for _ in cap_disasm.disasm(bytes, ADDRESS):
+        pass
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(begin=ADDRESS, until=ADDRESS + offset)
     current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
     current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-    # print(current_pc)
-    # print(current_ra)
     assert current_ra == ADDRESS + 8  # size of the
     assert current_pc == ADDRESS + offset
     uc_emul.emu_stop()
 
 
 @pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
-def test_build_pic_call_execution(offset, uc_emul_full_setup):
+def test_build_pic_call_execution(offset, uc_emul_full_setup, cap_disasm_setup):
     instr_builder = InstructionBuilder()
     instrs = instr_builder.build_pic_call(offset, 5, 5)
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
-    # cap_disasm = cap_disasm_setup
-    # for i in cap_disasm.disasm(bytes, ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    cap_disasm = cap_disasm_setup
+    for _ in cap_disasm.disasm(bytes, ADDRESS):
+        pass
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
@@ -447,9 +441,9 @@ def test_build_switch_pic_execution(
     )
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
-    # cap_disasm = cap_disasm_setup
-    # for i in cap_disasm.disasm(bytes, ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    cap_disasm = cap_disasm_setup
+    for _ in cap_disasm.disasm(bytes, ADDRESS):
+        pass
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
@@ -473,9 +467,9 @@ def test_build_prologue_execution(
     )
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
-    # cap_disasm = cap_disasm_setup
-    # for i in cap_disasm.disasm(bytes, ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    cap_disasm = cap_disasm_setup
+    for _ in cap_disasm.disasm(bytes, ADDRESS):
+        pass
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
@@ -513,9 +507,9 @@ def test_build_epilogue_execution(
     )
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
-    # cap_disasm = cap_disasm_setup
-    # for i in cap_disasm.disasm(bytes, ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    cap_disasm = cap_disasm_setup
+    for _ in cap_disasm.disasm(bytes, ADDRESS):
+        pass
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
@@ -543,11 +537,10 @@ def test_build_epilogue_execution(
         uc_emul.mem_write(
             STACK_ADDRESS + used_s_regs * 8, int_to_bytes64(called_address)
         )
-
+    # Setup capstone
     cap_disasm = cap_disasm_setup
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-
+    for _ in cap_disasm.disasm(bytes, ADDRESS):
+        pass
     # Launch emulation
     uc_emul.emu_start(
         begin=ADDRESS, until=(called_address if contains_call else RET_ADDRESS)

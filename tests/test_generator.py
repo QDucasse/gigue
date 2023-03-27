@@ -300,9 +300,9 @@ def test_execute_generated_binaries(
     #     )
     # )
     # Capstone disasm:
-    # cap_disasm = cap_disasm_setup
-    # for i in cap_disasm.disasm(interpreter_binary, INTERPRETER_START_ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    cap_disasm = cap_disasm_setup
+    for _ in cap_disasm.disasm(interpreter_binary, INTERPRETER_START_ADDRESS):
+        pass
     jit_binary = generator.generate_jit_binary()
     # Binary infos:
     # print(
@@ -313,8 +313,8 @@ def test_execute_generated_binaries(
     #     )
     # )
     # Capstone disasm:
-    # for i in cap_disasm.disasm(jit_binary, JIT_START_ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    for _ in cap_disasm.disasm(jit_binary, JIT_START_ADDRESS):
+        pass
     data_binary = generator.generate_data_binary()
     uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
     uc_emul.mem_map(INTERPRETER_START_ADDRESS, 2 * 1024 * 1024)

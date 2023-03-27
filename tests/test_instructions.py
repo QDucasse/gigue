@@ -334,11 +334,7 @@ def test_unicorn_iinstr_loads(name, expected, cap_disasm_setup, uc_emul_setup):
     bytes = instr.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
-    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
-    print(
-        "0x%x:\t%s\t%s"
-        % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str)
-    )
+    next(cap_disasm.disasm(bytes, ADDRESS))
     # Emulation
     uc_emul = uc_emul_setup
     uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS)
@@ -531,11 +527,7 @@ def test_unicorn_sinstr(name, expected, cap_disasm_setup, uc_emul_setup):
     bytes = instr.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
-    instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
-    print(
-        "0x%x:\t%s\t%s"
-        % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str)
-    )
+    next(cap_disasm.disasm(bytes, ADDRESS))
     # Emulation
     uc_emul = uc_emul_setup
     uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS)
@@ -554,12 +546,8 @@ def test_unicorn_sinstr_smoke(name, imm, cap_disasm_setup, uc_emul_setup):
     instr = constr(rs1=TEST_DATA_REG, rs2=6, imm=imm)
     bytes = instr.generate_bytes()
     # Disassembly
-    # cap_disasm = cap_disasm_setup
-    # instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
-    # print(
-    #     "0x%x:\t%s\t%s"
-    #     % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str)
-    # )
+    cap_disasm = cap_disasm_setup
+    next(cap_disasm.disasm(bytes, ADDRESS))
     # Emulation
     uc_emul = uc_emul_setup
     uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS + 0x7FF)  # To test negative offsets!
@@ -603,21 +591,3 @@ def test_capstone_binstr(name, imm, cap_disasm_setup):
     assert instr_disasm.op_str == "t0, t1, " + imm_str(
         to_signed(to_unsigned(imm, 13) & 0x1FFE, 13)
     )
-
-
-if __name__ == "__main__":
-    from capstone import CS_ARCH_RISCV, CS_MODE_RISCV64, Cs
-
-    from gigue.helpers import int_to_bytes32
-
-    add = RInstruction.add(rd=5, rs1=6, rs2=7)
-    code = int_to_bytes32(add.generate())
-    print(code)
-    md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
-
-    # code = b'\x01\x02\x92\xbb'
-    code = b"\xbb\x92\x02\x01"
-    for i in md.disasm(code, 0x1000):
-        print(i.address)
-        print(i.mnemonic)
-        print(i.op_str)

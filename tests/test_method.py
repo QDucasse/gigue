@@ -1,5 +1,5 @@
 import pytest
-from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_T6
+from unicorn.riscv_const import UC_RISCV_REG_RA
 
 from gigue.constants import DATA_REG, DATA_SIZE, INSTRUCTION_WEIGHTS
 from gigue.exceptions import (
@@ -136,10 +136,6 @@ def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
         weights=INSTRUCTION_WEIGHTS,
     )
     method.patch_calls([callee1, callee2, callee3])
-    # Capstone disassembly
-    # cap_disasm = cap_disasm_setup
-    # for i in cap_disasm.disasm(method.generate_bytes(), ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Tests correct jump offsets
     mc_method = method.generate()
     body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
@@ -210,10 +206,10 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
     )
     method.patch_calls([callee1, callee2, callee3])
     # Capstone disassembly
-    # bytes_method = method.generate_bytes()
-    # cap_disasm = cap_disasm_setup
-    # for i in cap_disasm.disasm(bytes_method, ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    bytes_method = method.generate_bytes()
+    cap_disasm = cap_disasm_setup
+    for _ in cap_disasm.disasm(bytes_method, ADDRESS):
+        pass
     # Tests correct jump offsets
     mc_method = method.generate()
     body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
@@ -340,13 +336,10 @@ def test_instructions_disassembly_execution_smoke(
     bytes = method.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
-    # i = next(cap_disasm.disasm(bytes, ADDRESS))
-    # print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    for _ in cap_disasm.disasm(bytes, ADDRESS):
+        pass
     # Emulation
     uc_emul = uc_emul_full_setup
-    print(hex(uc_emul.reg_read(UC_RISCV_REG_T6)))
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     uc_emul.mem_write(ADDRESS, bytes)
     # from conftest import instrument_execution
@@ -357,7 +350,8 @@ def test_instructions_disassembly_execution_smoke(
 
 @pytest.mark.parametrize("execution_number", range(30))
 def test_patch_calls_disassembly_execution(
-    execution_number, uc_emul_full_setup, cap_disasm_setup
+    execution_number,
+    uc_emul_full_setup,
 ):
     method = Method(
         address=ADDRESS,
@@ -405,21 +399,6 @@ def test_patch_calls_disassembly_execution(
     )
     method.patch_calls([callee1, callee2, callee3])
     bytes_method = method.generate_bytes()
-    # Disassembly
-    # cap_disasm = cap_disasm_setup
-    # print("Method disassembly:")
-    # for i in cap_disasm.disasm(bytes_method, ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-    # print("C1 disassembly:")
-    # for i in cap_disasm.disasm(callee1.generate_bytes(), callee1.address):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-    # print("C2 disassembly:")
-    # for i in cap_disasm.disasm(callee1.generate_bytes(), callee1.address):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-    # print("C3 disassembly:")
-    # for i in cap_disasm.disasm(callee1.generate_bytes(), callee1.address):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-
     bytes_callee1 = callee1.generate_bytes()
     bytes_callee2 = callee2.generate_bytes()
     bytes_callee3 = callee3.generate_bytes()
@@ -434,48 +413,4 @@ def test_patch_calls_disassembly_execution(
 
     # from conftest import instrument_execution
     # instrument_execution(uc_emul, ADDRESS)
-    uc_emul.emu_stop()
-
-
-if __name__ == "__main__":
-    from capstone import CS_ARCH_RISCV, CS_MODE_RISCV64, Cs
-    from unicorn import Uc
-    from unicorn.unicorn_const import UC_ARCH_RISCV, UC_MODE_RISCV64
-
-    from gigue.instructions import IInstruction
-
-    cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
-    method = Method(address=0x1000, body_size=32, call_number=3)
-    callee1 = Method(address=0x1100, body_size=2, call_number=0)
-    callee2 = Method(address=0x1200, body_size=2, call_number=0)
-    callee3 = Method(address=0x1300, body_size=2, call_number=0)
-    method.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=[35, 40, 10, 5, 10],
-    )
-    method.patch_calls([callee1, callee2, callee3])
-    bytes = method.generate_bytes()
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-    uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
-    uc_emul.mem_map(ADDRESS, 2 * 1024 * 1024)
-    # Fill memory with nops up to B000 by default
-    for addr in range(ADDRESS, RET_ADDRESS + 4, 4):
-        uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
-    uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
-    # Zero out registers
-    for reg in TEST_CALLER_SAVED_REG:
-        uc_emul.reg_write(reg, 0)
-    uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
-    for addr in range(ADDRESS, RET_ADDRESS + 4, 4):
-        uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
-    uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
-    uc_emul.mem_write(ADDRESS, bytes)
-    # for i in cap_disasm.disasm(
-    #     uc_emul.mem_read(ADDRESS, ADDRESS + 32), ADDRESS
-    # ):  # RET_ADDRESS - ADDRESS + 8
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-    uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()

@@ -2,7 +2,7 @@ import logging
 
 import pytest
 from capstone import CS_ARCH_RISCV, CS_MODE_RISCV64, Cs
-from unicorn import Uc, UcError
+from unicorn import Uc
 from unicorn.riscv_const import (
     UC_RISCV_REG_PC,
     UC_RISCV_REG_RA,
@@ -68,6 +68,11 @@ def cap_disasm_custom_setup():
 
 def disassemble_custom_callback(buffer, size, offset, userdata):
     return 4
+
+
+def cap_disasm_bytes(cap_disasm, bytes, address):
+    for i in cap_disasm.disasm(bytes, address):
+        print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
 
 
 # =================================
@@ -136,9 +141,24 @@ class Handler:
         # Update the PC if the instruction handling went correctly
         uc_emul.reg_write(UC_RISCV_REG_PC, pc + 4)
 
-    def trace_code(self, uc_emul, address, *args, **kwargs):
+    # Tracing methods for instrumentation
+    # \__________________________________
+
+    def trace_instr(self, uc_emul, address, *args, **kwargs):
         instr = bytes_to_int(uc_emul.mem_read(address, 4))
         print(f">>> Tracing instruction {hex(instr)} at {hex(address)}")
+
+    def trace_reg(self, uc_emul, address, *args, **kwargs):
+        current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+        current_sp = uc_emul.reg_read(UC_RISCV_REG_SP)
+        current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
+        print(
+            f">>> Tracing registers PC:{hex(current_pc)}, SP:{hex(current_sp)},"
+            f" RA:{hex(current_ra)}"
+        )
+
+    # Hook installers
+    # \______________
 
     def hook_handler(self, uc_emul):
         uc_emul.hook_add(UC_HOOK_INTR, self.handle_custom_instruction, user_data=None)
@@ -148,51 +168,16 @@ class Handler:
             UC_HOOK_INTR, self.handle_custom_instruction, user_data=expected
         )
 
-    def hook_tracer(self, uc_emul):
-        uc_emul.hook_add(UC_HOOK_CODE, self.trace_code)
+    def hook_instr_tracer(self, uc_emul):
+        uc_emul.hook_add(UC_HOOK_CODE, self.trace_instr)
+
+    def hook_reg_tracer(self, uc_emul):
+        uc_emul.hook_add(UC_HOOK_CODE, self.trace_reg)
 
 
-# =================================
-#           Instrumenters
-# =================================
-
-
-def instrument_execution(uc_emul, start_address, ret_address=RET_ADDRESS):
-    previous_pc = start_address
-    try:
-        while True:
-            uc_emul.emu_start(begin=previous_pc, until=0, timeout=0, count=1)
-            pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-            print(f"PC:{hex(pc)}")
-            ra = uc_emul.reg_read(UC_RISCV_REG_RA)
-            print(f"RA:{hex(ra)}")
-            print("____")
-            previous_pc = pc
-    except UcError:
-        pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-        ra = uc_emul.reg_read(UC_RISCV_REG_RA)
-        if pc == ra:
-            assert True
-            return
-        print(f"Exception !!! PC:{hex(pc)}")
-        assert False
-
-
-def instrument_stack(uc_emul, start_address):
-    previous_pc = start_address
-    try:
-        while True:
-            uc_emul.emu_start(previous_pc, 0, 0, 1)
-            sp = uc_emul.reg_read(UC_RISCV_REG_SP)
-            print(f"SP:{hex(sp)}")
-            pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-            previous_pc = pc
-    except UcError:
-        pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-        ra = uc_emul.reg_read(UC_RISCV_REG_RA)
-        sp = uc_emul.reg_read(UC_RISCV_REG_SP)
-        print(f"Exception !!! PC:{hex(pc)}, RA:{hex(ra)}, SP:{hex(sp)}")
-        assert False
+@pytest.fixture
+def handler_setup(disasm_setup):
+    return Handler(disasm_setup)
 
 
 # =================================
