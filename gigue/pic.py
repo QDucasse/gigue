@@ -46,6 +46,9 @@ class PIC:
         self.machine_code: List[int] = []
         self.bytes: bytes = b""
 
+    # Helpers
+    # \_______
+
     def log_prefix(self):
         return f"🍏 {hex(self.address)}:"
 
@@ -73,6 +76,9 @@ class PIC:
             raise
         return total_size
 
+    # Call-related methods
+    # \____________________
+
     def accept_build_call(self, method_offset):
         hit_case = random.randint(1, self.case_number)
         try:
@@ -82,6 +88,9 @@ class PIC:
             logger.exception(err)
             raise
         return instrs
+
+    # Case/Switch Filling
+    # \___________________
 
     def add_case_methods(self, *args, **kwargs):
         logger.info(f"{self.log_prefix()} Adding case methods.")
@@ -143,6 +152,9 @@ class PIC:
         )
         self.add_switch_instructions()
         logger.info(f"{self.log_prefix()} PIC filled.")
+
+    # Generation
+    # \__________
 
     def generate(self):
         for case in self.switch_instructions:

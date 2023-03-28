@@ -53,6 +53,9 @@ class Method:
         self.machine_code: List[int] = []
         self.bytes: bytes = b""
 
+    # Helpers
+    # \_______
+
     @classmethod
     def compute_max_call_number(cls, body_size):
         # The calls will be added once random instructions are generated to
@@ -71,6 +74,9 @@ class Method:
         if self.prologue_size == 0 or self.epilogue_size == 0:
             raise EmptySectionException("Prologue or epilogue has not been set.")
         return self.body_size + self.prologue_size + self.epilogue_size
+
+    # Instruction Filling
+    # \___________________
 
     def fill_with_nops(self):
         for _ in range(self.body_size):
@@ -108,6 +114,9 @@ class Method:
         self.epilogue_size = len(epilogue_instructions)
         logger.info(f"{self.log_prefix()} Method filled.")
 
+    # Generation
+    # \__________
+
     def generate(self):
         self.machine_code = [
             instruction.generate() for instruction in self.instructions
@@ -118,6 +127,9 @@ class Method:
         for instruction in self.instructions:
             self.bytes += instruction.generate_bytes()
         return self.bytes
+
+    # Call-related methods
+    # \____________________
 
     def accept_build_call(self, method_offset):
         try:
