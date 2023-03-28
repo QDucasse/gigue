@@ -1,4 +1,6 @@
 import logging
+import os
+import random
 
 import pytest
 from capstone import CS_ARCH_RISCV, CS_MODE_RISCV64, Cs
@@ -23,22 +25,10 @@ from gigue.exceptions import UnknownInstructionException
 from gigue.helpers import bytes_to_int
 from gigue.instructions import IInstruction
 
-ADDRESS = 0x1000
-STACK_ADDRESS = 0x9000
-DATA_ADDRESS = 0xE000
-RET_ADDRESS = 0xBEE0
-
-# Check for correct test data reg, config vs unicorn one
-# Note: Unicorn's 0 is the code for invalid reg so everything is shifted!
-# Warning: UC_DATA_REG should only be used in this file and the rest
-#          should transparently use TEST_DATA_REG
-TEST_DATA_REG = DATA_REG
-assert TEST_DATA_REG + 1 == UC_RISCV_REG_T6
-UC_DATA_REG = UC_RISCV_REG_T6
-
-TEST_CALLER_SAVED_REG = [reg for reg in CALLER_SAVED_REG if reg != TEST_DATA_REG]
-TEST_DATA_SIZE = 1024
-
+# Seed for reproducibility
+SEED = bytes_to_int(os.urandom(16))
+# SEED = 248211043577579144151423267814312480480
+random.seed(SEED)
 
 # =================================
 #   Disassembler/Capstone setup
@@ -79,18 +69,38 @@ def cap_disasm_bytes(cap_disasm, bytes, address):
 #         Unicorn setup
 # =================================
 
+# Address layout for tests
+ADDRESS = 0x1000
+STACK_ADDRESS = 0x1FFF0
+DATA_ADDRESS = 0xE000
+
+INTERPRETER_START_ADDRESS = 0x1000
+JIT_START_ADDRESS = 0x3000
+RET_ADDRESS = 0x20000
+
+# Check for correct test data reg, config vs unicorn one
+# Note: Unicorn's 0 is the code for invalid reg so everything is shifted!
+# Warning: UC_DATA_REG should only be used in this file and the rest
+#          should transparently use TEST_DATA_REG
+TEST_DATA_REG = DATA_REG
+assert TEST_DATA_REG + 1 == UC_RISCV_REG_T6
+UC_DATA_REG = UC_RISCV_REG_T6
+
+TEST_CALLER_SAVED_REG = [reg for reg in CALLER_SAVED_REG if reg != TEST_DATA_REG]
+TEST_DATA_SIZE = 1024
+
 
 @pytest.fixture
 def uc_emul_setup():
     uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
-    uc_emul.mem_map(ADDRESS, 2 * 1024 * 1024)
+    uc_emul.mem_map(ADDRESS, 3 * 1024 * 1024)
     return uc_emul
 
 
 @pytest.fixture
 def uc_emul_full_setup(uc_emul_setup):
     uc_emul = uc_emul_setup
-    # Fill memory with nops up to B000 by default
+    # Fill memory with nops up to RET_ADDRESS by default
     for addr in range(ADDRESS, RET_ADDRESS + 4, 4):
         uc_emul.mem_write(addr, IInstruction.ebreak().generate_bytes())
     # Zero out registers
@@ -148,7 +158,7 @@ class Handler:
         instr = bytes_to_int(uc_emul.mem_read(address, 4))
         print(f">>> Tracing instruction {hex(instr)} at {hex(address)}")
 
-    def trace_reg(self, uc_emul, address, *args, **kwargs):
+    def trace_reg(self, uc_emul, *args, **kwargs):
         current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
         current_sp = uc_emul.reg_read(UC_RISCV_REG_SP)
         current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
@@ -156,6 +166,10 @@ class Handler:
             f">>> Tracing registers PC:{hex(current_pc)}, SP:{hex(current_sp)},"
             f" RA:{hex(current_ra)}"
         )
+
+    def trace_exception(self, uc_emul, intno, user_data):
+        print(f">>> SEED {SEED}: Unicorn exception nb {intno}, tracing info")
+        self.trace_reg(uc_emul)
 
     # Hook installers
     # \______________
@@ -173,6 +187,9 @@ class Handler:
 
     def hook_reg_tracer(self, uc_emul):
         uc_emul.hook_add(UC_HOOK_CODE, self.trace_reg)
+
+    def hook_exception_tracer(self, uc_emul):
+        uc_emul.hook_add(UC_HOOK_INTR, self.trace_exception)
 
 
 @pytest.fixture

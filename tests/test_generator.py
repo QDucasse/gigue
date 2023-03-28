@@ -1,21 +1,15 @@
 import pytest
-from capstone import CS_ARCH_RISCV, CS_MODE_RISCV64, Cs
-from unicorn import Uc
-from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_SP
-from unicorn.unicorn_const import UC_ARCH_RISCV, UC_MODE_RISCV64
 
-from gigue.constants import CALLER_SAVED_REG
-from gigue.disassembler import Disassembler
 from gigue.exceptions import WrongAddressException
 from gigue.generator import Generator
-from gigue.instructions import IInstruction
 from gigue.method import Method
 from gigue.pic import PIC
 from tests.conftest import (
-    DATA_ADDRESS,
+    INTERPRETER_START_ADDRESS,
+    JIT_START_ADDRESS,
+    RET_ADDRESS,
     TEST_DATA_REG,
     TEST_DATA_SIZE,
-    UC_DATA_REG,
     cap_disasm_bytes,
 )
 
@@ -23,12 +17,11 @@ from tests.conftest import (
 #            Constants
 # =================================
 
-disassembler = Disassembler()
-INTERPRETER_START_ADDRESS = 0x1000
-JIT_START_ADDRESS = 0x3000
-STACK_ADDRESS = 0x10000
-END_ADDRESS = 0xFFF0
-cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
+# INTERPRETER_START_ADDRESS = 0x1000
+# JIT_START_ADDRESS = 0x3000
+# STACK_ADDRESS = 0x10000
+# END_ADDRESS = 0x20000
+# cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
 
 
 # =================================
@@ -270,35 +263,35 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
 # =================================
 
 
-def bin_info(cap_disasm, binary, address):
+def bin_info(binary, address, disasm=False):
     print(
         f"Binary: from {hex(address)} to {hex(address + len(binary)) } (length"
         f" {len(binary)})\n\\_____________________________\n"
     )
-    cap_disasm_bytes(cap_disasm, binary, address)
+    if disasm:
+        cap_disasm_bytes(bytes=binary, address=address)
     print("---\n\n")
 
 
 @pytest.mark.parametrize(
     "jit_elements_nb",
-    [
-        5, 20, 100, 200
-    ],
+    [5, 20, 200],
 )
 @pytest.mark.parametrize(
     "method_max_size",
-    [
-        5, 20, 50
-    ],
+    [5, 20, 50],
 )
 @pytest.mark.parametrize(
     "pics_ratio",
-    [
-        0, 0.2, 0.5
-    ],
+    [0, 0.2, 0.5],
 )
 def test_execute_generated_binaries(
-    jit_elements_nb, method_max_size, pics_ratio, cap_disasm_setup, handler_setup
+    jit_elements_nb,
+    method_max_size,
+    pics_ratio,
+    cap_disasm_setup,
+    handler_setup,
+    uc_emul_full_setup,
 ):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
@@ -320,37 +313,26 @@ def test_execute_generated_binaries(
     generator.generate_interpreter_machine_code()
     generator.generate_jit_bytes()
     generator.generate_interpreter_bytes()
+
     # Capstone disasm:
     # cap_disasm = cap_disasm_setup
 
     # Interpreter bin
     interpreter_binary = generator.generate_interpreter_binary()
-    # bin_info(cap_disasm, interpreter_binary, INTERPRETER_START_ADDRESS)
+    # bin_info(interpreter_binary, INTERPRETER_START_ADDRESS, True)
     # JIT bin
     jit_binary = generator.generate_jit_binary()
-    # bin_info(cap_disasm, jit_binary, JIT_START_ADDRESS)
+    # bin_info(jit_binary, JIT_START_ADDRESS, True)
+
+    # Emulation
+    uc_emul = uc_emul_full_setup
+    uc_emul.mem_write(INTERPRETER_START_ADDRESS, interpreter_binary)
+    uc_emul.mem_write(JIT_START_ADDRESS, jit_binary)
 
     # Handler
     # handler = handler_setup
-    # Emulation
-    data_binary = generator.generate_data_binary()
-    uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
+    # handler.hook_exception_tracer(uc_emul)
     # handler.hook_instr_tracer(uc_emul)
-    # handler.hook_reg_tracer(uc_emul)
-    uc_emul.mem_map(INTERPRETER_START_ADDRESS, 2 * 1024 * 1024)
-    # Fill memory with nops up to END_ADDRESS
-    for addr in range(JIT_START_ADDRESS, END_ADDRESS + 4, 4):
-        uc_emul.mem_write(addr, IInstruction.nop().generate_bytes())
-    # Zero out registers
-    for reg in CALLER_SAVED_REG:
-        uc_emul.reg_write(reg, 0)
-    # Write STACK ADDRESS in SP and END_ADDRESS in RA
-    uc_emul.reg_write(UC_RISCV_REG_SP, STACK_ADDRESS)
-    uc_emul.reg_write(UC_RISCV_REG_RA, END_ADDRESS)
-    # Write the DATA_ADDRESS in DATA_REG
-    uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS)
-    uc_emul.mem_write(INTERPRETER_START_ADDRESS, interpreter_binary)
-    uc_emul.mem_write(JIT_START_ADDRESS, jit_binary)
-    uc_emul.mem_write(DATA_ADDRESS, data_binary)
-    uc_emul.emu_start(INTERPRETER_START_ADDRESS, END_ADDRESS)
+
+    uc_emul.emu_start(INTERPRETER_START_ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()
