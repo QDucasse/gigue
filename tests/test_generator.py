@@ -11,7 +11,13 @@ from gigue.generator import Generator
 from gigue.instructions import IInstruction
 from gigue.method import Method
 from gigue.pic import PIC
-from tests.conftest import DATA_ADDRESS, TEST_DATA_REG, TEST_DATA_SIZE, UC_DATA_REG
+from tests.conftest import (
+    DATA_ADDRESS,
+    TEST_DATA_REG,
+    TEST_DATA_SIZE,
+    UC_DATA_REG,
+    cap_disasm_bytes,
+)
 
 # =================================
 #            Constants
@@ -264,11 +270,35 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
 # =================================
 
 
-@pytest.mark.parametrize("jit_elements_nb", [5, 20, 100, 200])
-@pytest.mark.parametrize("method_max_size", [5, 20, 50])
-@pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
+def bin_info(cap_disasm, binary, address):
+    print(
+        f"Binary: from {hex(address)} to {hex(address + len(binary)) } (length"
+        f" {len(binary)})\n\\_____________________________\n"
+    )
+    cap_disasm_bytes(cap_disasm, binary, address)
+    print("---\n\n")
+
+
+@pytest.mark.parametrize(
+    "jit_elements_nb",
+    [
+        5, 20, 100, 200
+    ],
+)
+@pytest.mark.parametrize(
+    "method_max_size",
+    [
+        5, 20, 50
+    ],
+)
+@pytest.mark.parametrize(
+    "pics_ratio",
+    [
+        0, 0.2, 0.5
+    ],
+)
 def test_execute_generated_binaries(
-    jit_elements_nb, method_max_size, pics_ratio, cap_disasm_setup
+    jit_elements_nb, method_max_size, pics_ratio, cap_disasm_setup, handler_setup
 ):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
@@ -290,33 +320,23 @@ def test_execute_generated_binaries(
     generator.generate_interpreter_machine_code()
     generator.generate_jit_bytes()
     generator.generate_interpreter_bytes()
+    # Capstone disasm:
+    # cap_disasm = cap_disasm_setup
+
+    # Interpreter bin
     interpreter_binary = generator.generate_interpreter_binary()
-    # Binary infos:
-    # print(
-    #     "Interpreter binary: from {} to {} (length {})".format(
-    #         hex(INTERPRETER_START_ADDRESS),
-    #         hex(INTERPRETER_START_ADDRESS + len(interpreter_binary)),
-    #         len(interpreter_binary),
-    #     )
-    # )
-    # Capstone disasm:
-    cap_disasm = cap_disasm_setup
-    for _ in cap_disasm.disasm(interpreter_binary, INTERPRETER_START_ADDRESS):
-        pass
+    # bin_info(cap_disasm, interpreter_binary, INTERPRETER_START_ADDRESS)
+    # JIT bin
     jit_binary = generator.generate_jit_binary()
-    # Binary infos:
-    # print(
-    #     "JIT binary: from {} to {} (length {})".format(
-    #         hex(JIT_START_ADDRESS),
-    #         hex(JIT_START_ADDRESS + len(jit_binary)),
-    #         len(jit_binary),
-    #     )
-    # )
-    # Capstone disasm:
-    for _ in cap_disasm.disasm(jit_binary, JIT_START_ADDRESS):
-        pass
+    # bin_info(cap_disasm, jit_binary, JIT_START_ADDRESS)
+
+    # Handler
+    # handler = handler_setup
+    # Emulation
     data_binary = generator.generate_data_binary()
     uc_emul = Uc(UC_ARCH_RISCV, UC_MODE_RISCV64)
+    # handler.hook_instr_tracer(uc_emul)
+    # handler.hook_reg_tracer(uc_emul)
     uc_emul.mem_map(INTERPRETER_START_ADDRESS, 2 * 1024 * 1024)
     # Fill memory with nops up to END_ADDRESS
     for addr in range(JIT_START_ADDRESS, END_ADDRESS + 4, 4):
@@ -333,6 +353,4 @@ def test_execute_generated_binaries(
     uc_emul.mem_write(JIT_START_ADDRESS, jit_binary)
     uc_emul.mem_write(DATA_ADDRESS, data_binary)
     uc_emul.emu_start(INTERPRETER_START_ADDRESS, END_ADDRESS)
-    # instrument_execution(uc_emul)
-    # instrument_stack(uc_emul)
     uc_emul.emu_stop()

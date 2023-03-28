@@ -1,6 +1,7 @@
 import random
 
 from gigue.constants import (
+    CALL_TMP_REG,
     CALLEE_SAVED_REG,
     CMP_REG,
     HIT_CASE_REG,
@@ -56,9 +57,39 @@ class InstructionBuilder:
         "d": 8,
     }
 
+    # Helpers
+    # \______
+
     @staticmethod
     def consolidate_bytes(instructions):
         return b"".join([instr.generate_bytes() for instr in instructions])
+
+    @staticmethod
+    def split_offset(offset):
+        if abs(offset) < 8:
+            raise WrongOffsetException(
+                f"Call offset should be greater than 8 (currently {offset})."
+            )
+        offset_low = offset & 0xFFF
+        # The right part handles the low offset sign
+        # extension (that should be mitigated)
+        offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
+        # print("offset: {}/{} -> olow: {} + ohigh: {}".format(
+        #     hex(offset),
+        #     hex(offset & 0xFFFFFFFF),
+        #     hex(offset_low),
+        #     hex(offset_high)
+        # ))
+        return offset_low, offset_high
+
+    @classmethod
+    def define_memory_access_alignment(cls, name):
+        for key in InstructionBuilder.ALIGNMENT.keys():
+            if key in name:
+                return InstructionBuilder.ALIGNMENT[key]
+
+    # Specific instruction building
+    # \___________________________
 
     @staticmethod
     def build_nop():
@@ -67,6 +98,9 @@ class InstructionBuilder:
     @staticmethod
     def build_ret():
         return IInstruction.ret()
+
+    # Random instruction building
+    # \__________________________
 
     @staticmethod
     def build_random_r_instruction(registers, *args, **kwargs):
@@ -90,12 +124,6 @@ class InstructionBuilder:
         rd = random.choice(registers)
         imm = random.randint(0, 0xFFFFFFFF)
         return constr(rd=rd, imm=imm)
-
-    @classmethod
-    def define_memory_access_alignment(cls, name):
-        for key in InstructionBuilder.ALIGNMENT.keys():
-            if key in name:
-                return InstructionBuilder.ALIGNMENT[key]
 
     @staticmethod
     def build_random_s_instruction(registers, data_reg, data_size, *args, **kwargs):
@@ -172,43 +200,29 @@ class InstructionBuilder:
         )
         return instruction
 
+    # Element calls
+    # \____________
+
     # Visitor to build either a PIC or method
     @staticmethod
     def build_element_call(elt, offset):
         return elt.accept_build_call(offset)
 
     @staticmethod
+    def build_method_base_call(offset):
+        # Base method, no trampolines
+        offset_low, offset_high = InstructionBuilder.split_offset(offset)
+        return [UInstruction.auipc(1, offset_high), IInstruction.jalr(1, 1, offset_low)]
+
+    @staticmethod
     def build_method_call(offset):
-        if abs(offset) < 8:
-            raise WrongOffsetException(
-                f"Call offset should be greater than 8 (currently {offset})."
-            )
-        offset_low = offset & 0xFFF
-        # The right part handles the low offset sign
-        # extension (that should be mitigated)
-        offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
-        # print("offset: {}/{} -> olow: {} + ohigh: {}".format(
-        #     hex(offset),
-        #     hex(offset & 0xFFFFFFFF),
-        #     hex(offset_low),
-        #     hex(offset_high)
-        # ))
+        # This method uses the trampoline to call/return from JIT elements
+        offset_low, offset_high = InstructionBuilder.split_offset(offset)
         return [UInstruction.auipc(1, offset_high), IInstruction.jalr(1, 1, offset_low)]
 
     @staticmethod
     def build_pic_call(offset, hit_case, hit_case_reg=HIT_CASE_REG):
-        if abs(offset) < 8:
-            raise WrongOffsetException("Call offset should be greater than 8.")
-        offset_low = offset & 0xFFF
-        # The right part handles the low offset
-        # sign extension (that should be mitigated)
-        offset_high = (offset & 0xFFFFF000) + ((offset & 0x800) << 1)
-        # print("offset: {}/{} -> olow: {} + ohigh: {}".format(
-        #     hex(offset),
-        #     hex(offset & 0xFFFFFFFF),
-        #     hex(offset_low),
-        #     hex(offset_high)
-        # ))
+        offset_low, offset_high = InstructionBuilder.split_offset(offset)
         # 1. Needed case hit
         # 2/3. Jump to the PC-related PIC location
         return [
@@ -216,6 +230,9 @@ class InstructionBuilder:
             UInstruction.auipc(rd=1, imm=offset_high),
             IInstruction.jalr(rd=1, rs1=1, imm=offset_low),
         ]
+
+    # Specific structures
+    # \__________________
 
     @staticmethod
     def build_switch_case(
@@ -279,3 +296,32 @@ class InstructionBuilder:
         # Jump back to return address
         instructions.append(IInstruction.ret())
         return instructions
+
+    # Trampoline-related
+    # \_________________
+
+    @staticmethod
+    def build_pc_relative_reg_save(offset, register):
+        # Save a pc-relative value in a given register.
+        offset_low, offset_high = InstructionBuilder.split_offset(offset)
+        return [
+            UInstruction.auipc(register, offset_high),
+            IInstruction.addi(register, register, offset_low),
+        ]
+
+    @staticmethod
+    def build_call_jit_elt_trampoline():
+        # The call JIT trampoline is used to call a JIT method/PIC (wow).
+        # It does not do much without isolation solution set up (see RIMI builder!).
+        # Note that:
+        #  - The RA should be set by the caller.
+        #  - The callee address is set in a dedicated register.
+        return [IInstruction.jr(rs1=CALL_TMP_REG)]
+
+    @staticmethod
+    def build_ret_from_jit_elt_trampoline():
+        # The ret JIT trampoline is used to return from a JIT method/PIC (wow).
+        # It does not do much without isolation solution set up (see RIMI builder!).
+        # Note that:
+        #  - The RA should be set by the caller.
+        return [IInstruction.ret()]

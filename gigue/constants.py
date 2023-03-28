@@ -1,9 +1,15 @@
 from typing import Dict
 
+# Instruction Weights
+# \___________________
+
 # [R, I, U, J, B, stores, loads]
 INSTRUCTION_WEIGHTS = [25, 30, 10, 5, 10, 10, 10]
 
-# Register info
+# Registers and aliases
+# \_____________________
+
+# Register lists
 CALLER_SAVED_REG = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31]
 CALLEE_SAVED_REG = [8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
 
@@ -11,17 +17,24 @@ CALLEE_SAVED_REG = [8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
 RA = 1
 SP = 2
 
-# Paths
-BIN_DIR = "bin/"
-
 # PICs info
 HIT_CASE_REG = 5
 CMP_REG = 6
 
-# Data info
+# Binary path
+# \____________
+
+BIN_DIR = "bin/"
+
+# Data generation
+# \_______________
+
 DATA_REG = 31
 DATA_SIZE = 0x100
 
+
+# Comparison masks
+# \________________
 
 # Instruction masks
 OP7_MASK = 0x0000007F
@@ -29,6 +42,16 @@ OP7_OP3_MASK = 0x0000707F
 OP7_OP3_TOP7_MASK = 0xFE000707F
 OP7_OP3_TOP6_MASK = 0xFC000707F
 FULL_MASK = 0xFFFFFFFF
+
+# Trampoline Generation
+# \________________
+
+CALL_TMP_REG = 6
+
+DEFAULT_TRAMPOLINES = [
+    "call_jit_elt",
+    "ret_from_jit_elt",
+]
 
 
 class InstructionInfo:

@@ -10,6 +10,7 @@ from gigue.constants import (
     CMP_REG,
     DATA_REG,
     DATA_SIZE,
+    DEFAULT_TRAMPOLINES,
     HIT_CASE_REG,
     INSTRUCTION_WEIGHTS,
 )
@@ -25,6 +26,7 @@ from gigue.helpers import align, flatten_list, gaussian_between
 from gigue.instructions import Instruction
 from gigue.method import Method
 from gigue.pic import PIC
+from gigue.trampoline import Trampoline
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +113,8 @@ class Generator:
         self.jit_instructions: List[Instruction] = []
         self.call_depth_dict: Dict[int, List[Union[Method, PIC]]] = defaultdict(list)
         self.interpreter_instructions: List[Instruction] = []
+        self.trampolines: List[Trampoline] = []
+        self.trampoline_instructions: List[Instruction] = []
 
         # MC/Bytes/Binary generation
         self.jit_machine_code: List[int] = []
@@ -138,6 +142,12 @@ class Generator:
 
     #  JIT element generation
     # \______________________
+
+    def add_trampoline(self, address, name):
+        trampoline = Trampoline(name=name, address=address)
+        logger.info(f"{self.log_jit_prefix()} {trampoline.log_prefix()}")
+        self.trampolines.append(trampoline)
+        return trampoline
 
     def add_method(self, address):
         body_size = gaussian_between(3, self.method_max_size)
@@ -219,6 +229,18 @@ class Generator:
         logger.info("Phase 1: Filling JIT code")
         current_address = self.jit_start_address
         current_element_count = 0
+        # Add trampolines at the start of the JIT address
+        for trampoline_name in DEFAULT_TRAMPOLINES:
+            try:
+                trampoline = self.add_trampoline(
+                    address=current_address, name=trampoline_name
+                )
+                trampoline.build()
+                self.trampoline_instructions += trampoline.instructions
+                current_address += len(trampoline.instructions) * 4
+            except AttributeError as err:
+                logger.exception(err)
+                raise
         # Add a first leaf method
         leaf_method = self.add_leaf_method(current_address)
         leaf_method.fill_with_instructions(
@@ -267,7 +289,7 @@ class Generator:
     def patch_jit_calls(self):
         logger.info("Phase 2: Patching calls")
         for elt in self.jit_elements:
-            # TODO: make pic method to patch elements
+            # TODO: make pic method to patch elements, visitor?
             if isinstance(elt, PIC):
                 logger.info(
                     f"{self.log_jit_prefix()} {elt.log_prefix()} Patching PIC calls."
@@ -343,7 +365,11 @@ class Generator:
     # \_______________________
 
     def generate_jit_machine_code(self):
-        self.jit_machine_code = [elt.generate() for elt in self.jit_elements]
+        # Trampolines
+        self.jit_machine_code = [
+            instr.generate() for instr in self.trampoline_instructions
+        ]
+        self.jit_machine_code += [elt.generate() for elt in self.jit_elements]
         return self.jit_machine_code
 
     def generate_interpreter_machine_code(self):
@@ -356,7 +382,10 @@ class Generator:
     # \________________
 
     def generate_jit_bytes(self):
-        self.jit_bytes = [elt.generate_bytes() for elt in self.jit_elements]
+        self.jit_bytes = [
+            instr.generate_bytes() for instr in self.trampoline_instructions
+        ]
+        self.jit_bytes += [elt.generate_bytes() for elt in self.jit_elements]
         return self.jit_bytes
 
     def generate_interpreter_bytes(self):
