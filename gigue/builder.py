@@ -8,6 +8,7 @@ from gigue.constants import (
     INSTRUCTION_WEIGHTS,
     RA,
     SP,
+    X0,
 )
 from gigue.exceptions import WrongOffsetException
 from gigue.helpers import align
@@ -65,10 +66,10 @@ class InstructionBuilder:
         return b"".join([instr.generate_bytes() for instr in instructions])
 
     @staticmethod
-    def split_offset(offset):
-        if abs(offset) < 8:
+    def split_offset(offset, min_offset=8):
+        if abs(offset) < min_offset:
             raise WrongOffsetException(
-                f"Call offset should be greater than 8 (currently {offset})."
+                f"Call offset should be greater than {min_offset} (currently {offset})."
             )
         offset_low = offset & 0xFFF
         # The right part handles the low offset sign
@@ -203,32 +204,91 @@ class InstructionBuilder:
     # Element calls
     # \____________
 
-    # Visitor to build either a PIC or method
+    # Visitor to build either a PIC or method call (visitor!)
     @staticmethod
-    def build_element_call(elt, offset):
-        return elt.accept_build_call(offset)
+    def build_element_base_call(elt, offset):
+        return elt.accept_build_base_call(offset)
+
+    # Visitor to build either a PIC or method call with trampolines (visitor!)
+    @staticmethod
+    def build_element_trampoline_call(elt, offset, call_trampoline_offset):
+        return elt.accept_build_trampoline_call(offset, call_trampoline_offset)
 
     @staticmethod
     def build_method_base_call(offset):
         # Base method, no trampolines
         offset_low, offset_high = InstructionBuilder.split_offset(offset)
-        return [UInstruction.auipc(1, offset_high), IInstruction.jalr(1, 1, offset_low)]
+        return [
+            UInstruction.auipc(RA, offset_high),
+            IInstruction.jalr(RA, RA, offset_low),
+        ]
 
     @staticmethod
-    def build_method_call(offset):
+    def build_method_trampoline_call(offset, call_trampoline_offset):
         # This method uses the trampoline to call/return from JIT elements
-        offset_low, offset_high = InstructionBuilder.split_offset(offset)
-        return [UInstruction.auipc(1, offset_high), IInstruction.jalr(1, 1, offset_low)]
+        # It is composed as follows:
+        # 1. Compute RA and save it (in RA!)
+        # 2. Compute the target address of the call and save it in CALL_TMP_REG
+        # 3. Jump to the call jit elt trampoline
+        # /!\ The trampoline offset is computed starting from the base address
+
+        # 0x00 auipc ra, 0                          |  \
+        # 0x04 addi  ra, ra, 0                      | - > Generate return address
+        # 0x08 auipc temp_call, off_high            |  \
+        # 0x0c addi  temp_call, temp_call, off_low  | - > Generate call target
+        # 0x10 j     call_tramp                     | - > Jump to the trampoline
+        # 0x14 < RA should point here!
+        offset_low, offset_high = InstructionBuilder.split_offset(offset - 0x8, 0x14)
+        # Note: minimum offset size of call, mitigation two instructions before call
+        return [
+            # 1. Save RA
+            UInstruction.auipc(RA, 0),
+            IInstruction.addi(RA, RA, 0x14),
+            # Note: 0x14 to aim at the end of this call (after j)
+            # 2. Save target
+            UInstruction.auipc(CALL_TMP_REG, offset_high),
+            IInstruction.addi(CALL_TMP_REG, CALL_TMP_REG, offset_low),
+            # 3. Jump to trampoline
+            JInstruction.j(call_trampoline_offset - 0x10),
+            # Note: -0x10 to mitigate the 4 previous instructions
+        ]
 
     @staticmethod
-    def build_pic_call(offset, hit_case, hit_case_reg=HIT_CASE_REG):
-        offset_low, offset_high = InstructionBuilder.split_offset(offset)
+    def build_pic_base_call(offset, hit_case, hit_case_reg=HIT_CASE_REG):
+        # Base method, no trampolines
+        offset_low, offset_high = InstructionBuilder.split_offset(offset, 0xC)
+        # 1. Load hit case
+        # 2. Jump to the PC-related PIC location
+        return [
+            IInstruction.addi(rd=hit_case_reg, rs1=X0, imm=hit_case),
+            UInstruction.auipc(rd=RA, imm=offset_high),
+            IInstruction.jalr(rd=RA, rs1=RA, imm=offset_low),
+        ]
+
+    @staticmethod
+    def build_pic_trampoline_call(
+        offset, call_trampoline_offset, hit_case, hit_case_reg=HIT_CASE_REG
+    ):
+        # This method uses the trampoline to call/return from JIT elements
+        # It is composed as follows:
         # 1. Needed case hit
         # 2/3. Jump to the PC-related PIC location
+        offset_low, offset_high = InstructionBuilder.split_offset(offset - 0xC, 0x18)
+        # Note: minimum offset size of call,
+        #       mitigation of the three instructions before call
         return [
-            IInstruction.addi(rd=hit_case_reg, rs1=0, imm=hit_case),
-            UInstruction.auipc(rd=1, imm=offset_high),
-            IInstruction.jalr(rd=1, rs1=1, imm=offset_low),
+            # 1. Hit case
+            IInstruction.addi(rd=hit_case_reg, rs1=X0, imm=hit_case),
+            # 2. Save RA
+            UInstruction.auipc(RA, 0),
+            IInstruction.addi(RA, RA, 0x14),
+            # Note: 0x14 to aim at the end of this call (after j)
+            # 3. Save target
+            UInstruction.auipc(CALL_TMP_REG, offset_high),
+            IInstruction.addi(CALL_TMP_REG, CALL_TMP_REG, offset_low),
+            # 4. Jump to trampoline
+            JInstruction.j(call_trampoline_offset - 0x14),
+            # Note: -0x14 to mitigate the 5 previous instructions
         ]
 
     # Specific structures
@@ -245,9 +305,9 @@ class InstructionBuilder:
         #   4 - Go to the next case if not
         # Note: beq is not used to cover a wider range (2Mb rather than 8kb)
         return [
-            IInstruction.addi(rd=cmp_reg, rs1=0, imm=case_number),
+            IInstruction.addi(rd=cmp_reg, rs1=X0, imm=case_number),
             BInstruction.bne(rs1=cmp_reg, rs2=hit_case_reg, imm=8),
-            JInstruction.jal(rd=0, imm=method_offset),
+            JInstruction.jal(rd=X0, imm=method_offset),
         ]
 
     @staticmethod

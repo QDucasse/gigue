@@ -18,7 +18,7 @@ from unicorn.riscv_const import (
 )
 
 from gigue.builder import InstructionBuilder
-from gigue.constants import CMP_REG, HIT_CASE_REG, RA, SP
+from gigue.constants import CALL_TMP_REG, CMP_REG, HIT_CASE_REG, RA, SP
 from gigue.helpers import bytes_to_int, int_to_bytes64
 from tests.conftest import (
     ADDRESS,
@@ -27,6 +27,7 @@ from tests.conftest import (
     TEST_CALLER_SAVED_REG,
     TEST_DATA_REG,
     TEST_DATA_SIZE,
+    cap_disasm_bytes,
 )
 
 # =================================
@@ -118,9 +119,9 @@ def test_check_random_b_instruction_offset(max_offset, expected_offset, disasm_s
 
 
 @pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFF, 0x80000, 0x1FFFE])
-def test_build_method_call(offset, disasm_setup):
+def test_build_method_base_call(offset, disasm_setup):
     instr_builder = InstructionBuilder()
-    instrs = instr_builder.build_method_call(offset)
+    instrs = instr_builder.build_method_base_call(offset)
     gen_instrs = [instr.generate() for instr in instrs]
     assert instrs[0].name == "auipc"
     assert instrs[1].name == "jalr"
@@ -128,14 +129,16 @@ def test_build_method_call(offset, disasm_setup):
     disasm = disasm_setup
     assert disasm.get_instruction_info(gen_instrs[0]).name == "auipc"
     assert disasm.get_instruction_info(gen_instrs[1]).name == "jalr"
-    assert offset == disasm.extract_call_offset([instr.generate() for instr in instrs])
+    assert offset == disasm.extract_pc_relative_offset(
+        [instr.generate() for instr in instrs]
+    )
 
 
-@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFF, 0x80000, 0x1FFFE])
+@pytest.mark.parametrize("offset", [0x800, 0xFFF, 0x80000, 0x1FFFE])
 @pytest.mark.parametrize("hit_case", range(1, 5))
-def test_build_pic_call(offset, hit_case, disasm_setup):
+def test_build_pic_base_call(offset, hit_case, disasm_setup):
     instr_builder = InstructionBuilder()
-    instrs = instr_builder.build_pic_call(offset=offset, hit_case=hit_case)
+    instrs = instr_builder.build_pic_base_call(offset=offset, hit_case=hit_case)
     gen_instrs = [instr.generate() for instr in instrs]
     assert instrs[0].name == "addi"
     assert instrs[1].name == "auipc"
@@ -147,10 +150,10 @@ def test_build_pic_call(offset, hit_case, disasm_setup):
     assert disasm.get_instruction_info(gen_instrs[2]).name == "jalr"
     assert disasm.extract_rd(gen_instrs[0]) == HIT_CASE_REG
     assert disasm.extract_imm_i(gen_instrs[0]) == hit_case
-    assert offset == disasm.extract_call_offset(gen_instrs[1:])
+    assert offset == disasm.extract_pc_relative_offset(gen_instrs[1:])
 
 
-@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE])
+@pytest.mark.parametrize("offset", [0x800, 0xFFE, 0x80000, 0x1FFFE])
 @pytest.mark.parametrize("case_number", range(1, 5))
 def test_build_switch_pic(offset, disasm_setup, case_number):
     instr_builder = InstructionBuilder()
@@ -199,7 +202,7 @@ def test_build_prologue(used_s_regs, local_var_nb, contains_call, disasm_setup):
     if contains_call:
         assert instrs[-1].name == "sd"
         assert disasm.extract_imm_s(gen_instrs[-1]) == used_s_regs * 8
-        assert disasm.extract_rs2(instrs[-1].generate()) == 1
+        assert disasm.extract_rs2(instrs[-1].generate()) == RA
 
 
 @pytest.mark.parametrize("used_s_regs", [0, 5, 10])
@@ -232,7 +235,137 @@ def test_build_epilogue(used_s_regs, local_var_nb, contains_call, disasm_setup):
     # Jump check
     assert instrs[-1].name == "jalr"
     assert instrs[-1].rd == 0
-    assert instrs[-1].rs1 == 1
+    assert instrs[-1].rs1 == RA
+
+
+# Trampolines
+# \__________
+
+
+@pytest.mark.parametrize(
+    "offset",
+    [0x8, 0x800, 0xFFF, 0x80000, 0x1FFFE, -0x8, -0x800, -0xFFF, -0x80000, -0x1FFFE],
+)
+@pytest.mark.parametrize("register", TEST_CALLER_SAVED_REG)
+def test_build_pc_relative_reg_save(offset, register, disasm_setup):
+    instr_builder = InstructionBuilder()
+    instrs = instr_builder.build_pc_relative_reg_save(offset=offset, register=register)
+    gen_instrs = [instr.generate() for instr in instrs]
+    assert instrs[0].name == "auipc"
+    assert instrs[1].name == "addi"
+    # Disassembly
+    disasm = disasm_setup
+    assert disasm.get_instruction_info(gen_instrs[0]).name == "auipc"
+    assert disasm.get_instruction_info(gen_instrs[1]).name == "addi"
+    assert offset == disasm.extract_pc_relative_offset(gen_instrs)
+
+
+def test_build_call_jit_elt_trampoline(disasm_setup):
+    instr_builder = InstructionBuilder()
+    instrs = instr_builder.build_call_jit_elt_trampoline()
+    gen_instrs = [instr.generate() for instr in instrs]
+    assert instrs[0].name == "jalr"
+    # Disassembly
+    disasm = disasm_setup
+    assert disasm.get_instruction_info(gen_instrs[0]).name == "jalr"
+    assert disasm.extract_imm_i(gen_instrs[0]) == 0
+    assert disasm.extract_rd(gen_instrs[0]) == 0
+    assert disasm.extract_rs1(gen_instrs[0]) == CALL_TMP_REG
+
+
+def test_build_ret_from_jit_elt_trampoline(disasm_setup):
+    instr_builder = InstructionBuilder()
+    instrs = instr_builder.build_ret_from_jit_elt_trampoline()
+    gen_instrs = [instr.generate() for instr in instrs]
+    assert instrs[0].name == "jalr"
+    # Disassembly
+    disasm = disasm_setup
+    assert disasm.extract_imm_i(gen_instrs[0]) == 0
+    assert disasm.extract_rd(gen_instrs[0]) == 0
+    assert disasm.extract_rs1(gen_instrs[0]) == RA
+    assert disasm.get_instruction_info(gen_instrs[0]).name == "jalr"
+
+
+@pytest.mark.parametrize("offset", [0x800, 0xFFF, 0x80000, 0x1FFFE])
+@pytest.mark.parametrize(
+    "call_trampoline_offset", [-4, -8, -0x800, -0xFFF, -0x80000, -0x1FFFE]
+)
+def test_build_method_trampoline_call(offset, call_trampoline_offset, disasm_setup):
+    instr_builder = InstructionBuilder()
+    instrs = instr_builder.build_method_trampoline_call(
+        offset=offset, call_trampoline_offset=call_trampoline_offset  # right before!
+    )
+    gen_instrs = [instr.generate() for instr in instrs]
+    # Test code
+    assert instrs[0].name == "auipc"
+    assert instrs[1].name == "addi"
+    assert instrs[2].name == "auipc"
+    assert instrs[3].name == "addi"
+    assert instrs[4].name == "jal"
+    # Disassembly
+    disasm = disasm_setup
+    assert disasm.get_instruction_info(gen_instrs[0]).name == "auipc"
+    assert disasm.get_instruction_info(gen_instrs[1]).name == "addi"
+    assert disasm.get_instruction_info(gen_instrs[2]).name == "auipc"
+    assert disasm.get_instruction_info(gen_instrs[3]).name == "addi"
+    assert disasm.get_instruction_info(gen_instrs[4]).name == "jal"
+    # Check RA
+    assert disasm.extract_pc_relative_offset(gen_instrs[0:2]) == len(instrs) * 4
+    # Check call target
+    assert disasm.extract_pc_relative_offset(gen_instrs[2:4]) == offset - 8
+    # Check trampoline jump
+    aligned_trampoline_offset = (call_trampoline_offset >> 1) << 1
+    assert (
+        disasm.extract_imm_j(gen_instrs[-1], sign_extend=True)
+        == aligned_trampoline_offset - (len(instrs) - 1) * 4
+        # Note: The offset is corrected with the length of the other instructions
+    )
+
+
+@pytest.mark.parametrize("offset", [0x800, 0xFFF, 0x80000, 0x1FFFE])
+@pytest.mark.parametrize("hit_case", range(1, 5))
+@pytest.mark.parametrize(
+    "call_trampoline_offset", [-4, -8, -0x800, -0xFFF, -0x80000, -0x1FFFE]
+)
+def test_build_pic_trampoline_call(
+    offset, call_trampoline_offset, hit_case, disasm_setup
+):
+    instr_builder = InstructionBuilder()
+    instrs = instr_builder.build_pic_trampoline_call(
+        offset=offset, call_trampoline_offset=call_trampoline_offset, hit_case=hit_case
+    )
+    gen_instrs = [instr.generate() for instr in instrs]
+    assert instrs[0].name == "addi"
+    assert instrs[1].name == "auipc"
+    assert instrs[2].name == "addi"
+    assert instrs[3].name == "auipc"
+    assert instrs[4].name == "addi"
+    assert instrs[5].name == "jal"
+    # Disassembly
+    disasm = disasm_setup
+    assert disasm.get_instruction_info(gen_instrs[0]).name == "addi"
+    assert disasm.get_instruction_info(gen_instrs[1]).name == "auipc"
+    assert disasm.get_instruction_info(gen_instrs[2]).name == "addi"
+    assert disasm.get_instruction_info(gen_instrs[3]).name == "auipc"
+    assert disasm.get_instruction_info(gen_instrs[4]).name == "addi"
+    assert disasm.get_instruction_info(gen_instrs[5]).name == "jal"
+    assert disasm.extract_rd(gen_instrs[0]) == HIT_CASE_REG
+    assert disasm.extract_imm_i(gen_instrs[0]) == hit_case
+    # Check RA
+    assert disasm.extract_pc_relative_offset(gen_instrs[1:3]) == (len(instrs) - 1) * 4
+    # Note: The RA should point at the end of the block and it does not take
+    # in account the first instruction
+    # Check call target
+    assert disasm.extract_pc_relative_offset(gen_instrs[3:5]) == offset - 0xC
+    # Note: The offset is used once the hitcase is loaded (1 instr) and
+    # RA is computed (2 instrs) so 3 instructions should be removed from it
+    # Check trampoline jump
+    aligned_trampoline_offset = (call_trampoline_offset >> 1) << 1
+    assert (
+        disasm.extract_imm_j(gen_instrs[-1], sign_extend=True)
+        == aligned_trampoline_offset - (len(instrs) - 1) * 4
+        # Note: The offset is corrected with the length of the other instructions
+    )
 
 
 # =================================
@@ -388,14 +521,14 @@ def test_random_l_disassembly_execution_smoke(
     uc_emul.emu_stop()
 
 
-# Specific structures
-# \__________________
+# Base Calls
+# \__________
 
 
 @pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
 def test_build_method_call_execution(offset, uc_emul_full_setup, cap_disasm_setup):
     instr_builder = InstructionBuilder()
-    instrs = instr_builder.build_method_call(offset)
+    instrs = instr_builder.build_method_base_call(offset)
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_setup
@@ -412,10 +545,13 @@ def test_build_method_call_execution(offset, uc_emul_full_setup, cap_disasm_setu
     uc_emul.emu_stop()
 
 
-@pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
-def test_build_pic_call_execution(offset, uc_emul_full_setup, cap_disasm_setup):
+@pytest.mark.parametrize("offset", [0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
+@pytest.mark.parametrize("hit_case", range(1, 5))
+def test_build_pic_call_execution(
+    offset, hit_case, uc_emul_full_setup, cap_disasm_setup
+):
     instr_builder = InstructionBuilder()
-    instrs = instr_builder.build_pic_call(offset, 5, 5)
+    instrs = instr_builder.build_pic_base_call(offset, hit_case, 5)
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_setup
@@ -426,8 +562,12 @@ def test_build_pic_call_execution(offset, uc_emul_full_setup, cap_disasm_setup):
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(begin=ADDRESS, until=ADDRESS + offset + 4)
     current_t0 = uc_emul.reg_read(UC_RISCV_REG_T0)
-    assert current_t0 == 5
+    assert current_t0 == hit_case
     uc_emul.emu_stop()
+
+
+# PIC Switch
+# \__________
 
 
 @pytest.mark.parametrize("offset", [0x8, 0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
@@ -453,6 +593,10 @@ def test_build_switch_pic_execution(
     current_t1 = uc_emul.reg_read(UC_RISCV_REG_T1)
     assert current_t1 == case_number
     uc_emul.emu_stop()
+
+
+# Prologue/Epilogue
+# \_________________
 
 
 @pytest.mark.parametrize("used_s_regs", [0, 5, 10])
@@ -557,4 +701,81 @@ def test_build_epilogue_execution(
         + (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
     )
     assert current_pc == called_address if contains_call else RET_ADDRESS
+    uc_emul.emu_stop()
+
+
+# Trampolines
+# \___________
+
+
+def test_pc_relative_reg_save_execution():
+    pass
+
+
+@pytest.mark.parametrize("offset", [0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
+def test_build_method_call_trampoline_execution(
+    offset, uc_emul_full_setup, cap_disasm_setup, handler_setup
+):
+    instr_builder = InstructionBuilder()
+    tramp_instrs = instr_builder.build_call_jit_elt_trampoline()
+    tramp_bytes = instr_builder.consolidate_bytes(tramp_instrs)
+    instrs = instr_builder.build_method_trampoline_call(
+        offset=offset,
+        call_trampoline_offset=-4,  # The trampoline is right before!
+    )
+    bytes = instr_builder.consolidate_bytes(instrs)
+    CODE_ADDRESS = ADDRESS + len(tramp_bytes)
+    # Disassembly
+    cap_disasm = cap_disasm_setup
+    cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
+    cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
+    # Handler
+    handler = handler_setup
+    # Emulation
+    uc_emul = uc_emul_full_setup
+    handler.hook_instr_tracer(uc_emul)
+    uc_emul.mem_write(ADDRESS, tramp_bytes)
+    uc_emul.mem_write(CODE_ADDRESS, bytes)
+    uc_emul.emu_start(begin=CODE_ADDRESS, until=CODE_ADDRESS + offset)
+    current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
+    current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+    assert current_ra == CODE_ADDRESS + 0x14  # size of the call mitigated!
+    assert current_pc == CODE_ADDRESS + offset
+    uc_emul.emu_stop()
+
+
+@pytest.mark.parametrize("offset", [0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
+@pytest.mark.parametrize("hit_case", range(1, 5))
+def test_build_pic_call_trampoline_execution(
+    offset, hit_case, uc_emul_full_setup, cap_disasm_setup, handler_setup
+):
+    instr_builder = InstructionBuilder()
+    tramp_instrs = instr_builder.build_call_jit_elt_trampoline()
+    tramp_bytes = instr_builder.consolidate_bytes(tramp_instrs)
+    instrs = instr_builder.build_pic_trampoline_call(
+        offset=offset,
+        call_trampoline_offset=-4,  # The trampoline is right before!
+        hit_case=hit_case,
+        hit_case_reg=5,
+    )
+    bytes = instr_builder.consolidate_bytes(instrs)
+    CODE_ADDRESS = ADDRESS + len(tramp_bytes)
+    # Disassembly
+    cap_disasm = cap_disasm_setup
+    cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
+    cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
+    # Handler
+    handler = handler_setup
+    # Emulation
+    uc_emul = uc_emul_full_setup
+    handler.hook_instr_tracer(uc_emul)
+    uc_emul.mem_write(ADDRESS, tramp_bytes)
+    uc_emul.mem_write(CODE_ADDRESS, bytes)
+    uc_emul.emu_start(begin=CODE_ADDRESS, until=CODE_ADDRESS + offset)
+    current_t0 = uc_emul.reg_read(UC_RISCV_REG_T0)
+    current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
+    current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+    assert current_ra == CODE_ADDRESS + 0x18  # size of the call mitigated!
+    assert current_pc == CODE_ADDRESS + offset
+    assert current_t0 == hit_case
     uc_emul.emu_stop()

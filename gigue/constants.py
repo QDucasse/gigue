@@ -13,7 +13,8 @@ INSTRUCTION_WEIGHTS = [25, 30, 10, 5, 10, 10, 10]
 CALLER_SAVED_REG = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31]
 CALLEE_SAVED_REG = [8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
 
-# RISCV shortcuts
+# RISCV aliases
+X0 = 0
 RA = 1
 SP = 2
 
@@ -46,6 +47,7 @@ FULL_MASK = 0xFFFFFFFF
 # Trampoline Generation
 # \________________
 
+# This one is only used as the cmp reg when calling a pic so should be ok!!
 CALL_TMP_REG = 6
 
 DEFAULT_TRAMPOLINES = [

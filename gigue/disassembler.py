@@ -120,7 +120,7 @@ class Disassembler:
             return to_signed(immediate, 32)
         return immediate
 
-    def extract_call_offset(self, instructions):
+    def extract_pc_relative_offset(self, instructions):
         # instructions correspond to [auipc(offset high), jalr(offset low)]
         offset_low = self.extract_imm_i(instructions[1])
         offset_high = self.extract_imm_u(instructions[0])
