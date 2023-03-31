@@ -256,7 +256,7 @@ class InstructionBuilder:
     @staticmethod
     def build_pic_base_call(offset, hit_case, hit_case_reg=HIT_CASE_REG):
         # Base method, no trampolines
-        offset_low, offset_high = InstructionBuilder.split_offset(offset, 0xC)
+        offset_low, offset_high = InstructionBuilder.split_offset(offset - 4, 0xC)
         # 1. Load hit case
         # 2. Jump to the PC-related PIC location
         return [
@@ -333,14 +333,14 @@ class InstructionBuilder:
         return instructions
 
     @staticmethod
-    def build_epilogue(used_s_regs, local_var_nb, contains_call, *args, **kwargs):
+    def build_epilogue(used_s_regs, local_var_nb, contains_call):
         # An example epilogue would be:
         # ld s0 0(sp)
         # ld s1 4(sp)
         # ld s2 8(sp)
         # ld ra 12(sp)
         # addi sp sp 16 (+local vars)
-        # jr ra
+        # ret
         instructions = []
         stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
         # Reload saved registers used
@@ -355,6 +355,35 @@ class InstructionBuilder:
         instructions.append(IInstruction.addi(rd=SP, rs1=SP, imm=stack_space))
         # Jump back to return address
         instructions.append(IInstruction.ret())
+        return instructions
+
+    @staticmethod
+    def build_trampoline_epilogue(
+        used_s_regs, local_var_nb, contains_call, ret_trampoline_offset
+    ):
+        # An example epilogue would be:
+        # ld s0 0(sp)
+        # ld s1 4(sp)
+        # ld s2 8(sp)
+        # ld ra 12(sp)
+        # addi sp sp 16 (+local vars)
+        # j ret_trampoline         <-- Changed instruction
+        instructions = []
+        stack_space = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
+        # Reload saved registers used
+        for i in range(used_s_regs):
+            instructions.append(
+                IInstruction.ld(rd=CALLEE_SAVED_REG[i], rs1=SP, imm=i * 8)
+            )
+        # Reload ra (if necessary)
+        if contains_call:
+            instructions.append(IInstruction.ld(rd=RA, rs1=SP, imm=used_s_regs * 8))
+        # Increment sp to previous value
+        instructions.append(IInstruction.addi(rd=SP, rs1=SP, imm=stack_space))
+        # Jump to the return trampoline
+        instructions.append(
+            JInstruction.j(ret_trampoline_offset - len(instructions) * 4)
+        )
         return instructions
 
     # Trampoline-related
