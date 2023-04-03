@@ -15,7 +15,7 @@ class FIXERInstructionBuilder(InstructionBuilder):
     # Note 2: This means the element addresses should be patched
     # as well!
     @staticmethod
-    def build_method_call(offset):
+    def build_method_base_call(offset):
         # The instrumented call looks like the following:
         # 0x00 auipc fix, 0         |  \
         # 0x04 addi  fix, fix, 0x14 | - > Generate the return address
@@ -34,11 +34,12 @@ class FIXERInstructionBuilder(InstructionBuilder):
             # Custom instruction to store the saved ra in memory
             FIXERCustomInstruction.cficall(rd=0, rs1=FIXER_CMP_REG, rs2=0),
         ]
-        instructions += InstructionBuilder.build_method_call(offset - 12)
+        instructions += InstructionBuilder.build_method_base_call(offset - 12)
+        # Note: -12 to mitigate the three additional instructions
         return instructions
 
     @staticmethod
-    def build_pic_call(offset, *args, **kwargs):
+    def build_pic_base_call(offset, *args, **kwargs):
         # The instrumented call looks like the following:
         # 0x00 auipc fix, 0         |  \
         # 0x04 addi  fix, fix, 0x18 | - > Generate the return address
@@ -58,9 +59,10 @@ class FIXERInstructionBuilder(InstructionBuilder):
             # Custom instruction to store the saved ra in memory
             FIXERCustomInstruction.cficall(rd=0, rs1=FIXER_CMP_REG, rs2=0),
         ]
-        instructions += InstructionBuilder.build_pic_call(
-            offset=offset - 16, *args, **kwargs
+        instructions += InstructionBuilder.build_pic_base_call(
+            offset=offset - 12, *args, **kwargs
         )
+        # Note: -12 to mitigate the three additional instructions
         return instructions
 
     # Tags around rets

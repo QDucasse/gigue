@@ -95,6 +95,7 @@ class Generator:
         self.jit_elements_nb: int = jit_elements_nb  # Methods + PICs
         self.max_call_depth: int = max_call_depth
         self.max_call_nb: int = max_call_nb
+        self.call_size: int = 3
         # Methods parameters
         self.method_max_size: int = method_max_size
         self.method_count: int = 0
@@ -113,8 +114,6 @@ class Generator:
         self.jit_instructions: List[Instruction] = []
         self.call_depth_dict: Dict[int, List[Union[Method, PIC]]] = defaultdict(list)
         self.interpreter_instructions: List[Instruction] = []
-        self.trampolines: List[Trampoline] = []
-        self.trampoline_instructions: List[Instruction] = []
 
         # MC/Bytes/Binary generation
         self.jit_machine_code: List[int] = []
@@ -143,18 +142,14 @@ class Generator:
     #  JIT element generation
     # \______________________
 
-    def add_trampoline(self, address, name):
-        trampoline = Trampoline(name=name, address=address)
-        logger.info(f"{self.log_jit_prefix()} {trampoline.log_prefix()}")
-        self.trampolines.append(trampoline)
-        return trampoline
-
     def add_method(self, address):
-        body_size = gaussian_between(3, self.method_max_size)
+        body_size = gaussian_between(self.call_size, self.method_max_size)
         # To force the creation of leaf functions,
         # the gaussian distribution is centered
         # around 0 and the absolute value is used!
-        max_call_nb = min(self.max_call_nb, Method.compute_max_call_number(body_size))
+        max_call_nb = min(
+            self.max_call_nb, Method.compute_max_call_number(body_size, self.call_size)
+        )
         call_nb = abs(gaussian_between(-max_call_nb, max_call_nb))
         call_depth = (
             0
@@ -167,6 +162,7 @@ class Generator:
                 body_size=body_size,
                 call_number=call_nb,
                 call_depth=call_depth,
+                call_size=self.call_size,
             )
             logger.info(
                 f"{self.log_jit_prefix()} {method.log_prefix()} Method added with size"
@@ -188,6 +184,7 @@ class Generator:
                 body_size=body_size,
                 call_number=0,
                 call_depth=0,
+                call_size=self.call_size,
             )
             logger.info(
                 f"{self.log_jit_prefix()} {method.log_prefix()} Leaf method added with"
@@ -211,6 +208,7 @@ class Generator:
             method_max_call_depth=self.max_call_depth,
             hit_case_reg=self.pics_hit_case_reg,
             cmp_reg=self.pics_cmp_reg,
+            call_size=self.call_size,
         )
         logger.info(
             f"{self.log_jit_prefix()} {pic.log_prefix()} PIC added with"
@@ -225,22 +223,13 @@ class Generator:
     #  JIT filling and patching
     # \________________________
 
-    def fill_jit_code(self):
+    def fill_jit_code(self, start_address=None):
         logger.info("Phase 1: Filling JIT code")
-        current_address = self.jit_start_address
+        # start_address is used by subclasses (i.e. add trampolines before)!
+        if not start_address:
+            start_address = self.jit_start_address
+        current_address = start_address
         current_element_count = 0
-        # Add trampolines at the start of the JIT address
-        for trampoline_name in DEFAULT_TRAMPOLINES:
-            try:
-                trampoline = self.add_trampoline(
-                    address=current_address, name=trampoline_name
-                )
-                trampoline.build()
-                self.trampoline_instructions += trampoline.instructions
-                current_address += len(trampoline.instructions) * 4
-            except AttributeError as err:
-                logger.exception(err)
-                raise
         # Add a first leaf method
         leaf_method = self.add_leaf_method(current_address)
         leaf_method.fill_with_instructions(
@@ -277,6 +266,8 @@ class Generator:
         logger.info("Phase 1: JIT code elements filled!")
 
     def extract_callees(self, call_depth, nb):
+        # Possible nb callees given a call_depth
+        # -> selects callees with smaller call_depth degree
         possible_callees = flatten_list(
             [
                 self.call_depth_dict[i]
@@ -289,7 +280,7 @@ class Generator:
     def patch_jit_calls(self):
         logger.info("Phase 2: Patching calls")
         for elt in self.jit_elements:
-            # TODO: make pic method to patch elements, visitor?
+            # Patch PIC -> patch methods in it
             if isinstance(elt, PIC):
                 logger.info(
                     f"{self.log_jit_prefix()} {elt.log_prefix()} Patching PIC calls."
@@ -297,43 +288,37 @@ class Generator:
                 for method in elt.methods:
                     if method.call_depth == 0:
                         continue
-                    try:
-                        method.patch_calls(
-                            self.extract_callees(method.call_depth, method.call_number)
-                        )
-                    except RecursiveCallException as err:
-                        logger.exception(err)
-                        raise
-                    except MutualCallException as err:
-                        logger.exception(err)
-                        raise
+                    self.patch_method_calls(method)
+            # Patch Method -> patch directly
             elif isinstance(elt, Method):
                 if elt.call_depth == 0:
                     continue
-                try:
-                    logger.info(
-                        f"{self.log_jit_prefix()} {elt.log_prefix()} Patching method"
-                        " calls."
-                    )
-                    elt.patch_calls(
-                        self.extract_callees(elt.call_depth, elt.call_number)
-                    )
-                except RecursiveCallException as err:
-                    logger.exception(err)
-                    raise
-                except MutualCallException as err:
-                    logger.exception(err)
-                    raise
-                except CallNumberException as err:
-                    logger.exception(err)
-                    raise
+                logger.info(
+                    f"{self.log_jit_prefix()} {elt.log_prefix()} Patching method calls."
+                )
+                self.patch_method_calls(elt)
         logger.info("Phase 2: Calls patched!")
+
+    def patch_method_calls(self, method):
+        # Extracted to override in subclasses!
+        try:
+            method.patch_base_calls(
+                self.extract_callees(method.call_depth, method.call_number)
+            )
+        except (
+            RecursiveCallException,
+            MutualCallException,
+            CallNumberException,
+        ) as err:
+            logger.exception(err)
+            raise
 
     #  Interpretation loop filling
     # \___________________________
 
     def fill_interpretation_loop(self):
         logger.info("Phase 3: Filling interpretation loop")
+        # Build a prologue as if all callee-saved regs are used!
         prologue_instructions = self.builder.build_prologue(
             used_s_regs=10, local_var_nb=0, contains_call=True
         )
@@ -345,9 +330,7 @@ class Generator:
         shuffled_elements = self.jit_elements.copy()
         random.shuffle(shuffled_elements)
         for element in shuffled_elements:
-            call_instructions = self.builder.build_element_call(
-                element, element.address - current_address
-            )
+            call_instructions = self.build_element_call(element, current_address)
             self.interpreter_instructions += call_instructions
             current_address += len(call_instructions) * 4
             logger.info(
@@ -361,14 +344,16 @@ class Generator:
         self.interpreter_instructions += epilogue_instructions
         logger.info("Phase 3: Interpretation loop filled!")
 
+    def build_element_call(self, element, current_address):
+        # Extracted to override in subclasses!
+        return self.builder.build_element_base_call(
+            element, element.address - current_address
+        )
+
     #  Machine code generation
     # \_______________________
 
     def generate_jit_machine_code(self):
-        # Trampolines
-        self.jit_machine_code = [
-            instr.generate() for instr in self.trampoline_instructions
-        ]
         self.jit_machine_code += [elt.generate() for elt in self.jit_elements]
         return self.jit_machine_code
 
@@ -382,9 +367,6 @@ class Generator:
     # \________________
 
     def generate_jit_bytes(self):
-        self.jit_bytes = [
-            instr.generate_bytes() for instr in self.trampoline_instructions
-        ]
         self.jit_bytes += [elt.generate_bytes() for elt in self.jit_elements]
         return self.jit_bytes
 
@@ -456,3 +438,64 @@ class Generator:
         # Write binaries
         self.write_binary()
         self.write_data_binary()
+
+
+class TrampolineGenerator(Generator):
+    def __init__(self, *args, **kwargs):
+        self.trampolines: List[Trampoline] = []
+        self.trampoline_instructions: List[Instruction] = []
+        super().__init__(*args, **kwargs)
+        # /!\ The call size is larger when using trampolines
+        self.call_size: int = 6
+
+    def add_trampoline(self, address, name):
+        trampoline = Trampoline(name=name, address=address)
+        logger.info(f"{self.log_jit_prefix()} {trampoline.log_prefix()}")
+        self.trampolines.append(trampoline)
+        return trampoline
+
+    def find_trampoline_offset(self, name, current_address):
+        try:
+            trampoline = filter(lambda tramp: tramp.name == name, self.trampolines)[0]
+        except IndexError as err:
+            raise IndexError(f"No trampoline named {name}.") from err
+        return current_address - trampoline.address
+
+    def fill_jit_code(self):
+        # Add trampolines at the start of the JIT address
+        current_address = self.jit_start_address
+        for trampoline_name in DEFAULT_TRAMPOLINES:
+            try:
+                trampoline = self.add_trampoline(
+                    address=current_address, name=trampoline_name
+                )
+                trampoline.build()
+                self.trampoline_instructions += trampoline.instructions
+                current_address += len(trampoline.instructions) * 4
+            except AttributeError as err:
+                logger.exception(err)
+                raise
+        # Call the super method
+        super().fill_jit_code(start_address=current_address)
+
+    def build_element_call(self, element, current_address):
+        call_trampoline_offset = self.find_trampoline_offset("call_jit_elt")
+        return self.builder.build_element_trampoline_call(
+            element, element.address - current_address, call_trampoline_offset
+        )
+
+    def generate_jit_machine_code(self):
+        # Add machine code for trampolines at the start of JIT code
+        self.jit_machine_code = [
+            instr.generate() for instr in self.trampoline_instructions
+        ]
+        self.jit_machine_code += super().generate_jit_machine_code()
+        return self.jit_machine_code
+
+    def generate_jit_bytes(self):
+        # Add bytes for trampolines at the start of JIT code
+        self.jit_bytes = [
+            instr.generate_bytes() for instr in self.trampoline_instructions
+        ]
+        self.bytes += super().generate_jit_bytes()
+        return self.bytes

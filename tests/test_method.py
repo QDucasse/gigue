@@ -11,18 +11,68 @@ from gigue.exceptions import (
 from gigue.helpers import window
 from gigue.method import Method
 from gigue.pic import PIC
+from gigue.trampoline import Trampoline
 from tests.conftest import ADDRESS, RET_ADDRESS, TEST_CALLER_SAVED_REG
+
+
+@pytest.fixture
+def callees_method_setup():
+    callee1 = Method(
+        address=0x1100,
+        body_size=2,
+        call_number=0,
+    )
+    callee2 = Method(
+        address=0x1200,
+        body_size=2,
+        call_number=0,
+    )
+    callee3 = Method(
+        address=0x1300,
+        body_size=2,
+        call_number=0,
+    )
+    return [callee1, callee2, callee3]
+
+
+@pytest.fixture
+def callees_pic_setup():
+    callee1 = PIC(
+        address=0x1100,
+        case_number=2,
+        method_max_size=2,
+        method_max_call_number=0,
+        method_max_call_depth=0,
+    )
+    callee2 = PIC(
+        address=0x1200,
+        case_number=2,
+        method_max_size=2,
+        method_max_call_number=0,
+        method_max_call_depth=0,
+    )
+    callee3 = PIC(
+        address=0x1300,
+        case_number=2,
+        method_max_size=2,
+        method_max_call_number=0,
+        method_max_call_depth=0,
+    )
+    return [callee1, callee2, callee3]
+
 
 # =================================
 #             Method
 # =================================
 
 
-def test_initialization():
-    method = Method(address=0x7FFFFF, body_size=30, call_number=5)
+@pytest.mark.parametrize("call_size", [3, 6])
+def test_initialization(call_size):
+    method = Method(address=0x7FFFFF, body_size=30, call_number=5, call_size=call_size)
     assert method.body_size == 30
     assert method.address == 0x7FFFFF
     assert method.call_number == 5
+    assert method.call_size == call_size
 
 
 def test_error_initialization():
@@ -31,6 +81,7 @@ def test_error_initialization():
             address=0x7FFFFF,
             body_size=10,
             call_number=5,
+            call_size=3,
         )
 
 
@@ -50,16 +101,15 @@ def test_fill_with_nops(cap_disasm_setup):
         assert i.mnemonic == "nop"
 
 
-@pytest.mark.parametrize("execution_number", range(5))
 @pytest.mark.parametrize("used_s_regs", [0, 5, 10])
-@pytest.mark.parametrize("call_number", [0, 1, 2])
-def test_instructions_filling(
-    execution_number, used_s_regs, call_number, cap_disasm_setup
-):
+@pytest.mark.parametrize("call_number", [0, 5, 10])
+@pytest.mark.parametrize("call_size", [3, 6])
+def test_instructions_filling(used_s_regs, call_number, call_size, cap_disasm_setup):
     method = Method(
         address=0x1000,
-        body_size=10,
+        body_size=100,
         call_number=call_number,
+        call_size=call_size,
         used_s_regs=used_s_regs,
     )
     method.fill_with_instructions(
@@ -90,52 +140,93 @@ def test_instructions_filling(
 # =================================
 
 
-def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
+# Errors
+# \______
+
+
+def test_check_recursive_call_exception(callees_method_setup):
     method = Method(
         address=0x1000,
         body_size=10,
         call_number=3,
     )
-    callee1 = Method(
+    callee1, callee2, _ = callees_method_setup
+    for elt in [method, callee1, callee2]:
+        elt.fill_with_instructions(
+            registers=TEST_CALLER_SAVED_REG,
+            data_reg=DATA_REG,
+            data_size=DATA_SIZE,
+            weights=INSTRUCTION_WEIGHTS,
+        )
+    with pytest.raises(RecursiveCallException):
+        callee1.check_callees([callee1, callee2, method])
+    with pytest.raises(RecursiveCallException):
+        callee2.check_callees([callee1, callee2, method])
+    with pytest.raises(RecursiveCallException):
+        method.check_callees([callee1, callee2, method])
+
+
+def test_check_call_number_exception(callees_method_setup):
+    method = Method(
+        address=0x1000,
+        body_size=10,
+        call_number=3,
+    )
+    callee1, callee2, _ = callees_method_setup
+    for elt in [method, callee1, callee2]:
+        elt.fill_with_instructions(
+            registers=TEST_CALLER_SAVED_REG,
+            data_reg=DATA_REG,
+            data_size=DATA_SIZE,
+            weights=INSTRUCTION_WEIGHTS,
+        )
+    with pytest.raises(CallNumberException):
+        method.check_callees([callee1, callee2])
+
+
+def test_check_mutual_call_exception(callees_method_setup):
+    method = Method(
+        address=0x1000,
+        body_size=3,
+        call_number=1,
+    )
+    callee = Method(
         address=0x1100,
-        body_size=2,
-        call_number=0,
+        body_size=3,
+        call_number=1,
     )
-    callee2 = Method(
-        address=0x1200,
-        body_size=2,
-        call_number=0,
+    for elt in [method, callee]:
+        elt.fill_with_instructions(
+            registers=TEST_CALLER_SAVED_REG,
+            data_reg=DATA_REG,
+            data_size=DATA_SIZE,
+            weights=INSTRUCTION_WEIGHTS,
+        )
+    callee.patch_base_calls([method])
+    with pytest.raises(MutualCallException):
+        method.check_callees([callee])
+
+
+# Base call patching
+# \__________________
+
+
+def test_patch_base_calls_methods(disasm_setup, callees_method_setup):
+    method = Method(
+        address=0x1000,
+        body_size=20,
+        call_number=3,
+        call_size=3,
     )
-    callee3 = Method(
-        address=0x1300,
-        body_size=2,
-        call_number=0,
-    )
-    method.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee1.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee2.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee3.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    method.patch_calls([callee1, callee2, callee3])
+    callee1, callee2, callee3 = callees_method_setup
+    for elt in [method, callee1, callee2, callee3]:
+        elt.fill_with_instructions(
+            registers=TEST_CALLER_SAVED_REG,
+            data_reg=DATA_REG,
+            data_size=DATA_SIZE,
+            weights=INSTRUCTION_WEIGHTS,
+        )
+    method.patch_base_calls([callee1, callee2, callee3])
     # Tests correct jump offsets
     mc_method = method.generate()
     body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
@@ -146,65 +237,29 @@ def test_patch_calls_methods(disasm_setup, cap_disasm_setup):
             "auipc",
             "jalr",
         ]:
-            offset = disasm.extract_call_offset(instr_list)
+            offset = disasm.extract_pc_relative_offset(instr_list)
             extracted_address = method.address + (i + method.prologue_size) * 4 + offset
             assert extracted_address in callee_addresses
             callee_addresses.remove(extracted_address)
     assert callee_addresses == []
 
 
-def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
+def test_patch_base_calls_pics(disasm_setup, callees_pic_setup, cap_disasm_setup):
     method = Method(
         address=0x1000,
         body_size=10,
         call_number=3,
+        call_size=3,
     )
-    callee1 = PIC(
-        address=0x1100,
-        case_number=2,
-        method_max_size=2,
-        method_max_call_number=0,
-        method_max_call_depth=0,
-    )
-    callee2 = PIC(
-        address=0x1200,
-        case_number=2,
-        method_max_size=2,
-        method_max_call_number=0,
-        method_max_call_depth=0,
-    )
-    callee3 = PIC(
-        address=0x1300,
-        case_number=2,
-        method_max_size=2,
-        method_max_call_number=0,
-        method_max_call_depth=0,
-    )
-    method.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee1.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee2.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee3.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    method.patch_calls([callee1, callee2, callee3])
+    callee1, callee2, callee3 = callees_pic_setup
+    for elt in [method, callee1, callee2, callee3]:
+        elt.fill_with_instructions(
+            registers=TEST_CALLER_SAVED_REG,
+            data_reg=DATA_REG,
+            data_size=DATA_SIZE,
+            weights=INSTRUCTION_WEIGHTS,
+        )
+    method.patch_base_calls([callee1, callee2, callee3])
     # Capstone disassembly
     bytes_method = method.generate_bytes()
     cap_disasm = cap_disasm_setup
@@ -221,7 +276,7 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
             "auipc",
             "jalr",
         ]:
-            offset = disasm.extract_call_offset(instr_list[1:])
+            offset = disasm.extract_pc_relative_offset(instr_list[1:])
             extracted_address = (
                 method.address + (i + 1 + method.prologue_size) * 4 + offset
             )
@@ -230,82 +285,138 @@ def test_patch_calls_pics(disasm_setup, cap_disasm_setup):
     assert callee_addresses == []
 
 
-def test_patch_calls_check_recursive_loop_call():
+# Trampoline call patching
+# \________________________
+
+
+@pytest.mark.parametrize(
+    "call_trampoline_offset", [-0x4, -0x8, -0x800, -0xFFF, -0x80000, -0x1FFFE]
+)
+def test_patch_trampoline_calls_methods(
+    disasm_setup, callees_method_setup, call_trampoline_offset
+):
     method = Method(
         address=0x1000,
-        body_size=10,
+        body_size=20,
         call_number=3,
+        call_size=6,
     )
-    callee1 = Method(
-        address=0x1100,
-        body_size=2,
-        call_number=0,
-    )
-    callee2 = Method(
-        address=0x1200,
-        body_size=2,
-        call_number=0,
-    )
-    method.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee1.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee2.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    with pytest.raises(RecursiveCallException):
-        callee1.patch_calls([callee1, callee2, method])
-    with pytest.raises(RecursiveCallException):
-        callee2.patch_calls([callee1, callee2, method])
-    with pytest.raises(RecursiveCallException):
-        method.patch_calls([callee1, callee2, method])
+    callee1, callee2, callee3 = callees_method_setup
+    for elt in [method, callee1, callee2, callee3]:
+        elt.fill_with_instructions(
+            registers=TEST_CALLER_SAVED_REG,
+            data_reg=DATA_REG,
+            data_size=DATA_SIZE,
+            weights=INSTRUCTION_WEIGHTS,
+        )
+    method.patch_trampoline_calls([callee1, callee2, callee3], call_trampoline_offset)
+    # Tests correct jump offsets
+    mc_method = method.generate()
+    body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
+    callee_addresses = [callee1.address, callee2.address, callee3.address]
+    disasm = disasm_setup
+    for i, instr_list in enumerate(window(body_mc[:-1], 5)):
+        if [disasm.get_instruction_name(instr) for instr in instr_list] == [
+            "auipc",
+            "addi",
+            "auipc",
+            "addi",
+            "jal",
+        ]:
+            # Extract info on return address
+            offset = disasm.extract_pc_relative_offset(instr_list[0:2])
+            extracted_ra = method.address + (i + method.prologue_size) * 4 + offset
+            assert extracted_ra == method.address + (i + 5 + method.prologue_size) * 4
+            # Extract info on call target
+            offset = disasm.extract_pc_relative_offset(instr_list[2:4])
+            extracted_address = (
+                method.address + (i + 2 + method.prologue_size) * 4 + offset
+            )
+            # Note: address + prologue + 2 instructions before call site + offset
+            assert extracted_address in callee_addresses
+            callee_addresses.remove(extracted_address)
+            # Extract info on trampoline target
+            aligned_call_trampoline_offset = (call_trampoline_offset >> 1) << 1
+            extracted_tramp_offset = disasm.extract_imm_j(
+                instr_list[-1], sign_extend=True
+            )
+            assert (
+                extracted_tramp_offset
+                == aligned_call_trampoline_offset - (i + method.prologue_size + 4) * 4
+            )
+            # Note: Trampoline offset corrected with size of call
+    assert callee_addresses == []
 
 
-def test_patch_calls_check_mutual_loop_call():
+@pytest.mark.parametrize(
+    "call_trampoline_offset", [-0x4, -0x8, -0x800, -0xFFF, -0x80000, -0x1FFFE]
+)
+def test_patch_trampoline_calls_pics(
+    disasm_setup, callees_pic_setup, call_trampoline_offset
+):
     method = Method(
         address=0x1000,
-        body_size=3,
-        call_number=1,
+        body_size=20,
+        call_number=3,
+        call_size=6,
     )
-    callee = Method(
-        address=0x1100,
-        body_size=3,
-        call_number=1,
-    )
-    method.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee.patch_calls([method])
-    with pytest.raises(MutualCallException):
-        method.patch_calls([callee])
+    callee1, callee2, callee3 = callees_pic_setup
+    for elt in [method, callee1, callee2, callee3]:
+        elt.fill_with_instructions(
+            registers=TEST_CALLER_SAVED_REG,
+            data_reg=DATA_REG,
+            data_size=DATA_SIZE,
+            weights=INSTRUCTION_WEIGHTS,
+        )
+    method.patch_trampoline_calls([callee1, callee2, callee3], call_trampoline_offset)
+    # Tests correct jump offsets
+    mc_method = method.generate()
+    body_mc = mc_method[method.prologue_size : method.prologue_size + method.body_size]
+    callee_addresses = [callee1.address, callee2.address, callee3.address]
+    disasm = disasm_setup
+    for i, instr_list in enumerate(window(body_mc, 6)):
+        if [disasm.get_instruction_name(instr) for instr in instr_list] == [
+            "addi",
+            "auipc",
+            "addi",
+            "auipc",
+            "addi",
+            "jal",
+        ]:
+            # Extract info on return address
+            offset = disasm.extract_pc_relative_offset(instr_list[1:3])
+            extracted_ra = method.address + (i + method.prologue_size) * 4 + offset
+            assert extracted_ra == method.address + (i + 5 + method.prologue_size) * 4
+            # Extract info on call target
+            offset = disasm.extract_pc_relative_offset(instr_list[3:5])
+            extracted_address = (
+                method.address + (i + 3 + method.prologue_size) * 4 + offset
+            )
+            # Note: address + prologue + 2 instructions before call site + offset
+            assert extracted_address in callee_addresses
+            callee_addresses.remove(extracted_address)
+            # Extract info on trampoline target
+            aligned_call_trampoline_offset = (call_trampoline_offset >> 1) << 1
+            extracted_tramp_offset = disasm.extract_imm_j(
+                instr_list[-1], sign_extend=True
+            )
+            assert (
+                extracted_tramp_offset
+                == aligned_call_trampoline_offset - (method.prologue_size + i + 5) * 4
+            )
+            # Note: Trampoline offset corrected with size of call
+    assert callee_addresses == []
 
 
 # =================================
 #         Execution tests
 # =================================
 
+# Instruction filling
+# \___________________
 
-@pytest.mark.parametrize("execution_number", range(30))
+
+@pytest.mark.parametrize("execution_number", range(5))
 @pytest.mark.parametrize(
     "weights",
     [
@@ -324,7 +435,7 @@ def test_instructions_disassembly_execution_smoke(
 ):
     method = Method(
         address=0x1000,
-        body_size=10,
+        body_size=100,
         call_number=3,
     )
     method.fill_with_instructions(
@@ -342,15 +453,18 @@ def test_instructions_disassembly_execution_smoke(
     uc_emul = uc_emul_full_setup
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     uc_emul.mem_write(ADDRESS, bytes)
-    # from conftest import instrument_execution
-    # instrument_execution(uc_emul, ADDRESS)
     uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()
 
 
+# Base call patching
+# \__________________
+
+
 @pytest.mark.parametrize("execution_number", range(30))
-def test_patch_calls_disassembly_execution(
+def test_patch_base_calls_disassembly_execution(
     execution_number,
+    callees_method_setup,
     uc_emul_full_setup,
 ):
     method = Method(
@@ -358,46 +472,15 @@ def test_patch_calls_disassembly_execution(
         body_size=10,
         call_number=3,
     )
-    callee1 = Method(
-        address=0x1100,
-        body_size=2,
-        call_number=0,
-    )
-    callee2 = Method(
-        address=0x1200,
-        body_size=2,
-        call_number=0,
-    )
-    callee3 = Method(
-        address=0x1300,
-        body_size=2,
-        call_number=0,
-    )
-    method.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee1.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee2.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    callee3.fill_with_instructions(
-        registers=TEST_CALLER_SAVED_REG,
-        data_reg=DATA_REG,
-        data_size=DATA_SIZE,
-        weights=INSTRUCTION_WEIGHTS,
-    )
-    method.patch_calls([callee1, callee2, callee3])
+    callee1, callee2, callee3 = callees_method_setup
+    for elt in [method, callee1, callee2, callee3]:
+        elt.fill_with_instructions(
+            registers=TEST_CALLER_SAVED_REG,
+            data_reg=DATA_REG,
+            data_size=DATA_SIZE,
+            weights=INSTRUCTION_WEIGHTS,
+        )
+    method.patch_base_calls([callee1, callee2, callee3])
     bytes_method = method.generate_bytes()
     bytes_callee1 = callee1.generate_bytes()
     bytes_callee2 = callee2.generate_bytes()
@@ -405,12 +488,84 @@ def test_patch_calls_disassembly_execution(
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes_method)
-    uc_emul.mem_write(0x1100, bytes_callee1)
-    uc_emul.mem_write(0x1200, bytes_callee2)
-    uc_emul.mem_write(0x1300, bytes_callee3)
+    uc_emul.mem_write(callee1.address, bytes_callee1)
+    uc_emul.mem_write(callee2.address, bytes_callee2)
+    uc_emul.mem_write(callee3.address, bytes_callee3)
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     uc_emul.emu_start(ADDRESS, RET_ADDRESS)
+    uc_emul.emu_stop()
 
-    # from conftest import instrument_execution
-    # instrument_execution(uc_emul, ADDRESS)
+
+# Trampoline call patching
+# \________________________
+
+
+@pytest.mark.parametrize("execution_number", range(30))
+def test_patch_trampoline_calls_execution(
+    execution_number,
+    callees_method_setup,
+    uc_emul_full_setup,
+    cap_disasm_setup,
+    handler_setup,
+):
+    call_tramp = Trampoline(name="call_jit_elt", address=ADDRESS)
+    call_instrs = call_tramp.build()
+    ret_tramp = Trampoline(
+        name="ret_from_jit_elt", address=ADDRESS + len(call_instrs) * 4
+    )
+    ret_instrs = ret_tramp.build()
+    CODE_ADDRESS = ADDRESS + (len(call_instrs) + len(ret_instrs)) * 4
+    method = Method(address=CODE_ADDRESS, body_size=20, call_number=3, call_size=6)
+    callee1, callee2, callee3 = callees_method_setup
+    for elt in [method, callee1, callee2, callee3]:
+        elt.fill_with_trampoline_instructions(
+            registers=TEST_CALLER_SAVED_REG,
+            data_reg=DATA_REG,
+            data_size=DATA_SIZE,
+            weights=INSTRUCTION_WEIGHTS,
+            ret_trampoline_offset=ret_tramp.address - elt.address,
+        )
+    method.patch_trampoline_calls(
+        [callee1, callee2, callee3],
+        call_trampoline_offset=call_tramp.address - method.address,
+    )
+    bytes_call_tramp = call_tramp.generate_bytes()
+    bytes_ret_tramp = ret_tramp.generate_bytes()
+    bytes_method = method.generate_bytes()
+    bytes_callee1 = callee1.generate_bytes()
+    bytes_callee2 = callee2.generate_bytes()
+    bytes_callee3 = callee3.generate_bytes()
+    # Capstone disassembler
+    # cap_disasm = cap_disasm_setup
+    # print("Call trampoline")
+    # cap_disasm_bytes(cap_disasm, bytes_call_tramp, call_tramp.address)
+    # print("Ret trampoline")
+    # cap_disasm_bytes(cap_disasm, bytes_ret_tramp, ret_tramp.address)
+    # print("Method")
+    # cap_disasm_bytes(cap_disasm, bytes_method, method.address)
+    # print("Callee 1")
+    # cap_disasm_bytes(cap_disasm, bytes_callee1, callee1.address)
+    # print("Callee 2")
+    # cap_disasm_bytes(cap_disasm, bytes_callee2, callee2.address)
+    # print("Callee 3")
+    # cap_disasm_bytes(cap_disasm, bytes_callee3, callee3.address)
+    # Handler
+    # handler = handler_setup
+    # Emulation
+    uc_emul = uc_emul_full_setup
+    # handler.hook_instr_tracer(uc_emul)
+    # handler.hook_reg_tracer(uc_emul)
+    # handler.hook_exception_tracer(uc_emul)
+    uc_emul.mem_write(call_tramp.address, bytes_call_tramp)
+    uc_emul.mem_write(ret_tramp.address, bytes_ret_tramp)
+    uc_emul.mem_write(CODE_ADDRESS, bytes_method)
+    uc_emul.mem_write(callee1.address, bytes_callee1)
+    uc_emul.mem_write(callee2.address, bytes_callee2)
+    uc_emul.mem_write(callee3.address, bytes_callee3)
+    uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
+    # Should do method --call--> callee1 --ret-->
+    #           method --call--> callee2 --ret-->
+    #           method --call--> callee3 --ret-->
+    #           method --ret-->  RET_ADDRESS
+    uc_emul.emu_start(CODE_ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()

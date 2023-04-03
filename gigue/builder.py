@@ -152,33 +152,39 @@ class InstructionBuilder:
 
     # TODO: There should be a better way?
     @classmethod
-    def size_offset(cls, max_offset):
+    def size_offset(cls, max_offset, call_size=3):
+        granularity = call_size * 4
         possible_offsets = set([4, max_offset])
-        for i in range(1, max_offset // 12 + 1):
-            possible_offsets.add(i * 12 + max_offset % 12)
-        if max_offset % 12 == 8:
+        for i in range(1, max_offset // granularity + 1):
+            possible_offsets.add(i * granularity + max_offset % granularity)
+        if max_offset % granularity == 8:
             possible_offsets.add(8)
         return list(possible_offsets)
 
     @staticmethod
-    def build_random_j_instruction(registers, max_offset, *args, **kwargs):
+    def build_random_j_instruction(registers, max_offset, call_size=3, *args, **kwargs):
         # Jump to stay in the method and keep aligment
         rd = random.choice(registers)
-        offset = random.choice(InstructionBuilder.size_offset(max_offset))
+        offset = random.choice(InstructionBuilder.size_offset(max_offset, call_size))
         return JInstruction.jal(rd, offset)
 
     @staticmethod
-    def build_random_b_instruction(registers, max_offset, *args, **kwargs):
+    def build_random_b_instruction(registers, max_offset, call_size=3, *args, **kwargs):
         name = random.choice(InstructionBuilder.B_INSTRUCTIONS)
         constr = getattr(BInstruction, name)
         rs1, rs2 = random.choices(registers, k=2)
         # offset = max(random.randrange(0, max(12, max_offset), 12), 12)
-        offset = random.choice(InstructionBuilder.size_offset(max_offset))
+        offset = random.choice(InstructionBuilder.size_offset(max_offset, call_size))
         return constr(rs1=rs1, rs2=rs2, imm=offset)
 
     @staticmethod
     def build_random_instruction(
-        registers, max_offset, data_reg, data_size, weights=INSTRUCTION_WEIGHTS
+        registers,
+        max_offset,
+        data_reg,
+        data_size,
+        call_size=3,
+        weights=INSTRUCTION_WEIGHTS,
     ):
         method_name = random.choices(
             [
@@ -198,6 +204,7 @@ class InstructionBuilder:
             max_offset=max_offset,
             data_reg=data_reg,
             data_size=data_size,
+            call_size=call_size,
         )
         return instruction
 

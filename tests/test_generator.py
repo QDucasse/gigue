@@ -132,12 +132,13 @@ def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
     #         if disasm.get_instruction_name(mc_code[i + 1]) == "auipc":
     #             if disasm.get_instruction_name(mc_code[i + 2]) == "jalr":
     #                 assert (
-    #                     disasm.extract_call_offset(mc_code[i + 1 : i + 3])
+    #                     disasm.extract_pc_relative_offset(mc_code[i + 1 : i + 3])
     #                     in elt_addresses
     #                 )
     #     elif disasm.get_instruction_name(instr) == "auipc":
     #         if disasm.get_instruction_name(mc_code[i + 1]) == "jalr":
-    #             assert disasm.extract_call_offset(mc_code[i : i + 2]) in elt_addresses
+    #             assert disasm.extract_pc_relative
+    # _offset(mc_code[i : i + 2]) in elt_addresses
 
 
 # TODO: Smoke test, add real testing hihi
@@ -221,7 +222,7 @@ def test_generate_interpreter_machine_code(
     #     if len(call_instruction) == 3:  # pic with 3 instructions
     #         call_instruction = call_instruction[1:]
     #         is_pic = True
-    #     call_offset = disassembler.extract_call_offset(call_instruction)
+    #     call_offset = disassembler.extract_pc_relative_offset(call_instruction)
     #     assert (
     #         generator.interpreter_start_address + method_count * 8 + pic_count * 12
     #     ) + call_offset == jit_element.address

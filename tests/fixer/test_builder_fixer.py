@@ -15,7 +15,7 @@ from tests.conftest import ADDRESS, RET_ADDRESS, STACK_ADDRESS
 @pytest.mark.parametrize("offset", [0x800, 0xFFF, 0x80000, 0x1FFFE])
 def test_build_method_call(offset, fixer_disasm_setup, cap_disasm_custom_setup):
     instr_builder = FIXERInstructionBuilder()
-    instrs = instr_builder.build_method_call(offset)
+    instrs = instr_builder.build_method_base_call(offset)
     gen_instrs = [instr.generate() for instr in instrs]
     # Name check
     assert instrs[0].name == "auipc"
@@ -46,14 +46,17 @@ def test_build_method_call(offset, fixer_disasm_setup, cap_disasm_custom_setup):
     # Check cficall
     assert fixer_disasm.extract_rs1(gen_instrs[2]) == FIXER_CMP_REG
     # Check call offset
-    assert fixer_disasm.extract_call_offset(gen_instrs[3:]) == offset - 12
+    assert fixer_disasm.extract_pc_relative_offset(gen_instrs[3:]) == offset - 0xc
+    # Note: 0xc to mitigate the three previous instructions
 
 
 @pytest.mark.parametrize("offset", [0x800, 0xFFF, 0x80000, 0x1FFFE])
 @pytest.mark.parametrize("hit_case", range(1, 5))
-def test_build_pic_call(offset, hit_case, fixer_disasm_setup, cap_disasm_custom_setup):
+def test_build_pic_base_call(
+    offset, hit_case, fixer_disasm_setup, cap_disasm_custom_setup
+):
     instr_builder = FIXERInstructionBuilder()
-    instrs = instr_builder.build_pic_call(offset=offset, hit_case=hit_case)
+    instrs = instr_builder.build_pic_base_call(offset=offset, hit_case=hit_case)
     gen_instrs = [instr.generate() for instr in instrs]
     # Name check
     assert instrs[0].name == "auipc"
@@ -89,7 +92,7 @@ def test_build_pic_call(offset, hit_case, fixer_disasm_setup, cap_disasm_custom_
     assert fixer_disasm.extract_rd(gen_instrs[3]) == HIT_CASE_REG
     assert fixer_disasm.extract_imm_i(gen_instrs[3]) == hit_case
     # Check call offset
-    assert fixer_disasm.extract_call_offset(gen_instrs[4:]) == offset - 16
+    assert fixer_disasm.extract_pc_relative_offset(gen_instrs[4:]) == offset - 16
 
 
 @pytest.mark.parametrize("used_s_regs", [0, 5, 10])
@@ -134,11 +137,11 @@ def test_build_epilogue(
 
 
 @pytest.mark.parametrize("offset", [0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
-def test_build_method_call_execution(
+def test_build_method_base_call_execution(
     offset, cap_disasm_custom_setup, uc_emul_full_setup, fixer_handler_setup
 ):
     instr_builder = FIXERInstructionBuilder()
-    instrs = instr_builder.build_method_call(offset)
+    instrs = instr_builder.build_method_base_call(offset)
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_custom_setup
@@ -162,11 +165,13 @@ def test_build_method_call_execution(
 
 
 @pytest.mark.parametrize("offset", [0x800, 0xFFE, 0x80000, 0x1FFFE, 0xFFFFE])
-def test_build_pic_call_execution(
+def test_build_pic_base_call_execution(
     offset, cap_disasm_custom_setup, uc_emul_full_setup, fixer_handler_setup
 ):
     instr_builder = FIXERInstructionBuilder()
-    instrs = instr_builder.build_pic_call(offset=offset, hit_case=5, hit_case_reg=5)
+    instrs = instr_builder.build_pic_base_call(
+        offset=offset, hit_case=5, hit_case_reg=5
+    )
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_custom_setup

@@ -129,9 +129,7 @@ def test_build_method_base_call(offset, disasm_setup):
     disasm = disasm_setup
     assert disasm.get_instruction_info(gen_instrs[0]).name == "auipc"
     assert disasm.get_instruction_info(gen_instrs[1]).name == "jalr"
-    assert offset == disasm.extract_pc_relative_offset(
-        [instr.generate() for instr in instrs]
-    )
+    assert offset == disasm.extract_pc_relative_offset(gen_instrs)
 
 
 @pytest.mark.parametrize("offset", [0x800, 0xFFF, 0x80000, 0x1FFFE])
@@ -150,7 +148,8 @@ def test_build_pic_base_call(offset, hit_case, disasm_setup):
     assert disasm.get_instruction_info(gen_instrs[2]).name == "jalr"
     assert disasm.extract_rd(gen_instrs[0]) == HIT_CASE_REG
     assert disasm.extract_imm_i(gen_instrs[0]) == hit_case
-    assert offset == disasm.extract_pc_relative_offset(gen_instrs[1:])
+    assert offset == disasm.extract_pc_relative_offset(gen_instrs[1:]) + 4
+    # Note: addi mitigation!
 
 
 @pytest.mark.parametrize("offset", [0x800, 0xFFE, 0x80000, 0x1FFFE])
@@ -368,6 +367,51 @@ def test_build_pic_trampoline_call(
     )
 
 
+@pytest.mark.parametrize("used_s_regs", [0, 5, 10])
+@pytest.mark.parametrize("local_var_nb", [0, 5, 10])
+@pytest.mark.parametrize("contains_call", [True, False])
+@pytest.mark.parametrize(
+    "ret_trampoline_offset", [-4, -8, -0x800, -0xFFF, -0x80000, -0x1FFFE]
+)
+def test_build_trampoline_epilogue(
+    used_s_regs, local_var_nb, ret_trampoline_offset, contains_call, disasm_setup
+):
+    instr_builder = InstructionBuilder()
+    instrs = instr_builder.build_trampoline_epilogue(
+        used_s_regs=used_s_regs,
+        local_var_nb=local_var_nb,
+        contains_call=contains_call,
+        ret_trampoline_offset=ret_trampoline_offset,
+    )
+    gen_instrs = [instr.generate() for instr in instrs]
+    # Disassembly
+    disasm = disasm_setup
+    # Restore saved regs
+    for i, (instr, generated) in enumerate(zip(instrs[:-2], gen_instrs[:-2])):
+        assert instr.name == "ld"
+        assert disasm.extract_imm_i(generated) == i * 8
+    # RA check and restore
+    if contains_call:
+        assert instrs[used_s_regs].name == "ld"
+        assert disasm.extract_imm_i(gen_instrs[used_s_regs]) == used_s_regs * 8
+        assert disasm.extract_rd(gen_instrs[used_s_regs]) == RA
+        assert disasm.extract_rs1(gen_instrs[used_s_regs]) == SP
+    # Restore SP
+    assert instrs[-2].name == "addi"
+    assert (
+        disasm.extract_imm_i(gen_instrs[-2])
+        == (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
+    )
+    # Jump check
+    assert instrs[-1].name == "jal"
+    aligned_trampoline_offset = (ret_trampoline_offset >> 1) << 1
+    assert (
+        disasm.extract_imm_j(gen_instrs[-1], sign_extend=True)
+        == aligned_trampoline_offset - (len(instrs) - 1) * 4
+        # Note: The offset is corrected with the length of the other instructions
+    )
+
+
 # =================================
 #      Disassembly/Execution
 # =================================
@@ -540,7 +584,7 @@ def test_build_method_call_execution(offset, uc_emul_full_setup, cap_disasm_setu
     uc_emul.emu_start(begin=ADDRESS, until=ADDRESS + offset)
     current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
     current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
-    assert current_ra == ADDRESS + 8  # size of the
+    assert current_ra == ADDRESS + len(instrs) * 4
     assert current_pc == ADDRESS + offset
     uc_emul.emu_stop()
 
@@ -560,9 +604,13 @@ def test_build_pic_call_execution(
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
-    uc_emul.emu_start(begin=ADDRESS, until=ADDRESS + offset + 4)
+    uc_emul.emu_start(begin=ADDRESS, until=ADDRESS + offset)
     current_t0 = uc_emul.reg_read(UC_RISCV_REG_T0)
+    current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
+    current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
     assert current_t0 == hit_case
+    assert current_ra == ADDRESS + len(instrs) * 4
+    assert current_pc == ADDRESS + offset
     uc_emul.emu_stop()
 
 
@@ -778,4 +826,79 @@ def test_build_pic_call_trampoline_execution(
     assert current_ra == CODE_ADDRESS + 0x18  # size of the call mitigated!
     assert current_pc == CODE_ADDRESS + offset
     assert current_t0 == hit_case
+    uc_emul.emu_stop()
+
+
+@pytest.mark.parametrize("used_s_regs", [0, 5, 10])
+@pytest.mark.parametrize("local_var_nb", [0, 5, 10])
+@pytest.mark.parametrize("contains_call", [True, False])
+def test_build_trampoline_epilogue_execution(
+    used_s_regs,
+    local_var_nb,
+    contains_call,
+    uc_emul_full_setup,
+):
+    instr_builder = InstructionBuilder()
+    tramp_instrs = instr_builder.build_ret_from_jit_elt_trampoline()
+    tramp_bytes = instr_builder.consolidate_bytes(tramp_instrs)
+    instrs = instr_builder.build_trampoline_epilogue(
+        used_s_regs=used_s_regs,
+        local_var_nb=local_var_nb,
+        contains_call=contains_call,
+        ret_trampoline_offset=-4,
+    )
+    bytes = instr_builder.consolidate_bytes(instrs)
+    CODE_ADDRESS = ADDRESS + len(tramp_bytes)
+    # Emulation
+    uc_emul = uc_emul_full_setup
+    uc_emul.mem_write(ADDRESS, tramp_bytes)
+    uc_emul.mem_write(CODE_ADDRESS, bytes)
+    # Zero out callee saved regs
+    callee_saved_regs = [
+        UC_RISCV_REG_S0,
+        UC_RISCV_REG_S1,
+        UC_RISCV_REG_S2,
+        UC_RISCV_REG_S3,
+        UC_RISCV_REG_S4,
+        UC_RISCV_REG_S5,
+        UC_RISCV_REG_S6,
+        UC_RISCV_REG_S7,
+        UC_RISCV_REG_S8,
+        UC_RISCV_REG_S9,
+    ]
+    for reg in callee_saved_regs:
+        uc_emul.reg_write(reg, 0x0)
+    # Write values at addresses
+    for i in range(used_s_regs):
+        uc_emul.mem_write(STACK_ADDRESS + i * 8, int_to_bytes64(i + 1))
+    # Previously saved RA
+    called_address = RET_ADDRESS - 24
+    if contains_call:
+        uc_emul.mem_write(
+            STACK_ADDRESS + used_s_regs * 8, int_to_bytes64(called_address)
+        )
+    # Setup capstone
+    # cap_disasm = cap_disasm_setup
+    # cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
+    # cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
+    # Handler
+    # handler = handler_setup
+    # handler.hook_instr_tracer(uc_emul)
+    # handler.hook_reg_tracer(uc_emul)
+    # Launch emulation
+    uc_emul.emu_start(
+        begin=CODE_ADDRESS, until=(called_address if contains_call else RET_ADDRESS)
+    )
+    # Check registers
+    for i, reg in enumerate(callee_saved_regs[:used_s_regs]):
+        tmp = uc_emul.reg_read(reg)
+        assert tmp == i + 1
+    current_sp = uc_emul.reg_read(UC_RISCV_REG_SP)
+    current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+    assert (
+        current_sp
+        == STACK_ADDRESS
+        + (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
+    )
+    assert current_pc == called_address if contains_call else RET_ADDRESS
     uc_emul.emu_stop()

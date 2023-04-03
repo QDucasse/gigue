@@ -84,9 +84,7 @@ class Method:
         for _ in range(self.body_size):
             self.instructions.append(self.builder.build_nop())
 
-    def fill_with_instructions(self, registers, data_reg, data_size, weights):
-        logger.info(f"{self.log_prefix()} Filling method.")
-        # Generate prologue
+    def fill_prologue(self):
         prologue_instructions = self.builder.build_prologue(
             used_s_regs=self.used_s_regs,
             local_var_nb=self.local_vars_nb,
@@ -94,6 +92,8 @@ class Method:
         )
         self.instructions += prologue_instructions
         self.prologue_size = len(prologue_instructions)
+
+    def fill_body(self, registers, data_reg, data_size, call_size, weights):
         for _ in range(self.body_size):
             # Add random instructions
             max_offset = (
@@ -106,14 +106,63 @@ class Method:
                 data_reg=data_reg,
                 data_size=data_size,
                 weights=weights,
+                call_size=call_size,
             )
             self.instructions.append(instruction)
-        # Generate epilogue
+
+    def fill_epilogue(self):
         epilogue_instructions = self.builder.build_epilogue(
             self.used_s_regs, self.local_vars_nb, not self.is_leaf
         )
         self.instructions += epilogue_instructions
         self.epilogue_size = len(epilogue_instructions)
+
+    def fill_trampoline_epilogue(self, ret_trampoline_offset):
+        epilogue_instructions = self.builder.build_trampoline_epilogue(
+            self.used_s_regs,
+            self.local_vars_nb,
+            not self.is_leaf,
+            ret_trampoline_offset,
+        )
+        self.instructions += epilogue_instructions
+        self.epilogue_size = len(epilogue_instructions)
+
+    def fill_with_instructions(self, registers, data_reg, data_size, weights):
+        logger.info(f"{self.log_prefix()} Filling method.")
+        # Fill prologue
+        self.fill_prologue()
+        # Generate random instructions
+        self.fill_body(
+            registers=registers,
+            data_reg=data_reg,
+            data_size=data_size,
+            weights=weights,
+            call_size=3,
+        )
+        # Generate epilogue
+        self.fill_epilogue()
+        logger.info(f"{self.log_prefix()} Method filled.")
+
+    def fill_with_trampoline_instructions(
+        self, registers, data_reg, data_size, weights, ret_trampoline_offset
+    ):
+        logger.info(f"{self.log_prefix()} Filling method.")
+        # Fill prologue
+        self.fill_prologue()
+        # Generate random instructions
+        self.fill_body(
+            registers=registers,
+            data_reg=data_reg,
+            data_size=data_size,
+            weights=weights,
+            call_size=6,
+        )
+        # Generate epilogue
+        self.fill_trampoline_epilogue(
+            ret_trampoline_offset=ret_trampoline_offset
+            - self.body_size * 4
+            - self.prologue_size * 4
+        )
         logger.info(f"{self.log_prefix()} Method filled.")
 
     # Generation
@@ -231,7 +280,7 @@ class Method:
             call_instructions = self.builder.build_element_trampoline_call(
                 elt=callee,
                 offset=offset,
-                call_trampoline_offset=call_trampoline_offset,
+                call_trampoline_offset=call_trampoline_offset - ind * 4,
             )
             # Add call instructions (5 to 6 instructions!)
             self.instructions[ind : ind + len(call_instructions)] = call_instructions

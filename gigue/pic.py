@@ -24,11 +24,13 @@ class PIC:
         method_max_size: int,
         method_max_call_number: int,
         method_max_call_depth: int,
+        call_size: int = 3,
         hit_case_reg: int = HIT_CASE_REG,
         cmp_reg: int = CMP_REG,
     ):
         self.case_number: int = case_number
         self.address: int = address
+        self.call_size: int = call_size
         self.method_max_size: int = method_max_size
         self.method_max_call_number: int = method_max_call_number
         self.method_max_call_depth: int = method_max_call_depth
@@ -79,11 +81,25 @@ class PIC:
     # Call-related methods
     # \____________________
 
-    def accept_build_call(self, method_offset):
+    def accept_build_base_call(self, method_offset):
         hit_case = random.randint(1, self.case_number)
         try:
-            # The -4 comes from the addi that has to be mitigated
-            instrs = self.builder.build_pic_call(method_offset - 4, hit_case)
+            instrs = self.builder.build_pic_base_call(
+                offset=method_offset, hit_case=hit_case
+            )
+        except BuilderException as err:
+            logger.exception(err)
+            raise
+        return instrs
+
+    def accept_build_trampoline_call(self, method_offset, call_trampoline_offset):
+        hit_case = random.randint(1, self.case_number)
+        try:
+            instrs = self.builder.build_pic_trampoline_call(
+                offset=method_offset,
+                call_trampoline_offset=call_trampoline_offset,
+                hit_case=hit_case,
+            )
         except BuilderException as err:
             logger.exception(err)
             raise
@@ -98,7 +114,8 @@ class PIC:
         for _ in range(self.case_number):
             body_size = gaussian_between(3, self.method_max_size)
             max_call_nb = min(
-                self.method_max_call_number, Method.compute_max_call_number(body_size)
+                self.method_max_call_number,
+                Method.compute_max_call_number(body_size, self.call_size),
             )
             call_nb = abs(gaussian_between(-max_call_nb, max_call_nb))
             call_depth = abs(
