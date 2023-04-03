@@ -74,16 +74,6 @@ class Generator:
                 f" address (here {hex(jit_start_address)}))"
             )
 
-        # JIT code is at a fixed address?
-        # For now we dont handle auto sized JIT code
-        # self.fixed_jit = True
-        # if jit_start_address == 0:
-        #     self.fixed_jit = False
-        #     raise NotYetImplementedException(
-        #         "Functionality not yet implemented, please give both an interpreter"
-        #         " start address and a jit start address"
-        #     )
-
         self.jit_start_address: int = align(jit_start_address, 4)
         self.interpreter_start_address: int = align(interpreter_start_address, 4)
 
@@ -456,10 +446,12 @@ class TrampolineGenerator(Generator):
 
     def find_trampoline_offset(self, name, current_address):
         try:
-            trampoline = filter(lambda tramp: tramp.name == name, self.trampolines)[0]
+            trampoline = list(
+                filter(lambda tramp: tramp.name == name, self.trampolines)
+            )[0]
         except IndexError as err:
             raise IndexError(f"No trampoline named {name}.") from err
-        return current_address - trampoline.address
+        return trampoline.address - current_address
 
     def fill_jit_code(self):
         # Add trampolines at the start of the JIT address
@@ -479,7 +471,9 @@ class TrampolineGenerator(Generator):
         super().fill_jit_code(start_address=current_address)
 
     def build_element_call(self, element, current_address):
-        call_trampoline_offset = self.find_trampoline_offset("call_jit_elt")
+        call_trampoline_offset = self.find_trampoline_offset(
+            "call_jit_elt", current_address
+        )
         return self.builder.build_element_trampoline_call(
             element, element.address - current_address, call_trampoline_offset
         )
@@ -497,5 +491,5 @@ class TrampolineGenerator(Generator):
         self.jit_bytes = [
             instr.generate_bytes() for instr in self.trampoline_instructions
         ]
-        self.bytes += super().generate_jit_bytes()
-        return self.bytes
+        self.jit_bytes += super().generate_jit_bytes()
+        return self.jit_bytes

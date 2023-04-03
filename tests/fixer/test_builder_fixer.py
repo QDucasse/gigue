@@ -46,7 +46,7 @@ def test_build_method_call(offset, fixer_disasm_setup, cap_disasm_custom_setup):
     # Check cficall
     assert fixer_disasm.extract_rs1(gen_instrs[2]) == FIXER_CMP_REG
     # Check call offset
-    assert fixer_disasm.extract_pc_relative_offset(gen_instrs[3:]) == offset - 0xc
+    assert fixer_disasm.extract_pc_relative_offset(gen_instrs[3:]) == offset - 0xC
     # Note: 0xc to mitigate the three previous instructions
 
 

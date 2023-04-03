@@ -1,7 +1,7 @@
 import pytest
 
 from gigue.exceptions import WrongAddressException
-from gigue.generator import Generator
+from gigue.generator import Generator, TrampolineGenerator
 from gigue.method import Method
 from gigue.pic import PIC
 from tests.conftest import (
@@ -10,19 +10,7 @@ from tests.conftest import (
     RET_ADDRESS,
     TEST_DATA_REG,
     TEST_DATA_SIZE,
-    cap_disasm_bytes,
 )
-
-# =================================
-#            Constants
-# =================================
-
-# INTERPRETER_START_ADDRESS = 0x1000
-# JIT_START_ADDRESS = 0x3000
-# STACK_ADDRESS = 0x10000
-# END_ADDRESS = 0x20000
-# cap_disasm = Cs(CS_ARCH_RISCV, CS_MODE_RISCV64)
-
 
 # =================================
 #          Initialization
@@ -266,12 +254,11 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
 
 def bin_info(binary, address, disasm=False):
     print(
+        "---\n"
         f"Binary: from {hex(address)} to {hex(address + len(binary)) } (length"
-        f" {len(binary)})\n\\_____________________________\n"
+        f" {len(binary)})"
+        "\n---\n"
     )
-    if disasm:
-        cap_disasm_bytes(bytes=binary, address=address)
-    print("---\n\n")
 
 
 @pytest.mark.parametrize(
@@ -324,6 +311,73 @@ def test_execute_generated_binaries(
     # JIT bin
     jit_binary = generator.generate_jit_binary()
     # bin_info(jit_binary, JIT_START_ADDRESS, True)
+
+    # Emulation
+    uc_emul = uc_emul_full_setup
+    uc_emul.mem_write(INTERPRETER_START_ADDRESS, interpreter_binary)
+    uc_emul.mem_write(JIT_START_ADDRESS, jit_binary)
+
+    # Handler
+    # handler = handler_setup
+    # handler.hook_exception_tracer(uc_emul)
+    # handler.hook_instr_tracer(uc_emul)
+
+    uc_emul.emu_start(INTERPRETER_START_ADDRESS, RET_ADDRESS)
+    uc_emul.emu_stop()
+
+
+@pytest.mark.parametrize(
+    "jit_elements_nb",
+    [5, 20, 200],
+)
+@pytest.mark.parametrize(
+    "method_max_size",
+    [5, 20, 50],
+)
+@pytest.mark.parametrize(
+    "pics_ratio",
+    [0, 0.2, 0.5],
+)
+def test_execute_trampoline_generated_binaries(
+    jit_elements_nb,
+    method_max_size,
+    pics_ratio,
+    cap_disasm_setup,
+    handler_setup,
+    uc_emul_full_setup,
+):
+    generator = TrampolineGenerator(
+        jit_start_address=JIT_START_ADDRESS,
+        interpreter_start_address=INTERPRETER_START_ADDRESS,
+        jit_elements_nb=jit_elements_nb,
+        method_max_size=method_max_size,
+        max_call_depth=5,
+        max_call_nb=5,
+        pics_method_max_size=method_max_size,
+        pics_max_cases=2,
+        pics_ratio=pics_ratio,
+        data_reg=TEST_DATA_REG,
+        data_size=TEST_DATA_SIZE,
+    )
+    generator.fill_jit_code()
+    generator.patch_jit_calls()
+    generator.fill_interpretation_loop()
+    generator.generate_jit_machine_code()
+    generator.generate_interpreter_machine_code()
+    generator.generate_jit_bytes()
+    generator.generate_interpreter_bytes()
+
+    # Capstone disasm:
+    # cap_disasm = cap_disasm_setup
+
+    # Interpreter bin
+    interpreter_binary = generator.generate_interpreter_binary()
+    # bin_info(interpreter_binary, INTERPRETER_START_ADDRESS, True)
+    # cap_disasm_bytes(cap_disasm, interpreter_binary, INTERPRETER_START_ADDRESS)
+    # JIT bin
+    jit_binary = generator.generate_jit_binary()
+    # bin_info(jit_binary, JIT_START_ADDRESS, True)
+    # cap_disasm_bytes(cap_disasm, jit_binary, JIT_START_ADDRESS)
 
     # Emulation
     uc_emul = uc_emul_full_setup
