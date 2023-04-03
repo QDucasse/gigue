@@ -22,7 +22,7 @@ import sys
 
 from gigue.constants import BIN_DIR, CALLER_SAVED_REG
 from gigue.exceptions import GeneratorException
-from gigue.generator import Generator
+from gigue.generator import Generator, TrampolineGenerator
 from gigue.helpers import bytes_to_int
 
 logger = logging.getLogger(__name__)
@@ -42,19 +42,25 @@ class Parser(argparse.ArgumentParser):
             default=bytes_to_int(os.urandom(16)),
             help="Start address of the interpretation loop",
         )
+        self.add_argument(
+            "-T",
+            "--uses_trampolines",
+            action="store_true",
+            help="Name of the binary file",
+        )
         # Addresses
         self.add_argument(
             "-I",
             "--intaddr",
             type=int,
-            default=0,
+            default=0x0,
             help="Start address of the interpretation loop",
         )
         self.add_argument(
             "-J",
             "--jitaddr",
             type=int,
-            default=4096,  # 0x1000
+            default=0x2000,  # 0x1000
             help="Start address of the JIT code",
         )
 
@@ -164,8 +170,13 @@ def main(argv=None):
 
     logger.info("🌳 Instanciating Generator.")
 
+    if args.uses_trampolines:
+        gen_class = TrampolineGenerator
+    else:
+        gen_class = Generator
+
     try:
-        gen = Generator(
+        gen = gen_class(
             # Addresses
             jit_start_address=args.jitaddr,
             interpreter_start_address=args.intaddr,
