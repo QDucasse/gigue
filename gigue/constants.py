@@ -39,10 +39,10 @@ DATA_SIZE: int = 0x100
 # \________________
 
 # Instruction masks
-OP7_MASK: int = 0x0000007F
-OP7_OP3_MASK: int = 0x0000707F
-OP7_OP3_TOP7_MASK: int = 0xFE000707F
-OP7_OP3_TOP6_MASK: int = 0xFC000707F
+OPCODE_MASK: int = 0x0000007F
+OPCODE_FUNC3_MASK: int = 0x0000707F
+OPCODE_FUNC3_FUNC7_MASK: int = 0xFE000707F
+OPCODE_FUNC3_FUNC6_MASK: int = 0xFC000707F
 FULL_MASK: int = 0xFFFFFFFF
 
 # Trampoline Generation
@@ -65,7 +65,7 @@ class InstructionInfo:
         funct3: int,
         instr_type: str,
         funct7: int = 0,
-        cmp_mask: int = OP7_OP3_TOP7_MASK,
+        cmp_mask: int = OPCODE_FUNC3_FUNC7_MASK,
     ):
         self.name: str = name
         self.opcode: int = opcode
@@ -96,7 +96,7 @@ class CustomInstructionInfo(InstructionInfo):
         xs1: int = 0,
         xs2: int = 0,
         funct7: int = 0,
-        cmp_mask: int = OP7_OP3_TOP7_MASK,
+        cmp_mask: int = OPCODE_FUNC3_FUNC7_MASK,
     ):
         custom_instr_info: InstructionInfo = INSTRUCTIONS_INFO[
             "custom-" + str(custom_nb)
@@ -124,28 +124,28 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b000,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "addi": InstructionInfo(
         name="addi",
         opcode=0b0010011,
         funct3=0b000,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "addiw": InstructionInfo(
         name="addiw",
         opcode=0b0011011,
         funct3=0b000,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "addw": InstructionInfo(
         name="addw",
         opcode=0b0111011,
         funct3=0b000,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     # Ands
     "andr": InstructionInfo(
@@ -153,14 +153,14 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b111,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "andi": InstructionInfo(
         name="andi",
         opcode=0b0010011,
         funct3=0b111,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Add upp imm to PC
     "auipc": InstructionInfo(
@@ -168,7 +168,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0010111,
         funct3=0b000,
         instr_type="U",
-        cmp_mask=OP7_MASK,
+        cmp_mask=OPCODE_MASK,
     ),
     # Branches
     "beq": InstructionInfo(
@@ -176,53 +176,53 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1100011,
         funct3=0b000,
         instr_type="B",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "bge": InstructionInfo(
         name="bge",
         opcode=0b1100011,
         funct3=0b101,
         instr_type="B",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "bgeu": InstructionInfo(
         name="bgeu",
         opcode=0b1100011,
         funct3=0b111,
         instr_type="B",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "blt": InstructionInfo(
         name="blt",
         opcode=0b1100011,
         funct3=0b100,
         instr_type="B",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "bltu": InstructionInfo(
         name="bltu",
         opcode=0b1100011,
         funct3=0b110,
         instr_type="B",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "bne": InstructionInfo(
         name="bne",
         opcode=0b1100011,
         funct3=0b001,
         instr_type="B",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Jumps
     "jal": InstructionInfo(
-        name="jal", opcode=0b1101111, funct3=0b000, instr_type="J", cmp_mask=OP7_MASK
+        name="jal", opcode=0b1101111, funct3=0b000, instr_type="J", cmp_mask=OPCODE_MASK
     ),
     "jalr": InstructionInfo(
         name="jalr",
         opcode=0b1100111,
         funct3=0b000,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Loads
     "lb": InstructionInfo(
@@ -230,53 +230,53 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0000011,
         funct3=0b000,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lbu": InstructionInfo(
         name="lbu",
         opcode=0b0000011,
         funct3=0b100,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "ld": InstructionInfo(
         name="ld",
         opcode=0b0000011,
         funct3=0b011,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lh": InstructionInfo(
         name="lh",
         opcode=0b0000011,
         funct3=0b001,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lhu": InstructionInfo(
         name="lhu",
         opcode=0b0000011,
         funct3=0b101,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lw": InstructionInfo(
         name="lw",
         opcode=0b0000011,
         funct3=0b010,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lwu": InstructionInfo(
         name="lwu",
         opcode=0b0000011,
         funct3=0b110,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Load upper immediate
     "lui": InstructionInfo(
-        name="lui", opcode=0b0110111, funct3=0b000, instr_type="U", cmp_mask=OP7_MASK
+        name="lui", opcode=0b0110111, funct3=0b000, instr_type="U", cmp_mask=OPCODE_MASK
     ),
     # Muls
     "mul": InstructionInfo(
@@ -285,7 +285,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         funct3=0b000,
         instr_type="R",
         funct7=0b0000001,
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "mulh": InstructionInfo(
         name="mulh",
@@ -293,7 +293,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         funct3=0b001,
         instr_type="R",
         funct7=0b0000001,
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "mulhsu": InstructionInfo(
         name="mulhsu",
@@ -301,7 +301,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         funct3=0b010,
         instr_type="R",
         funct7=0b0000001,
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "mulhu": InstructionInfo(
         name="mulhu",
@@ -309,7 +309,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         funct3=0b011,
         instr_type="R",
         funct7=0b0000001,
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "mulw": InstructionInfo(
         name="mulw",
@@ -317,7 +317,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         funct3=0b000,
         instr_type="R",
         funct7=0b0000001,
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     # Ors
     "orr": InstructionInfo(
@@ -325,14 +325,14 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b110,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "ori": InstructionInfo(
         name="ori",
         opcode=0b0010011,
         funct3=0b110,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Stores
     "sb": InstructionInfo(
@@ -340,28 +340,28 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0100011,
         funct3=0b000,
         instr_type="S",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sd": InstructionInfo(
         name="sd",
         opcode=0b0100011,
         funct3=0b011,
         instr_type="S",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sh": InstructionInfo(
         name="sh",
         opcode=0b0100011,
         funct3=0b001,
         instr_type="S",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sw": InstructionInfo(
         name="sw",
         opcode=0b0100011,
         funct3=0b010,
         instr_type="S",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Logical shift left
     "sll": InstructionInfo(
@@ -369,28 +369,28 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b001,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP6_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "slli": InstructionInfo(
         name="slli",
         opcode=0b0010011,
         funct3=0b001,
         instr_type="I",
-        cmp_mask=OP7_OP3_TOP6_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "slliw": InstructionInfo(
         name="slliw",
         opcode=0b0011011,
         funct3=0b001,
         instr_type="I",
-        cmp_mask=OP7_OP3_TOP6_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "sllw": InstructionInfo(
         name="sllw",
         opcode=0b0111011,
         funct3=0b001,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP6_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     # Set if
     "slt": InstructionInfo(
@@ -398,28 +398,28 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b010,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "slti": InstructionInfo(
         name="slti",
         opcode=0b0010011,
         funct3=0b010,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sltiu": InstructionInfo(
         name="sltiu",
         opcode=0b0010011,
         funct3=0b011,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sltu": InstructionInfo(
         name="sltu",
         opcode=0b0110011,
         funct3=0b011,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     # Arithmetic shift right
     # Note (srai, sraiw) the funct7 here is used on top of the shift immediate
@@ -429,7 +429,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         funct3=0b101,
         instr_type="R",
         funct7=0b0100000,
-        cmp_mask=OP7_OP3_TOP6_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "srai": InstructionInfo(
         name="srai",
@@ -437,7 +437,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         funct3=0b101,
         instr_type="I",
         funct7=0b0100000,
-        cmp_mask=OP7_OP3_TOP6_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "sraiw": InstructionInfo(
         name="sraiw",
@@ -445,7 +445,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         funct3=0b101,
         instr_type="I",
         funct7=0b0100000,
-        cmp_mask=OP7_OP3_TOP6_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "sraw": InstructionInfo(
         name="sraw",
@@ -453,7 +453,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         funct3=0b101,
         instr_type="R",
         funct7=0b0100000,
-        cmp_mask=OP7_OP3_TOP6_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     # Logical shift right
     "srl": InstructionInfo(
@@ -461,28 +461,28 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b101,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP6_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "srli": InstructionInfo(
         name="srli",
         opcode=0b0010011,
         funct3=0b101,
         instr_type="I",
-        cmp_mask=OP7_OP3_TOP6_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "srliw": InstructionInfo(
         name="srliw",
         opcode=0b0011011,
         funct3=0b101,
         instr_type="I",
-        cmp_mask=OP7_OP3_TOP6_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "srlw": InstructionInfo(
         name="srlw",
         opcode=0b0111011,
         funct3=0b101,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP6_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     # Subs
     "sub": InstructionInfo(
@@ -491,7 +491,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         funct3=0b000,
         instr_type="R",
         funct7=0b0100000,
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "subw": InstructionInfo(
         name="subw",
@@ -499,7 +499,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         funct3=0b000,
         instr_type="R",
         funct7=0b0100000,
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     # Note: subi is performed with addi!
     # Xors
@@ -508,14 +508,14 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b100,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "xori": InstructionInfo(
         name="xori",
         opcode=0b0010011,
         funct3=0b100,
         instr_type="I",
-        cmp_mask=OP7_OP3_MASK,
+        cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Exceptions
     "ebreak": ExceptionInstructionInfo(
@@ -540,28 +540,28 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0001011,
         funct3=0b000,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "custom-1": InstructionInfo(
         name="custom-1",
         opcode=0b0101011,
         funct3=0b000,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "custom-2": InstructionInfo(
         name="custom-2",
         opcode=0b1011011,
         funct3=0b000,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "custom-3": InstructionInfo(
         name="custom-3",
         opcode=0b1111011,
         funct3=0b000,
         instr_type="R",
-        cmp_mask=OP7_OP3_TOP7_MASK,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     # Note: funct3 is set at 0 by default but should be redefined by the subclasses!
 }

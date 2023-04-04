@@ -9,6 +9,7 @@ from unicorn.riscv_const import (
     UC_RISCV_REG_PC,
     UC_RISCV_REG_RA,
     UC_RISCV_REG_SP,
+    UC_RISCV_REG_T1,
     UC_RISCV_REG_T6,
 )
 from unicorn.unicorn_const import (
@@ -18,7 +19,7 @@ from unicorn.unicorn_const import (
     UC_MODE_RISCV64,
 )
 
-from gigue.constants import CALLER_SAVED_REG, DATA_REG
+from gigue.constants import CALLER_SAVED_REG, DATA_REG, CALL_TMP_REG
 from gigue.dataminer import Dataminer
 from gigue.disassembler import Disassembler
 from gigue.exceptions import UnknownInstructionException
@@ -81,13 +82,21 @@ RET_ADDRESS = 0x20000
 # Check for correct test data reg, config vs unicorn one
 # Note: Unicorn's 0 is the code for invalid reg so everything is shifted!
 # Warning: UC_DATA_REG should only be used in this file and the rest
-#          should transparently use TEST_DATA_REG
+#          should transparently use TEST_DATA_REG (apart from setting up unicorn)
 TEST_DATA_REG = DATA_REG
 assert TEST_DATA_REG + 1 == UC_RISCV_REG_T6
 UC_DATA_REG = UC_RISCV_REG_T6
 
 TEST_CALLER_SAVED_REG = [reg for reg in CALLER_SAVED_REG if reg != TEST_DATA_REG]
 TEST_DATA_SIZE = 1024
+
+# Check for correct test data reg, config vs unicorn one
+# Note: Unicorn's 0 is the code for invalid reg so everything is shifted!
+# Warning: UC_DATA_REG should only be used in this file and the rest should
+#          transparently use TEST_CALL_TMP_REG (apart from setting up unicorn)
+TEST_CALL_TMP_REG = CALL_TMP_REG
+assert TEST_CALL_TMP_REG + 1 == UC_RISCV_REG_T1
+UC_CALL_TMP_REG = UC_RISCV_REG_T1
 
 
 @pytest.fixture
@@ -117,6 +126,15 @@ def uc_emul_full_setup(uc_emul_setup):
     # Write STACK ADDRESS in SP
     uc_emul.reg_write(UC_RISCV_REG_SP, STACK_ADDRESS)
     return uc_emul
+
+
+def bin_info(binary, address):
+    print(
+        "---\n"
+        f"Binary: from {hex(address)} to {hex(address + len(binary)) } (length"
+        f" {len(binary)})"
+        "\n---\n"
+    )
 
 
 class Handler:
