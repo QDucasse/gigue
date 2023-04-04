@@ -105,14 +105,14 @@ def test_correct_encoding_rinstr(name, disasm_setup):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
     mc_instr = instr.generate()
-    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
-    assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
+    assert instr.opcode == INSTRUCTIONS_INFO[name].opcode
+    assert instr.funct3 == INSTRUCTIONS_INFO[name].funct3
     # Disassembly
     disasm = disasm_setup
     assert instr.rd == disasm.extract_rd(mc_instr)
     assert instr.rs1 == disasm.extract_rs1(mc_instr)
     assert instr.rs2 == disasm.extract_rs2(mc_instr)
-    assert instr.top7 == disasm.extract_top7(mc_instr)
+    assert instr.funct7 == disasm.extract_funct7(mc_instr)
 
 
 @pytest.mark.parametrize(
@@ -232,8 +232,8 @@ def test_correct_encoding_iinstr(name, imm, disasm_setup):
     mc_instr = instr.generate()
     # Disassembly
     disasm = disasm_setup
-    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
-    assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
+    assert instr.opcode == INSTRUCTIONS_INFO[name].opcode
+    assert instr.funct3 == INSTRUCTIONS_INFO[name].funct3
     assert instr.rd == disasm.extract_rd(mc_instr)
     assert instr.rs1 == disasm.extract_rs1(mc_instr)
     assert instr.imm == disasm.extract_imm_i(mc_instr)
@@ -248,8 +248,8 @@ def test_correct_encoding_iinstr_shifts(name, imm, disasm_setup):
     constr = getattr(IInstruction, name)
     instr = constr(rd=5, rs1=6, imm=imm)
     mc_instr = instr.generate()
-    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
-    assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
+    assert instr.opcode == INSTRUCTIONS_INFO[name].opcode
+    assert instr.funct3 == INSTRUCTIONS_INFO[name].funct3
     # Disassembly
     disasm = disasm_setup
     assert instr.rd == disasm.extract_rd(mc_instr)
@@ -374,7 +374,7 @@ def test_correct_encoding_uinstr(name, imm, disasm_setup):
     constr = getattr(UInstruction, name)
     instr = constr(rd=5, imm=imm)
     mc_instr = instr.generate()
-    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
+    assert instr.opcode == INSTRUCTIONS_INFO[name].opcode
     # Disassembly
     disasm = disasm_setup
     assert instr.rd == disasm.extract_rd(mc_instr)
@@ -439,7 +439,7 @@ def test_correct_encoding_jinstr(name, imm, disasm_setup):
     constr = getattr(JInstruction, name)
     instr = constr(rd=5, imm=imm)
     mc_instr = instr.generate()
-    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
+    assert instr.opcode == INSTRUCTIONS_INFO[name].opcode
     # Disassembly
     disasm = disasm_setup
     assert instr.rd == disasm.extract_rd(mc_instr)
@@ -490,8 +490,8 @@ def test_correct_encoding_sinstr(name, imm, disasm_setup):
     constr = getattr(SInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
     mc_instr = instr.generate()
-    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
-    assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
+    assert instr.opcode == INSTRUCTIONS_INFO[name].opcode
+    assert instr.funct3 == INSTRUCTIONS_INFO[name].funct3
     # Disassembly
     disasm = disasm_setup
     assert instr.rs1 == disasm.extract_rs1(mc_instr)
@@ -568,8 +568,8 @@ def test_correct_encoding_binstr(name, imm, disasm_setup):
     constr = getattr(BInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=imm)
     mc_instr = instr.generate()
-    assert instr.opcode7 == INSTRUCTIONS_INFO[name].opcode7
-    assert instr.opcode3 == INSTRUCTIONS_INFO[name].opcode3
+    assert instr.opcode == INSTRUCTIONS_INFO[name].opcode
+    assert instr.funct3 == INSTRUCTIONS_INFO[name].funct3
     # Disassembly
     disasm = disasm_setup
     assert instr.rs1 == disasm.extract_rs1(mc_instr)

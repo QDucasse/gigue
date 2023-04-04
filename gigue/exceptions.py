@@ -106,9 +106,17 @@ class BuilderException(Exception):
     pass
 
 
-class WrongOffsetException(Exception):
+class WrongOffsetException(BuilderException):
     """
     Offset is incorrect.
+    """
+
+    pass
+
+
+class InstructionAlignmentNotDefined(BuilderException):
+    """
+    Alignment for instruction is not defined.
     """
 
     pass

@@ -1,9 +1,11 @@
+from typing import List
+
 from gigue.builder import InstructionBuilder
 from gigue.constants import RA
 from gigue.exceptions import WrongOffsetException
 from gigue.fixer.constants import FIXER_CMP_REG
 from gigue.fixer.instructions import FIXERCustomInstruction
-from gigue.instructions import BInstruction, IInstruction, UInstruction
+from gigue.instructions import BInstruction, IInstruction, Instruction, UInstruction
 
 
 class FIXERInstructionBuilder(InstructionBuilder):
@@ -15,7 +17,7 @@ class FIXERInstructionBuilder(InstructionBuilder):
     # Note 2: This means the element addresses should be patched
     # as well!
     @staticmethod
-    def build_method_base_call(offset):
+    def build_method_base_call(offset: int) -> List[Instruction]:
         # The instrumented call looks like the following:
         # 0x00 auipc fix, 0         |  \
         # 0x04 addi  fix, fix, 0x14 | - > Generate the return address
@@ -27,7 +29,7 @@ class FIXERInstructionBuilder(InstructionBuilder):
             raise WrongOffsetException(
                 f"Call offset should be greater than 20 (currently {offset})."
             )
-        instructions = [
+        instructions: List[Instruction] = [
             # Storing ra in FIXER_CMP_REG, has to take in account
             UInstruction.auipc(rd=FIXER_CMP_REG, imm=0),
             IInstruction.addi(rd=FIXER_CMP_REG, rs1=FIXER_CMP_REG, imm=0x14),
@@ -39,7 +41,7 @@ class FIXERInstructionBuilder(InstructionBuilder):
         return instructions
 
     @staticmethod
-    def build_pic_base_call(offset, *args, **kwargs):
+    def build_pic_base_call(offset: int, *args, **kwargs) -> List[Instruction]:
         # The instrumented call looks like the following:
         # 0x00 auipc fix, 0         |  \
         # 0x04 addi  fix, fix, 0x18 | - > Generate the return address
@@ -52,7 +54,7 @@ class FIXERInstructionBuilder(InstructionBuilder):
             raise WrongOffsetException(
                 f"Call offset should be greater than 20 (currently {offset})."
             )
-        instructions = [
+        instructions: List[Instruction] = [
             # Storing ra in FIXER_CMP_REG, has to take in account
             UInstruction.auipc(rd=FIXER_CMP_REG, imm=0),
             IInstruction.addi(rd=FIXER_CMP_REG, rs1=FIXER_CMP_REG, imm=0x18),
@@ -60,8 +62,9 @@ class FIXERInstructionBuilder(InstructionBuilder):
             FIXERCustomInstruction.cficall(rd=0, rs1=FIXER_CMP_REG, rs2=0),
         ]
         instructions += InstructionBuilder.build_pic_base_call(
-            offset=offset - 12, *args, **kwargs
+            offset=offset - 12, *args, **kwargs  # type: ignore
         )
+        # Note:  type ignore due to star args
         # Note: -12 to mitigate the three additional instructions
         return instructions
 
@@ -70,8 +73,10 @@ class FIXERInstructionBuilder(InstructionBuilder):
 
     # If the check does not pass, it goes to ebreak, otherwise jumps over
     @staticmethod
-    def build_epilogue(*args, **kwargs):
-        instructions = InstructionBuilder.build_epilogue(*args, **kwargs)
+    def build_epilogue(*args, **kwargs) -> List[Instruction]:
+        instructions: List[Instruction] = InstructionBuilder.build_epilogue(
+            *args, **kwargs
+        )
         instructions.insert(
             -1, FIXERCustomInstruction.cfiret(rd=FIXER_CMP_REG, rs1=0, rs2=0)
         )

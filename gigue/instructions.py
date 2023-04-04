@@ -1,139 +1,153 @@
+from __future__ import annotations
+
 import logging
-from typing import Dict
+from typing import Dict, List
 
 from gigue.constants import INSTRUCTIONS_INFO, CustomInstructionInfo
 from gigue.helpers import format_to, format_to_aligned, int_to_bytes32, to_unsigned
+
+# Note: Annotate with current typesss
+
 
 logger = logging.getLogger(__name__)
 
 
 # TODO: Doc
 class Instruction:
-    def __init__(self, name, opcode7, top7=0):
-        self.name = name
-        self.opcode7 = format_to(opcode7, 7)
-        self.top7 = format_to(top7, 7)
-        self.machine_instruction = 0
+    def __init__(self, name: str, opcode: int, funct7: int = 0):
+        self.name: str = name
+        self.opcode: int = format_to(opcode, 7)
+        self.funct7: int = format_to(funct7, 7)
+        self.machine_instruction: int = 0
 
-    def generate_bytes(self):
+    def generate_bytes(self) -> bytes:
         return int_to_bytes32(self.generate())
 
-    def generate(self):
+    def generate(self) -> int:
         raise NotImplementedError("Please Implement this method")
 
 
 # TODO: Doc
 class RInstruction(Instruction):
-    def __init__(self, name, opcode7, opcode3, rd, rs1, rs2, top7=0):
-        super().__init__(name, opcode7, top7)
-        self.opcode3 = format_to(opcode3, 3)
-        self.rd = format_to(rd, 5)
-        self.rs1 = format_to(rs1, 5)
-        self.rs2 = format_to(rs2, 5)
+    def __init__(
+        self,
+        name: str,
+        opcode: int,
+        funct3: int,
+        rd: int,
+        rs1: int,
+        rs2: int,
+        funct7: int = 0,
+    ):
+        super().__init__(name, opcode, funct7)
+        self.funct3: int = format_to(funct3, 3)
+        self.rd: int = format_to(rd, 5)
+        self.rs1: int = format_to(rs1, 5)
+        self.rs2: int = format_to(rs2, 5)
 
-    def __str__(self):
-        return "<{}, {} {} {}>".format(self.name, self.rd, self.rs1, self.rs2)
+    def __str__(self) -> str:
+        return f"<{self.name}, {self.rd} {self.rs1} {self.rs2}>"
 
-    def generate(self):
-        self.machine_instruction = self.opcode7
+    def generate(self) -> int:
+        self.machine_instruction = self.opcode
         self.machine_instruction |= self.rd << 7
-        self.machine_instruction |= self.opcode3 << 12
+        self.machine_instruction |= self.funct3 << 12
         self.machine_instruction |= self.rs1 << 15
         self.machine_instruction |= self.rs2 << 20
-        self.machine_instruction |= self.top7 << 25
+        self.machine_instruction |= self.funct7 << 25
         return self.machine_instruction
 
     @classmethod
-    def r_instr(cls, name, rd, rs1, rs2):
+    def r_instr(cls, name: str, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls(
             name=name,
-            opcode7=INSTRUCTIONS_INFO[name].opcode7,
-            opcode3=INSTRUCTIONS_INFO[name].opcode3,
+            opcode=INSTRUCTIONS_INFO[name].opcode,
+            funct3=INSTRUCTIONS_INFO[name].funct3,
             rd=rd,
             rs1=rs1,
             rs2=rs2,
-            top7=INSTRUCTIONS_INFO[name].top7,
+            funct7=INSTRUCTIONS_INFO[name].funct7,
         )
 
     # TODO: Autogenerate?
     @classmethod
-    def add(cls, rd, rs1, rs2):
+    def add(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("add", rd, rs1, rs2)
 
     @classmethod
-    def addw(cls, rd, rs1, rs2):
+    def addw(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("addw", rd, rs1, rs2)
 
     @classmethod
-    def andr(cls, rd, rs1, rs2):
+    def andr(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("andr", rd, rs1, rs2)
 
     @classmethod
-    def mul(cls, rd, rs1, rs2):
+    def mul(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("mul", rd, rs1, rs2)
 
     @classmethod
-    def mulh(cls, rd, rs1, rs2):
+    def mulh(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("mulh", rd, rs1, rs2)
 
     @classmethod
-    def mulhsu(cls, rd, rs1, rs2):
+    def mulhsu(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("mulhsu", rd, rs1, rs2)
 
     @classmethod
-    def mulhu(cls, rd, rs1, rs2):
+    def mulhu(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("mulhu", rd, rs1, rs2)
 
     @classmethod
-    def mulw(cls, rd, rs1, rs2):
+    def mulw(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("mulw", rd, rs1, rs2)
 
     @classmethod
-    def orr(cls, rd, rs1, rs2):
+    def orr(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("orr", rd, rs1, rs2)
 
     @classmethod
-    def sll(cls, rd, rs1, rs2):
+    def sll(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("sll", rd, rs1, rs2)
 
     @classmethod
-    def sllw(cls, rd, rs1, rs2):
+    def sllw(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("sllw", rd, rs1, rs2)
 
     @classmethod
-    def slt(cls, rd, rs1, rs2):
+    def slt(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("slt", rd, rs1, rs2)
 
     @classmethod
-    def sltu(cls, rd, rs1, rs2):
+    def sltu(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("sltu", rd, rs1, rs2)
 
     @classmethod
-    def sra(cls, rd, rs1, rs2):
+    def sra(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("sra", rd, rs1, rs2)
 
     @classmethod
-    def sraw(cls, rd, rs1, rs2):
+    def sraw(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("sraw", rd, rs1, rs2)
 
     @classmethod
-    def srl(cls, rd, rs1, rs2):
+    def srl(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("srl", rd, rs1, rs2)
 
     @classmethod
-    def srlw(cls, rd, rs1, rs2):
+    def srlw(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("srlw", rd, rs1, rs2)
 
     @classmethod
-    def sub(cls, rd, rs1, rs2):
+    def sub(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("sub", rd, rs1, rs2)
 
     @classmethod
-    def subw(cls, rd, rs1, rs2):
+    def subw(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("subw", rd, rs1, rs2)
 
     @classmethod
-    def xor(cls, rd, rs1, rs2):
+    def xor(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("xor", rd, rs1, rs2)
 
 
@@ -141,17 +155,20 @@ class CustomInstruction(RInstruction):
     # The instructions info are not known this time and should be provided
     CUSTOM_INSTRUCTIONS_INFO: Dict[str, CustomInstructionInfo] = {}
 
-    def __init__(self, name, xd, xs1, xs2, *args, **kwargs):
+    def __init__(self, name: str, xd: int, xs1: int, xs2: int, *args, **kwargs):
         self.xd = format_to(xd, 1)
         self.xs1 = format_to(xs1, 1)
         self.xs2 = format_to(xs2, 1)
-        opcode3 = format_to((self.xd << 2) + (self.xs1 << 1) + self.xs2, 3)
-        super().__init__(name=name, opcode3=opcode3, *args, **kwargs)
+        funct3: int = format_to((self.xd << 2) + (self.xs1 << 1) + self.xs2, 3)
+        super().__init__(name=name, funct3=funct3, *args, **kwargs)  # type: ignore
+        # Note: Type ignore due to star
 
     @classmethod
-    def custom_instr(cls, name, rd, rs1, rs2):
+    def custom_instr(cls, name, rd, rs1, rs2) -> CustomInstruction:
         try:
-            custom_instr_info = cls.CUSTOM_INSTRUCTIONS_INFO[name]
+            custom_instr_info: CustomInstructionInfo = cls.CUSTOM_INSTRUCTIONS_INFO[
+                name
+            ]
         except KeyError as err:
             logger.exception(err)
             logger.exception(
@@ -164,252 +181,265 @@ class CustomInstruction(RInstruction):
             xs1=custom_instr_info.xs1,
             xs2=custom_instr_info.xs2,
             name=name,
-            opcode7=custom_instr_info.opcode7,
+            opcode=custom_instr_info.opcode,
             rd=rd,
             rs1=rs1,
             rs2=rs2,
-            top7=custom_instr_info.top7,
+            funct7=custom_instr_info.funct7,
         )
 
 
 # TODO: Doc
 class IInstruction(Instruction):
-    def __init__(self, name, opcode7, opcode3, rd, rs1, imm, top7=0):
-        super().__init__(name, opcode7, top7)
-        self.opcode3 = format_to(opcode3, 3)
-        self.rd = format_to(rd, 5)
-        self.rs1 = format_to(rs1, 5)
-        self.imm = format_to(to_unsigned(imm, 12), 12)
+    def __init__(
+        self,
+        name: str,
+        opcode: int,
+        funct3: int,
+        rd: int,
+        rs1: int,
+        imm: int,
+        funct7: int = 0,
+    ):
+        super().__init__(name, opcode, funct7)
+        self.funct3: int = format_to(funct3, 3)
+        self.rd: int = format_to(rd, 5)
+        self.rs1: int = format_to(rs1, 5)
+        self.imm: int = format_to(to_unsigned(imm, 12), 12)
 
-    def generate(self):
-        self.machine_instruction = self.opcode7
+    def generate(self) -> int:
+        self.machine_instruction = self.opcode
         self.machine_instruction |= self.rd << 7
-        self.machine_instruction |= self.opcode3 << 12
+        self.machine_instruction |= self.funct3 << 12
         self.machine_instruction |= self.rs1 << 15
         self.machine_instruction |= self.imm << 20
-        self.machine_instruction |= self.top7 << 25
+        self.machine_instruction |= self.funct7 << 25
         return self.machine_instruction
 
     @classmethod
-    def i_instr(cls, name, rd, rs1, imm):
+    def i_instr(cls, name: str, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls(
             name=name,
-            opcode7=INSTRUCTIONS_INFO[name].opcode7,
-            opcode3=INSTRUCTIONS_INFO[name].opcode3,
+            opcode=INSTRUCTIONS_INFO[name].opcode,
+            funct3=INSTRUCTIONS_INFO[name].funct3,
             rd=rd,
             rs1=rs1,
             imm=imm,
-            top7=INSTRUCTIONS_INFO[name].top7,
+            funct7=INSTRUCTIONS_INFO[name].funct7,
         )
 
     # TODO: Autogenerate
     @classmethod
-    def addi(cls, rd, rs1, imm):
+    def addi(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("addi", rd, rs1, imm)
 
     @classmethod
-    def addiw(cls, rd, rs1, imm):
+    def addiw(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("addiw", rd, rs1, imm)
 
     @classmethod
-    def andi(cls, rd, rs1, imm):
+    def andi(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("andi", rd, rs1, imm)
 
     @classmethod
-    def jalr(cls, rd, rs1, imm):
+    def jalr(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("jalr", rd, rs1, imm)
 
     @classmethod
-    def jr(cls, rs1):
+    def jr(cls, rs1: int) -> IInstruction:
         # jr expands to jalr x0, 0(rs1)
         return cls.i_instr("jalr", 0, rs1, 0)
 
     @classmethod
-    def ret(cls):
+    def ret(cls) -> IInstruction:
         # ret expands to jalr x0, 0(x1)
         return cls.i_instr("jalr", 0, 1, 0)
 
     @classmethod
-    def lb(cls, rd, rs1, imm):
+    def lb(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("lb", rd, rs1, imm)
 
     @classmethod
-    def lbu(cls, rd, rs1, imm):
+    def lbu(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("lbu", rd, rs1, imm)
 
     @classmethod
-    def ld(cls, rd, rs1, imm):
+    def ld(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("ld", rd, rs1, imm)
 
     @classmethod
-    def lh(cls, rd, rs1, imm):
+    def lh(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("lh", rd, rs1, imm)
 
     @classmethod
-    def lhu(cls, rd, rs1, imm):
+    def lhu(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("lhu", rd, rs1, imm)
 
     @classmethod
-    def lw(cls, rd, rs1, imm):
+    def lw(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("lw", rd, rs1, imm)
 
     @classmethod
-    def lwu(cls, rd, rs1, imm):
+    def lwu(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("lwu", rd, rs1, imm)
 
     @classmethod
-    def nop(cls):
+    def nop(cls) -> IInstruction:
         return cls.i_instr("addi", 0, 0, 0)
 
     @classmethod
-    def ori(cls, rd, rs1, imm):
+    def ori(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("ori", rd, rs1, imm)
 
     @classmethod
-    def slli(cls, rd, rs1, imm):
+    def slli(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         # shamt 6 bits long
         return cls.i_instr("slli", rd, rs1, imm & 0x2F)
 
     @classmethod
-    def slliw(cls, rd, rs1, imm):
+    def slliw(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         # shamt 6 bits long and only valid if shamt[5] = 0
         return cls.i_instr("slliw", rd, rs1, imm & 0x1F)
 
     @classmethod
-    def slti(cls, rd, rs1, imm):
+    def slti(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("slti", rd, rs1, imm)
 
     @classmethod
-    def sltiu(cls, rd, rs1, imm):
+    def sltiu(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("sltiu", rd, rs1, imm)
 
     @classmethod
-    def srai(cls, rd, rs1, imm):
+    def srai(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         # shamt 6 bits long
         return cls.i_instr("srai", rd, rs1, imm & 0x2F)
 
     @classmethod
-    def sraiw(cls, rd, rs1, imm):
+    def sraiw(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         # shamt 6 bits long and only valid if shamt[5] = 0
         return cls.i_instr("sraiw", rd, rs1, imm & 0x1F)
 
     @classmethod
-    def srli(cls, rd, rs1, imm):
+    def srli(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         # shamt 6 bits long
         return cls.i_instr("srli", rd, rs1, imm & 0x2F)
 
     @classmethod
-    def srliw(cls, rd, rs1, imm):
+    def srliw(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         # shamt 6 bits long and only valid if shamt[5] = 0
         return cls.i_instr("srliw", rd, rs1, imm & 0x1F)
 
     @classmethod
-    def xori(cls, rd, rs1, imm):
+    def xori(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("xori", rd, rs1, imm)
 
     @classmethod
-    def ebreak(cls):
+    def ebreak(cls) -> IInstruction:
         return cls.i_instr("ebreak", 0, 0, 1)
 
     @classmethod
-    def ecall(cls):
+    def ecall(cls) -> IInstruction:
         return cls.i_instr("ecall", 0, 0, 0)
 
 
 # TODO: Doc
 class UInstruction(Instruction):
-    def __init__(self, name, opcode7, rd, imm):
-        super().__init__(name, opcode7)
-        self.rd = format_to(rd, 5)
-        self.imm = format_to(to_unsigned(imm, 32), 32)
+    def __init__(self, name: str, opcode: int, rd: int, imm: int):
+        super().__init__(name, opcode)
+        self.rd: int = format_to(rd, 5)
+        self.imm: int = format_to(to_unsigned(imm, 32), 32)
 
-    def generate(self):
-        self.machine_instruction = self.opcode7
+    def generate(self) -> int:
+        self.machine_instruction = self.opcode
         self.machine_instruction |= self.rd << 7
         self.machine_instruction |= self.imm & 0xFFFFF000  # Keep 20 upper bits
         return self.machine_instruction
 
     @classmethod
-    def u_instr(cls, name, rd, imm):
-        return cls(name=name, opcode7=INSTRUCTIONS_INFO[name].opcode7, rd=rd, imm=imm)
+    def u_instr(cls, name: str, rd: int, imm: int) -> UInstruction:
+        return cls(name=name, opcode=INSTRUCTIONS_INFO[name].opcode, rd=rd, imm=imm)
 
     # TODO: Autogenerate
     @classmethod
-    def auipc(cls, rd, imm):
+    def auipc(cls, rd: int, imm: int) -> UInstruction:
         return cls.u_instr("auipc", rd, imm)
 
     @classmethod
-    def lui(cls, rd, imm):
+    def lui(cls, rd: int, imm: int) -> UInstruction:
         return cls.u_instr("lui", rd, imm)
 
 
 # TODO: Doc
 class JInstruction(Instruction):
-    def __init__(self, name, opcode7, rd, imm):
-        super().__init__(name, opcode7)
-        self.rd = format_to(rd, 5)
-        self.imm = format_to_aligned(to_unsigned(imm, 21), 21)
+    def __init__(self, name: str, opcode: int, rd: int, imm: int):
+        super().__init__(name, opcode)
+        self.rd: int = format_to(rd, 5)
+        self.imm: int = format_to_aligned(to_unsigned(imm, 21), 21)
 
-    def shuffle_imm(self):
+    def shuffle_imm(self) -> int:
         # imm[20 | 10:1 | 11 | 19:12]
-        shuffle = ((self.imm >> 20) & 0x1) << 19  # 20th bit
+        shuffle: int = ((self.imm >> 20) & 0x1) << 19  # 20th bit
         shuffle |= ((self.imm >> 1) & 0x3FF) << 9  # 10th to 1st
         shuffle |= ((self.imm >> 11) & 0x1) << 8  # 11th bit
         shuffle |= (self.imm >> 12) & 0xFF  # 12th to 19th
         return shuffle
 
-    def generate(self):
-        self.machine_instruction = self.opcode7
+    def generate(self) -> int:
+        self.machine_instruction = self.opcode
         self.machine_instruction |= self.rd << 7
         self.machine_instruction |= self.shuffle_imm() << 12
         return self.machine_instruction
 
     @classmethod
-    def j_instr(cls, name, rd, imm):
-        return cls(name, INSTRUCTIONS_INFO[name].opcode7, rd, imm)
+    def j_instr(cls, name: str, rd: int, imm: int) -> JInstruction:
+        return cls(name, INSTRUCTIONS_INFO[name].opcode, rd, imm)
 
     # TODO: Autogenerate
     @classmethod
-    def jal(cls, rd, imm):
+    def jal(cls, rd: int, imm: int) -> JInstruction:
         return cls.j_instr("jal", rd, imm)
 
     @classmethod
-    def j(cls, imm):
+    def j(cls, imm: int) -> JInstruction:
         return cls.j_instr("jal", 0, imm)
 
 
 # TODO: Doc
 class SInstruction(Instruction):
-    def __init__(self, name, opcode7, opcode3, rs1, rs2, imm):
-        super().__init__(name, opcode7)
-        self.opcode3 = format_to(opcode3, 3)
-        self.rs1 = format_to(rs1, 5)
-        self.rs2 = format_to(rs2, 5)
-        self.imm = format_to(to_unsigned(imm, 12), 12)
+    def __init__(
+        self, name: str, opcode: int, funct3: int, rs1: int, rs2: int, imm: int
+    ):
+        super().__init__(name, opcode)
+        self.funct3: int = format_to(funct3, 3)
+        self.rs1: int = format_to(rs1, 5)
+        self.rs2: int = format_to(rs2, 5)
+        self.imm: int = format_to(to_unsigned(imm, 12), 12)
 
-    def shuffle_imm(self):
+    def shuffle_imm(self) -> List[int]:
         # imm1: imm[4:0]
-        shuffle1 = (self.imm & 0x1F) << 7
+        shuffle1: int = (self.imm & 0x1F) << 7
         # imm2: imm[11:5]
-        shuffle2 = ((self.imm & 0xFE0) >> 5) << 25
-        return shuffle1, shuffle2
+        shuffle2: int = ((self.imm & 0xFE0) >> 5) << 25
+        return [shuffle1, shuffle2]
 
-    def generate(self):
-        shuffle1, shuffle2 = self.shuffle_imm()
-        self.machine_instruction = self.opcode7
+    def generate(self) -> int:
+        shuffle1: int
+        shuffle2: int
+        [shuffle1, shuffle2] = self.shuffle_imm()
+        self.machine_instruction = self.opcode
         self.machine_instruction |= shuffle1
-        self.machine_instruction |= self.opcode3 << 12
+        self.machine_instruction |= self.funct3 << 12
         self.machine_instruction |= self.rs1 << 15
         self.machine_instruction |= self.rs2 << 20
         self.machine_instruction |= shuffle2
         return self.machine_instruction
 
     @classmethod
-    def s_instr(cls, name, rs1, rs2, imm):
+    def s_instr(cls, name: str, rs1: int, rs2: int, imm: int) -> SInstruction:
         return cls(
             name,
-            INSTRUCTIONS_INFO[name].opcode7,
-            INSTRUCTIONS_INFO[name].opcode3,
+            INSTRUCTIONS_INFO[name].opcode,
+            INSTRUCTIONS_INFO[name].funct3,
             rs1,
             rs2,
             imm,
@@ -417,81 +447,85 @@ class SInstruction(Instruction):
 
     # TODO: Autogenerate
     @classmethod
-    def sb(cls, rs1, rs2, imm):
+    def sb(cls, rs1: int, rs2: int, imm: int) -> SInstruction:
         return cls.s_instr("sb", rs1, rs2, imm)
 
     @classmethod
-    def sh(cls, rs1, rs2, imm):
+    def sh(cls, rs1: int, rs2: int, imm: int) -> SInstruction:
         return cls.s_instr("sh", rs1, rs2, imm)
 
     @classmethod
-    def sw(cls, rs1, rs2, imm):
+    def sw(cls, rs1: int, rs2: int, imm: int) -> SInstruction:
         return cls.s_instr("sw", rs1, rs2, imm)
 
     @classmethod
-    def sd(cls, rs1, rs2, imm):
+    def sd(cls, rs1: int, rs2: int, imm: int) -> SInstruction:
         return cls.s_instr("sd", rs1, rs2, imm)
 
 
 # TODO: Doc
 class BInstruction(Instruction):
-    def __init__(self, name, opcode7, opcode3, rs1, rs2, imm):
-        super().__init__(name, opcode7)
-        self.opcode3 = format_to(opcode3, 3)
-        self.rs1 = format_to(rs1, 5)
-        self.rs2 = format_to(rs2, 5)
-        self.imm = format_to_aligned(to_unsigned(imm, 13), 13)
+    def __init__(
+        self, name: str, opcode: int, funct3: int, rs1: int, rs2: int, imm: int
+    ):
+        super().__init__(name, opcode)
+        self.funct3: int = format_to(funct3, 3)
+        self.rs1: int = format_to(rs1, 5)
+        self.rs2: int = format_to(rs2, 5)
+        self.imm: int = format_to_aligned(to_unsigned(imm, 13), 13)
 
-    def shuffle_imm(self):
+    def shuffle_imm(self) -> List[int]:
         # imm1: imm[12|10:5]
-        shuffle1 = ((self.imm >> 12) & 0x1) << 6  # 12th bit
+        shuffle1: int = ((self.imm >> 12) & 0x1) << 6  # 12th bit
         shuffle1 |= (self.imm >> 5) & 0x3F  # 10th to 5th
         # imm2: imm[4:1|11]
-        shuffle2 = ((self.imm >> 1) & 0xF) << 1  # 4th to 1st
+        shuffle2: int = ((self.imm >> 1) & 0xF) << 1  # 4th to 1st
         shuffle2 |= (self.imm >> 11) & 0x1  # 11th
-        return shuffle1, shuffle2
+        return [shuffle1, shuffle2]
 
-    def generate(self):
-        shuffle1, shuffle2 = self.shuffle_imm()
-        self.machine_instruction = self.opcode7
+    def generate(self) -> int:
+        shuffle1: int
+        shuffle2: int
+        [shuffle1, shuffle2] = self.shuffle_imm()
+        self.machine_instruction = self.opcode
         self.machine_instruction |= shuffle2 << 7
-        self.machine_instruction |= self.opcode3 << 12
+        self.machine_instruction |= self.funct3 << 12
         self.machine_instruction |= self.rs1 << 15
         self.machine_instruction |= self.rs2 << 20
         self.machine_instruction |= shuffle1 << 25
         return self.machine_instruction
 
     @classmethod
-    def b_instr(cls, name, rs1, rs2, imm):
+    def b_instr(cls, name: str, rs1: int, rs2: int, imm: int) -> BInstruction:
         return cls(
             name,
-            INSTRUCTIONS_INFO[name].opcode7,
-            INSTRUCTIONS_INFO[name].opcode3,
+            INSTRUCTIONS_INFO[name].opcode,
+            INSTRUCTIONS_INFO[name].funct3,
             rs1,
             rs2,
             imm,
         )
 
     @classmethod
-    def beq(cls, rs1, rs2, imm):
+    def beq(cls, rs1: int, rs2: int, imm: int) -> BInstruction:
         return cls.b_instr("beq", rs1, rs2, imm)
 
     @classmethod
-    def bge(cls, rs1, rs2, imm):
+    def bge(cls, rs1: int, rs2: int, imm: int) -> BInstruction:
         return cls.b_instr("bge", rs1, rs2, imm)
 
     @classmethod
-    def bgeu(cls, rs1, rs2, imm):
+    def bgeu(cls, rs1: int, rs2: int, imm: int) -> BInstruction:
         return cls.b_instr("bgeu", rs1, rs2, imm)
 
     @classmethod
-    def blt(cls, rs1, rs2, imm):
+    def blt(cls, rs1: int, rs2: int, imm: int) -> BInstruction:
         return cls.b_instr("blt", rs1, rs2, imm)
 
     @classmethod
-    def bltu(cls, rs1, rs2, imm):
+    def bltu(cls, rs1: int, rs2: int, imm: int) -> BInstruction:
         return cls.b_instr("bltu", rs1, rs2, imm)
 
     @classmethod
-    def bne(cls, rs1, rs2, imm):
+    def bne(cls, rs1: int, rs2: int, imm: int) -> BInstruction:
         return cls.b_instr("bne", rs1, rs2, imm)

@@ -20,9 +20,9 @@ def test_capstone_fixer(name, cap_disasm_custom_setup, fixer_disasm_setup):
     fix_disasm = fixer_disasm_setup
     instr_info = fix_disasm.get_instruction_info(mc)
     assert instr_info.name == name
-    assert instr_info.opcode7 == fix_disasm.extract_opcode7(mc)
-    assert instr_info.opcode3 == fix_disasm.extract_opcode3(mc)
-    assert instr_info.top7 == fix_disasm.extract_top7(mc)
+    assert instr_info.opcode == fix_disasm.extract_opcode(mc)
+    assert instr_info.funct3 == fix_disasm.extract_funct3(mc)
+    assert instr_info.funct7 == fix_disasm.extract_funct7(mc)
     assert instr_info.xd == fix_disasm.extract_xd(mc)
     assert instr_info.xs1 == fix_disasm.extract_xs1(mc)
     assert instr_info.xs2 == fix_disasm.extract_xs2(mc)
