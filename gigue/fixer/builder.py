@@ -1,7 +1,7 @@
 from typing import List
 
 from gigue.builder import InstructionBuilder
-from gigue.constants import RA
+from gigue.constants import CALL_TMP_REG, RA
 from gigue.exceptions import WrongOffsetException
 from gigue.fixer.constants import FIXER_CMP_REG
 from gigue.fixer.instructions import FIXERCustomInstruction
@@ -9,8 +9,11 @@ from gigue.instructions import BInstruction, IInstruction, Instruction, UInstruc
 
 
 class FIXERInstructionBuilder(InstructionBuilder):
+    # NO TRAMPOLINE
+    # \__________________________________________________________________________________
+
     # Tags around calls
-    # \________________
+    # \_________________
 
     # Note: These method should come in through the generator
     # and expand around the existing callsite.
@@ -69,7 +72,7 @@ class FIXERInstructionBuilder(InstructionBuilder):
         return instructions
 
     # Tags around rets
-    # \_______________
+    # \________________
 
     # If the check does not pass, it goes to ebreak, otherwise jumps over
     @staticmethod
@@ -84,3 +87,36 @@ class FIXERInstructionBuilder(InstructionBuilder):
         instructions.insert(-1, BInstruction.beq(rs1=RA, rs2=FIXER_CMP_REG, imm=8))
         instructions.insert(-1, IInstruction.ecall())
         return instructions
+
+    # WITH TRAMPOLINES
+    # \__________________________________________________________________________________
+
+    # Tags around calls
+    # \_________________
+
+    @staticmethod
+    def build_call_jit_elt_trampoline() -> List[Instruction]:
+        # The call JIT trampoline is used to call a JIT method/PIC (wow).
+        # FIXER saves the RA in coprocessor memory
+        # Note that:
+        #  - The RA should be set by the caller.
+        #  - The callee address is set in a dedicated register.
+        return [
+            FIXERCustomInstruction.cficall(rd=0, rs1=RA, rs2=0),
+            IInstruction.jr(rs1=CALL_TMP_REG),
+        ]
+
+    @staticmethod
+    def build_ret_from_jit_elt_trampoline() -> List[Instruction]:
+        # The ret JIT trampoline is used to return from a JIT method/PIC (wow).
+        # FIXER loads the return address it previously loaded in memory
+        # Note that:
+        #  - The RA should be set by the caller (in RA).
+        #  - For now the branch jumps over an ecall instruction if correct
+        #    but it should jump to a dedicated exception trap
+        return [
+            FIXERCustomInstruction.cfiret(rd=FIXER_CMP_REG, rs1=0, rs2=0),
+            BInstruction.beq(rs1=RA, rs2=FIXER_CMP_REG, imm=8),
+            IInstruction.ecall(),
+            IInstruction.ret(),
+        ]

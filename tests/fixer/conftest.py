@@ -18,15 +18,19 @@ class FIXERHandler(Handler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.shadow_stack = []
+        self.cfi_exception = 0
 
-    def handle_cficall(self, uc_emul, *args, **kwargs):
-        return_addr = uc_emul.reg_read(UC_FIXER_CMP_REG)
+    def handle_cficall(self, uc_emul, pc, instr):
+        fixer_reg = self.disasm.extract_rs1(instr)
+        return_addr = uc_emul.reg_read(fixer_reg + 1)
+        # Note: + 1 due to unicorn offset
         self.shadow_stack.append(return_addr)
 
     def handle_cfiret(self, uc_emul, *args, **kwargs):
         uc_emul.reg_write(UC_FIXER_CMP_REG, self.shadow_stack.pop())
 
     def handle_ecall(self, uc_emul, *args, **kwargs):
+        self.cfi_exception = 1
         uc_emul.emu_stop()
 
 
