@@ -154,6 +154,7 @@ class Generator:
                 call_number=call_nb,
                 call_depth=call_depth,
                 call_size=self.call_size,
+                builder=self.builder,
             )
             logger.info(
                 f"{self.log_jit_prefix()} {method.log_prefix()} Method added with size"
@@ -176,6 +177,7 @@ class Generator:
                 call_number=0,
                 call_depth=0,
                 call_size=self.call_size,
+                builder=self.builder,
             )
             logger.info(
                 f"{self.log_jit_prefix()} {method.log_prefix()} Leaf method added with"
@@ -200,6 +202,7 @@ class Generator:
             hit_case_reg=self.pics_hit_case_reg,
             cmp_reg=self.pics_cmp_reg,
             call_size=self.call_size,
+            builder=self.builder,
         )
         logger.info(
             f"{self.log_jit_prefix()} {pic.log_prefix()} PIC added with"
@@ -484,11 +487,19 @@ class TrampolineGenerator(Generator):
         # /!\ The call size is larger when using trampolines
         self.call_size: int = 6
 
+    # Element adding
+    # \______________
+
     def add_trampoline(self, address: int, name: str) -> Trampoline:
-        trampoline: Trampoline = Trampoline(name=name, address=address)
+        trampoline: Trampoline = Trampoline(
+            name=name, address=address, builder=self.builder
+        )
         logger.info(f"{self.log_jit_prefix()} {trampoline.log_prefix()}")
         self.trampolines.append(trampoline)
         return trampoline
+
+    # Instruction Filling
+    # \___________________
 
     def find_trampoline_offset(self, name: str, current_address: int) -> int:
         try:
@@ -500,6 +511,7 @@ class TrampolineGenerator(Generator):
         return trampoline.address - current_address
 
     def fill_jit_code(self, start_address: Optional[int] = None) -> None:
+        logger.info("Phase 1: Filling JIT code")
         # Add trampolines at the start of the JIT address
         if not start_address:
             start_address = self.jit_start_address
@@ -507,7 +519,8 @@ class TrampolineGenerator(Generator):
         for trampoline_name in DEFAULT_TRAMPOLINES:
             try:
                 trampoline: Trampoline = self.add_trampoline(
-                    address=current_address, name=trampoline_name
+                    address=current_address,
+                    name=trampoline_name,
                 )
                 trampoline.build()
                 self.trampoline_instructions += trampoline.instructions
@@ -515,8 +528,51 @@ class TrampolineGenerator(Generator):
             except AttributeError as err:
                 logger.exception(err)
                 raise
-        # Call the super method
-        super().fill_jit_code(start_address=current_address)
+        # Add elements
+        current_element_count: int = 0
+        # Add a first leaf method
+        leaf_method: Method = self.add_leaf_method(current_address)
+        leaf_method.fill_with_trampoline_instructions(
+            registers=self.registers,
+            data_reg=self.data_reg,
+            data_size=self.data_size,
+            weights=self.weights,
+            ret_trampoline_offset=self.find_trampoline_offset(
+                "ret_from_jit_elt", current_address
+            ),
+        )
+        try:
+            current_address += leaf_method.total_size() * 4
+            current_element_count += 1
+        except EmptySectionException as err:
+            logger.exception(err)
+            raise
+        # Add other methods
+        while current_element_count < self.jit_elements_nb:
+            code_type: str = random.choices(
+                ["method", "pic"], [1 - self.pics_ratio, self.pics_ratio]
+            )[0]
+            adder_function: Callable = getattr(Generator, "add_" + code_type)
+            current_element: Union[PIC, Method] = adder_function(self, current_address)
+            current_element.fill_with_trampoline_instructions(
+                registers=self.registers,
+                data_reg=self.data_reg,
+                data_size=self.data_size,
+                weights=self.weights,
+                ret_trampoline_offset=self.find_trampoline_offset(
+                    "ret_from_jit_elt", current_address
+                ),
+            )
+            try:
+                current_address += current_element.total_size() * 4
+                current_element_count += 1
+            except EmptySectionException as err:
+                logger.exception(err)
+                raise
+        logger.info("Phase 1: JIT code elements filled!")
+
+    # Calls
+    # \_____
 
     def build_element_call(self, element: Union[Method, PIC], current_address: int):
         call_trampoline_offset: int = self.find_trampoline_offset(
@@ -525,6 +581,28 @@ class TrampolineGenerator(Generator):
         return self.builder.build_element_trampoline_call(
             element, element.address - current_address, call_trampoline_offset
         )
+
+    def patch_method_calls(self, method: Method) -> None:
+        # Extracted to override in subclasses!
+        try:
+            method.patch_trampoline_calls(
+                self.extract_callees(
+                    call_depth=method.call_depth, nb=method.call_number
+                ),
+                self.find_trampoline_offset(
+                    name="call_jit_elt", current_address=method.address
+                ),
+            )
+        except (
+            RecursiveCallException,
+            MutualCallException,
+            CallNumberException,
+        ) as err:
+            logger.exception(err)
+            raise
+
+    # Generation
+    # \__________
 
     def generate_jit_machine_code(self) -> List[int]:
         # Add machine code for trampolines at the start of JIT code
