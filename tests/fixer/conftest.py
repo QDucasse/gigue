@@ -3,7 +3,7 @@ from unicorn.riscv_const import UC_RISCV_REG_T3
 
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.disassembler import Disassembler
-from gigue.fixer.constants import FIXER_CMP_REG, FIXER_INSTRUCTIONS_INFO
+from gigue.fixer.fixer_constants import FIXER_CMP_REG, FIXER_INSTRUCTIONS_INFO
 from tests.conftest import Handler
 
 # Note: FIXER uses a duplicated call stack stored in the coprocessor memory.
@@ -22,12 +22,15 @@ class FIXERHandler(Handler):
 
     def handle_cficall(self, uc_emul, pc, instr):
         fixer_reg = self.disasm.extract_rs1(instr)
-        return_addr = uc_emul.reg_read(fixer_reg + 1)
+        return_address = uc_emul.reg_read(fixer_reg + 1)
+        # print(f"handling cficall, adding {hex(return_address)} to shadow stack")
         # Note: + 1 due to unicorn offset
-        self.shadow_stack.append(return_addr)
+        self.shadow_stack.append(return_address)
 
     def handle_cfiret(self, uc_emul, *args, **kwargs):
-        uc_emul.reg_write(UC_FIXER_CMP_REG, self.shadow_stack.pop())
+        return_address = self.shadow_stack.pop()
+        # print(f"handling cfiret, popping {hex(return_address)} from shadow stack")
+        uc_emul.reg_write(UC_FIXER_CMP_REG, return_address)
 
     def handle_ecall(self, uc_emul, *args, **kwargs):
         self.cfi_exception = 1

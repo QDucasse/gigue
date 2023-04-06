@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict
 
-from gigue.fixer.constants import FIXER_INSTRUCTIONS_INFO
+from gigue.fixer.fixer_constants import FIXER_INSTRUCTIONS_INFO
 from gigue.instructions import CustomInstruction
 
 if TYPE_CHECKING:

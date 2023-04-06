@@ -19,7 +19,7 @@ from unicorn.unicorn_const import (
     UC_MODE_RISCV64,
 )
 
-from gigue.constants import CALLER_SAVED_REG, DATA_REG, CALL_TMP_REG
+from gigue.constants import CALL_TMP_REG, CALLER_SAVED_REG, DATA_REG
 from gigue.dataminer import Dataminer
 from gigue.disassembler import Disassembler
 from gigue.exceptions import UnknownInstructionException
@@ -62,6 +62,7 @@ def disassemble_custom_callback(buffer, size, offset, userdata):
 
 
 def cap_disasm_bytes(cap_disasm, bytes, address):
+    print("capdisasm")
     for i in cap_disasm.disasm(bytes, address):
         print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
 

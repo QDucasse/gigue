@@ -1,7 +1,7 @@
 import pytest
 
-from gigue.fixer.constants import FIXER_CMP_REG
-from gigue.fixer.instructions import FIXERCustomInstruction
+from gigue.fixer.fixer_constants import FIXER_CMP_REG
+from gigue.fixer.fixer_instructions import FIXERCustomInstruction
 from tests.conftest import ADDRESS, RET_ADDRESS
 from tests.fixer.conftest import UC_FIXER_CMP_REG
 

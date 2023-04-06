@@ -2,10 +2,10 @@ import pytest
 from unicorn.riscv_const import UC_RISCV_REG_PC, UC_RISCV_REG_RA
 
 from gigue.constants import CALL_TMP_REG, HIT_CASE_REG, RA
-from gigue.fixer.builder import FIXERInstructionBuilder
-from gigue.fixer.constants import FIXER_CMP_REG
+from gigue.fixer.fixer_builder import FIXERInstructionBuilder
+from gigue.fixer.fixer_constants import FIXER_CMP_REG
 from gigue.helpers import int_to_bytes64
-from tests.conftest import ADDRESS, RET_ADDRESS, STACK_ADDRESS, UC_CALL_TMP_REG, RET_ADDRESS
+from tests.conftest import ADDRESS, RET_ADDRESS, STACK_ADDRESS, UC_CALL_TMP_REG
 from tests.fixer.conftest import UC_FIXER_CMP_REG
 
 # =================================
@@ -134,6 +134,7 @@ def test_build_epilogue(
 
 # Trampolines
 # \___________
+
 
 def test_build_call_jit_elt_trampoline(
     fixer_disasm_setup,
@@ -335,6 +336,7 @@ def test_build_epilogue_failing_execution(
 
 # Trampolines
 # \___________
+
 
 def test_build_trampoline_call_jit_elt_execution(
     cap_disasm_custom_setup,
