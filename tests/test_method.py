@@ -1,6 +1,7 @@
 import pytest
 from unicorn.riscv_const import UC_RISCV_REG_RA
 
+from gigue.builder import InstructionBuilder
 from gigue.constants import DATA_REG, DATA_SIZE, INSTRUCTION_WEIGHTS
 from gigue.exceptions import (
     CallNumberException,
@@ -16,33 +17,44 @@ from tests.conftest import ADDRESS, RET_ADDRESS, TEST_CALLER_SAVED_REG
 
 
 @pytest.fixture
-def callees_method_setup():
+def default_builder_setup():
+    return InstructionBuilder()
+
+
+@pytest.fixture
+def callees_method_setup(default_builder_setup):
+    default_builder = default_builder_setup
     callee1 = Method(
         address=0x1100,
         body_size=2,
         call_number=0,
+        builder=default_builder,
     )
     callee2 = Method(
         address=0x1200,
         body_size=2,
         call_number=0,
+        builder=default_builder,
     )
     callee3 = Method(
         address=0x1300,
         body_size=2,
         call_number=0,
+        builder=default_builder,
     )
     return [callee1, callee2, callee3]
 
 
 @pytest.fixture
-def callees_pic_setup():
+def callees_pic_setup(default_builder_setup):
+    default_builder = default_builder_setup
     callee1 = PIC(
         address=0x1100,
         case_number=2,
         method_max_size=2,
         method_max_call_number=0,
         method_max_call_depth=0,
+        builder=default_builder,
     )
     callee2 = PIC(
         address=0x1200,
@@ -50,6 +62,7 @@ def callees_pic_setup():
         method_max_size=2,
         method_max_call_number=0,
         method_max_call_depth=0,
+        builder=default_builder,
     )
     callee3 = PIC(
         address=0x1300,
@@ -57,6 +70,7 @@ def callees_pic_setup():
         method_max_size=2,
         method_max_call_number=0,
         method_max_call_depth=0,
+        builder=default_builder,
     )
     return [callee1, callee2, callee3]
 
@@ -67,32 +81,43 @@ def callees_pic_setup():
 
 
 @pytest.mark.parametrize("call_size", [3, 6])
-def test_initialization(call_size):
-    method = Method(address=0x7FFFFF, body_size=30, call_number=5, call_size=call_size)
+def test_initialization(call_size, default_builder_setup):
+    method = Method(
+        address=0x7FFFFF,
+        body_size=30,
+        call_number=5,
+        call_size=call_size,
+        builder=default_builder_setup,
+    )
     assert method.body_size == 30
     assert method.address == 0x7FFFFF
     assert method.call_number == 5
     assert method.call_size == call_size
 
 
-def test_error_initialization():
+def test_error_initialization(default_builder_setup):
     with pytest.raises(CallNumberException):
         Method(
             address=0x7FFFFF,
             body_size=10,
             call_number=5,
             call_size=3,
+            builder=default_builder_setup,
         )
 
 
-def test_error_total_size_while_empty():
-    m = Method(address=0x7FFFFF, body_size=30, call_number=5)
+def test_error_total_size_while_empty(default_builder_setup):
+    m = Method(
+        address=0x7FFFFF, body_size=30, call_number=5, builder=default_builder_setup
+    )
     with pytest.raises(EmptySectionException):
         m.total_size()
 
 
-def test_fill_with_nops(cap_disasm_setup):
-    method = Method(address=0x7FFFFF, body_size=30, call_number=5)
+def test_fill_with_nops(default_builder_setup, cap_disasm_setup):
+    method = Method(
+        address=0x7FFFFF, body_size=30, call_number=5, builder=default_builder_setup
+    )
     method.fill_with_nops()
     bytes = method.generate_bytes()
     # Disassembly
@@ -104,13 +129,16 @@ def test_fill_with_nops(cap_disasm_setup):
 @pytest.mark.parametrize("used_s_regs", [0, 5, 10])
 @pytest.mark.parametrize("call_number", [0, 5, 10])
 @pytest.mark.parametrize("call_size", [3, 6])
-def test_instructions_filling(used_s_regs, call_number, call_size, cap_disasm_setup):
+def test_instructions_filling(
+    used_s_regs, call_number, call_size, default_builder_setup, cap_disasm_setup
+):
     method = Method(
         address=0x1000,
         body_size=100,
         call_number=call_number,
         call_size=call_size,
         used_s_regs=used_s_regs,
+        builder=default_builder_setup,
     )
     method.fill_with_instructions(
         registers=TEST_CALLER_SAVED_REG,
@@ -144,11 +172,9 @@ def test_instructions_filling(used_s_regs, call_number, call_size, cap_disasm_se
 # \______
 
 
-def test_check_recursive_call_exception(callees_method_setup):
+def test_check_recursive_call_exception(callees_method_setup, default_builder_setup):
     method = Method(
-        address=0x1000,
-        body_size=10,
-        call_number=3,
+        address=0x1000, body_size=10, call_number=3, builder=default_builder_setup
     )
     callee1, callee2, _ = callees_method_setup
     for elt in [method, callee1, callee2]:
@@ -166,11 +192,12 @@ def test_check_recursive_call_exception(callees_method_setup):
         method.check_callees([callee1, callee2, method])
 
 
-def test_check_call_number_exception(callees_method_setup):
+def test_check_call_number_exception(callees_method_setup, default_builder_setup):
     method = Method(
         address=0x1000,
         body_size=10,
         call_number=3,
+        builder=default_builder_setup,
     )
     callee1, callee2, _ = callees_method_setup
     for elt in [method, callee1, callee2]:
@@ -184,16 +211,18 @@ def test_check_call_number_exception(callees_method_setup):
         method.check_callees([callee1, callee2])
 
 
-def test_check_mutual_call_exception(callees_method_setup):
+def test_check_mutual_call_exception(default_builder_setup):
     method = Method(
         address=0x1000,
         body_size=3,
         call_number=1,
+        builder=default_builder_setup,
     )
     callee = Method(
         address=0x1100,
         body_size=3,
         call_number=1,
+        builder=default_builder_setup,
     )
     for elt in [method, callee]:
         elt.fill_with_instructions(
@@ -211,12 +240,15 @@ def test_check_mutual_call_exception(callees_method_setup):
 # \__________________
 
 
-def test_patch_base_calls_methods(disasm_setup, callees_method_setup):
+def test_patch_base_calls_methods(
+    default_builder_setup, disasm_setup, callees_method_setup
+):
     method = Method(
         address=0x1000,
         body_size=20,
         call_number=3,
         call_size=3,
+        builder=default_builder_setup,
     )
     callee1, callee2, callee3 = callees_method_setup
     for elt in [method, callee1, callee2, callee3]:
@@ -244,12 +276,15 @@ def test_patch_base_calls_methods(disasm_setup, callees_method_setup):
     assert callee_addresses == []
 
 
-def test_patch_base_calls_pics(disasm_setup, callees_pic_setup, cap_disasm_setup):
+def test_patch_base_calls_pics(
+    default_builder_setup, disasm_setup, callees_pic_setup, cap_disasm_setup
+):
     method = Method(
         address=0x1000,
         body_size=10,
         call_number=3,
         call_size=3,
+        builder=default_builder_setup,
     )
     callee1, callee2, callee3 = callees_pic_setup
     for elt in [method, callee1, callee2, callee3]:
@@ -293,13 +328,14 @@ def test_patch_base_calls_pics(disasm_setup, callees_pic_setup, cap_disasm_setup
     "call_trampoline_offset", [-0x4, -0x8, -0x800, -0xFFF, -0x80000, -0x1FFFE]
 )
 def test_patch_trampoline_calls_methods(
-    disasm_setup, callees_method_setup, call_trampoline_offset
+    default_builder_setup, disasm_setup, callees_method_setup, call_trampoline_offset
 ):
     method = Method(
         address=0x1000,
         body_size=20,
         call_number=3,
         call_size=6,
+        builder=default_builder_setup,
     )
     callee1, callee2, callee3 = callees_method_setup
     for elt in [method, callee1, callee2, callee3]:
@@ -352,13 +388,14 @@ def test_patch_trampoline_calls_methods(
     "call_trampoline_offset", [-0x4, -0x8, -0x800, -0xFFF, -0x80000, -0x1FFFE]
 )
 def test_patch_trampoline_calls_pics(
-    disasm_setup, callees_pic_setup, call_trampoline_offset
+    default_builder_setup, disasm_setup, callees_pic_setup, call_trampoline_offset
 ):
     method = Method(
         address=0x1000,
         body_size=20,
         call_number=3,
         call_size=6,
+        builder=default_builder_setup,
     )
     callee1, callee2, callee3 = callees_pic_setup
     for elt in [method, callee1, callee2, callee3]:
@@ -431,12 +468,17 @@ def test_patch_trampoline_calls_pics(
     ],
 )
 def test_instructions_disassembly_execution_smoke(
-    execution_number, weights, cap_disasm_setup, uc_emul_full_setup
+    execution_number,
+    default_builder_setup,
+    weights,
+    cap_disasm_setup,
+    uc_emul_full_setup,
 ):
     method = Method(
         address=0x1000,
         body_size=100,
         call_number=3,
+        builder=default_builder_setup,
     )
     method.fill_with_instructions(
         registers=TEST_CALLER_SAVED_REG,
@@ -464,13 +506,12 @@ def test_instructions_disassembly_execution_smoke(
 @pytest.mark.parametrize("execution_number", range(30))
 def test_patch_base_calls_disassembly_execution(
     execution_number,
+    default_builder_setup,
     callees_method_setup,
     uc_emul_full_setup,
 ):
     method = Method(
-        address=ADDRESS,
-        body_size=10,
-        call_number=3,
+        address=ADDRESS, body_size=10, call_number=3, builder=default_builder_setup
     )
     callee1, callee2, callee3 = callees_method_setup
     for elt in [method, callee1, callee2, callee3]:
@@ -503,19 +544,30 @@ def test_patch_base_calls_disassembly_execution(
 @pytest.mark.parametrize("execution_number", range(30))
 def test_patch_trampoline_calls_execution(
     execution_number,
+    default_builder_setup,
     callees_method_setup,
     uc_emul_full_setup,
     cap_disasm_setup,
     handler_setup,
 ):
-    call_tramp = Trampoline(name="call_jit_elt", address=ADDRESS)
+    call_tramp = Trampoline(
+        name="call_jit_elt", address=ADDRESS, builder=default_builder_setup
+    )
     call_instrs = call_tramp.build()
     ret_tramp = Trampoline(
-        name="ret_from_jit_elt", address=ADDRESS + len(call_instrs) * 4
+        name="ret_from_jit_elt",
+        address=ADDRESS + len(call_instrs) * 4,
+        builder=default_builder_setup,
     )
     ret_instrs = ret_tramp.build()
     CODE_ADDRESS = ADDRESS + (len(call_instrs) + len(ret_instrs)) * 4
-    method = Method(address=CODE_ADDRESS, body_size=20, call_number=3, call_size=6)
+    method = Method(
+        address=CODE_ADDRESS,
+        body_size=20,
+        call_number=3,
+        call_size=6,
+        builder=default_builder_setup,
+    )
     callee1, callee2, callee3 = callees_method_setup
     for elt in [method, callee1, callee2, callee3]:
         elt.fill_with_trampoline_instructions(

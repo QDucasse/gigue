@@ -24,6 +24,7 @@ class PIC:
         method_max_size: int,
         method_max_call_number: int,
         method_max_call_depth: int,
+        builder: InstructionBuilder,
         call_size: int = 3,
         hit_case_reg: int = HIT_CASE_REG,
         cmp_reg: int = CMP_REG,
@@ -40,7 +41,7 @@ class PIC:
         self.cmp_reg: int = cmp_reg
         self.hit_case_reg: int = hit_case_reg
 
-        self.builder: InstructionBuilder = InstructionBuilder()
+        self.builder: InstructionBuilder = builder
         self.switch_instructions: List[Instruction] = []
         self.methods: List[Method] = []
         self.callers: List[Method] = []
@@ -108,29 +109,37 @@ class PIC:
     # Case/Switch Filling
     # \___________________
 
-    def add_case_methods(self, *args, **kwargs):
+    def add_case_methods(
+        self, registers: List[int], data_reg: int, data_size: int, weights: List[int]
+    ) -> None:
         logger.info(f"{self.log_prefix()} Adding case methods.")
-        method_address = self.address + self.get_switch_size() * 4
+        method_address: int = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
-            body_size = gaussian_between(3, self.method_max_size)
-            max_call_nb = min(
+            body_size: int = gaussian_between(3, self.method_max_size)
+            max_call_nb: int = min(
                 self.method_max_call_number,
                 Method.compute_max_call_number(body_size, self.call_size),
             )
-            call_nb = abs(gaussian_between(-max_call_nb, max_call_nb))
-            call_depth = abs(
+            call_nb: int = abs(gaussian_between(-max_call_nb, max_call_nb))
+            call_depth: int = abs(
                 gaussian_between(
                     -self.method_max_call_depth, self.method_max_call_depth
                 )
             )
             try:
-                case_method = Method(
+                case_method: Method = Method(
                     address=method_address,
                     body_size=body_size,
                     call_number=call_nb,
                     call_depth=call_depth,
+                    builder=self.builder,
                 )
-                case_method.fill_with_instructions(*args, **kwargs)
+                case_method.fill_with_instructions(
+                    registers=registers,
+                    data_reg=data_reg,
+                    data_size=data_size,
+                    weights=weights,
+                )
                 self.methods.append(case_method)
                 method_address += case_method.total_size() * 4
             except CallNumberException as err:
@@ -169,6 +178,71 @@ class PIC:
         )
         self.add_switch_instructions()
         logger.info(f"{self.log_prefix()} PIC filled.")
+
+    # Trampolines
+    # \___________
+
+    def fill_with_trampoline_instructions(
+        self, registers, data_reg, data_size, weights, ret_trampoline_offset
+    ):
+        logger.info(f"{self.log_prefix()} Filling PIC (case methods and switch).")
+        self.add_trampoline_case_methods(
+            registers=registers,
+            data_reg=data_reg,
+            data_size=data_size,
+            weights=weights,
+            ret_trampoline_offset=ret_trampoline_offset,
+        )
+        self.add_switch_instructions()
+        logger.info(f"{self.log_prefix()} PIC filled.")
+
+    def add_trampoline_case_methods(
+        self,
+        registers: List[int],
+        data_reg: int,
+        data_size: int,
+        weights: List[int],
+        ret_trampoline_offset: int,
+    ) -> None:
+        logger.info(f"{self.log_prefix()} Adding case methods.")
+        method_address: int = self.address + self.get_switch_size() * 4
+        for _ in range(self.case_number):
+            body_size: int = gaussian_between(3, self.method_max_size)
+            max_call_nb: int = min(
+                self.method_max_call_number,
+                Method.compute_max_call_number(body_size, self.call_size),
+            )
+            call_nb: int = abs(gaussian_between(-max_call_nb, max_call_nb))
+            call_depth: int = abs(
+                gaussian_between(
+                    -self.method_max_call_depth, self.method_max_call_depth
+                )
+            )
+            try:
+                case_method: Method = Method(
+                    address=method_address,
+                    body_size=body_size,
+                    call_number=call_nb,
+                    call_depth=call_depth,
+                    builder=self.builder,
+                )
+                case_method.fill_with_trampoline_instructions(
+                    registers=registers,
+                    data_reg=data_reg,
+                    data_size=data_size,
+                    weights=weights,
+                    ret_trampoline_offset=ret_trampoline_offset
+                    - (method_address - self.address),
+                )
+                self.methods.append(case_method)
+                method_address += case_method.total_size() * 4
+            except CallNumberException as err:
+                logger.exception(err)
+                raise
+            except EmptySectionException as err:
+                logger.exception(err)
+                raise
+        logger.info(f"{self.log_prefix()} Case methods added.")
 
     # Generation
     # \__________

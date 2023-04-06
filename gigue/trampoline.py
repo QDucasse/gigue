@@ -8,10 +8,10 @@ logger = logging.getLogger(__name__)
 
 
 class Trampoline:
-    def __init__(self, name: str, address: int):
+    def __init__(self, name: str, address: int, builder: InstructionBuilder):
         self.address: int = address
         self.name: str = name
-        self.builder: InstructionBuilder = InstructionBuilder()
+        self.builder: InstructionBuilder = builder
         self.instructions: List[Instruction] = []
         self.machine_code: List[int] = []
         self.bytes: bytes = b""
@@ -28,7 +28,7 @@ class Trampoline:
     def build(self) -> List[Instruction]:
         try:
             build_trampoline = getattr(
-                InstructionBuilder, "build_" + self.name + "_trampoline"
+                self.builder.__class__, "build_" + self.name + "_trampoline"
             )
             self.instructions = build_trampoline()
         except AttributeError as err:

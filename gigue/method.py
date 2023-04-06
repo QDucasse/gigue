@@ -21,6 +21,7 @@ class Method:
         address: int,
         body_size: int,
         call_number: int,
+        builder: InstructionBuilder,
         call_size: int = 3,
         call_depth: int = 1,
         used_s_regs: int = 1,
@@ -48,7 +49,7 @@ class Method:
         self.prologue_size: int = 0
         self.epilogue_size: int = 0
 
-        self.builder: InstructionBuilder = InstructionBuilder()
+        self.builder: InstructionBuilder = builder
         self.instructions: List[Instruction] = []
         self.callees: List[Method] = []
         self.callers: List[Method] = []
