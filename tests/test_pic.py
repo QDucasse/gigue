@@ -1,6 +1,7 @@
 import pytest
 from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_T1
 
+from gigue.builder import InstructionBuilder
 from gigue.constants import INSTRUCTION_WEIGHTS
 from gigue.helpers import flatten_list
 from gigue.pic import PIC
@@ -12,6 +13,12 @@ from tests.conftest import (
     TEST_DATA_SIZE,
 )
 
+
+@pytest.fixture
+def default_builder_setup():
+    return InstructionBuilder()
+
+
 # =================================
 #            Size Tests
 # =================================
@@ -19,13 +26,14 @@ from tests.conftest import (
 
 @pytest.mark.parametrize("case_nb", range(1, 10))
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
-def test_switch_size(case_nb, method_max_size):
+def test_switch_size(default_builder_setup, case_nb, method_max_size):
     pic = PIC(
         case_number=case_nb,
         address=ADDRESS,
         method_max_size=method_max_size,
         method_max_call_number=5,
         method_max_call_depth=5,
+        builder=default_builder_setup,
     )
     pic.fill_with_instructions(
         registers=TEST_CALLER_SAVED_REG,
@@ -40,13 +48,14 @@ def test_switch_size(case_nb, method_max_size):
 
 @pytest.mark.parametrize("case_nb", range(1, 10))
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
-def test_total_size(case_nb, method_max_size):
+def test_total_size(default_builder_setup, case_nb, method_max_size):
     pic = PIC(
         case_number=case_nb,
         address=ADDRESS,
         method_max_size=method_max_size,
         method_max_call_number=5,
         method_max_call_depth=5,
+        builder=default_builder_setup,
     )
     pic.fill_with_instructions(
         registers=TEST_CALLER_SAVED_REG,
@@ -67,13 +76,14 @@ def test_total_size(case_nb, method_max_size):
 
 @pytest.mark.parametrize("case_nb", range(1, 10))
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
-def test_method_adding(case_nb, method_max_size):
+def test_method_adding(default_builder_setup, case_nb, method_max_size):
     pic = PIC(
         case_number=case_nb,
         address=ADDRESS,
         method_max_size=method_max_size,
         method_max_call_number=5,
         method_max_call_depth=5,
+        builder=default_builder_setup,
     )
     pic.add_case_methods(
         registers=TEST_CALLER_SAVED_REG,
@@ -89,7 +99,7 @@ def test_method_adding(case_nb, method_max_size):
 @pytest.mark.parametrize("case_nb", range(1, 10))
 @pytest.mark.parametrize("method_max_size", [5, 20, 50, 100, 200])
 def test_switch_instructions_adding(
-    case_nb, method_max_size, disasm_setup, cap_disasm_setup
+    default_builder_setup, case_nb, method_max_size, disasm_setup, cap_disasm_setup
 ):
     pic = PIC(
         case_number=case_nb,
@@ -97,6 +107,7 @@ def test_switch_instructions_adding(
         method_max_size=method_max_size,
         method_max_call_number=5,
         method_max_call_depth=5,
+        builder=default_builder_setup,
     )
     pic.add_case_methods(
         registers=TEST_CALLER_SAVED_REG,
@@ -105,10 +116,6 @@ def test_switch_instructions_adding(
         weights=INSTRUCTION_WEIGHTS,
     )
     pic.add_switch_instructions()
-    # bytes = pic.generate_bytes()
-    # cap_disasm = cap_disasm_setup
-    # for i in cap_disasm.disasm(bytes, ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
     # Switch instructions should hold the different switch cases and a final ret
     assert len(pic.switch_instructions) == case_nb + 1
     assert len(flatten_list(pic.switch_instructions)) == pic.get_switch_size()
@@ -135,7 +142,12 @@ def test_switch_instructions_adding(
 @pytest.mark.parametrize("hit_case", range(1, 5))
 @pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
 def test_disassembly_execution(
-    case_nb, method_max_size, hit_case, cap_disasm_setup, uc_emul_full_setup
+    default_builder_setup,
+    case_nb,
+    method_max_size,
+    hit_case,
+    cap_disasm_setup,
+    uc_emul_full_setup,
 ):
     pic = PIC(
         case_number=case_nb,
@@ -145,6 +157,7 @@ def test_disassembly_execution(
         method_max_call_depth=5,
         hit_case_reg=6,
         cmp_reg=5,
+        builder=default_builder_setup,
     )
     pic.fill_with_instructions(
         registers=TEST_CALLER_SAVED_REG,
@@ -156,9 +169,8 @@ def test_disassembly_execution(
     pic_bytes = pic.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
-    cap_disasm.disasm(pic_bytes, ADDRESS)
-    # for i in cap_disasm.disasm(pic_bytes, ADDRESS):
-    #     print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
+    for _ in cap_disasm.disasm(pic_bytes, ADDRESS):
+        pass
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)

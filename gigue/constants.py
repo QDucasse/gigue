@@ -1,63 +1,89 @@
-from typing import Dict
+from typing import Dict, List
+
+# Instruction Weights
+# \___________________
 
 # [R, I, U, J, B, stores, loads]
-INSTRUCTION_WEIGHTS = [25, 30, 10, 5, 10, 10, 10]
+INSTRUCTION_WEIGHTS: List[int] = [25, 30, 10, 5, 10, 10, 10]
 
-# Register info
-CALLER_SAVED_REG = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31]
-CALLEE_SAVED_REG = [8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+# Registers and aliases
+# \_____________________
 
-# RISCV shortcuts
-RA = 1
-SP = 2
+# Register lists
+# https://en.wikichip.org/wiki/risc-v/registers
+CALLER_SAVED_REG: List[int] = [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31]
+CALLEE_SAVED_REG: List[int] = [8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
 
-# Paths
-BIN_DIR = "bin/"
+# RISCV aliases
+X0: int = 0
+RA: int = 1
+SP: int = 2
 
 # PICs info
-HIT_CASE_REG = 5
-CMP_REG = 6
+HIT_CASE_REG: int = 5
+CMP_REG: int = 6
 
-# Data info
-DATA_REG = 31
-DATA_SIZE = 0x100
+# Binary path
+# \____________
 
+BIN_DIR: str = "bin/"
+
+# Data generation
+# \_______________
+
+DATA_REG: int = 31
+DATA_SIZE: int = 0x100
+
+
+# Comparison masks
+# \________________
 
 # Instruction masks
-OP7_MASK = 0x0000007F
-OP7_OP3_MASK = 0x0000707F
-OP7_OP3_TOP7_MASK = 0xFE000707F
-OP7_OP3_TOP6_MASK = 0xFC000707F
-FULL_MASK = 0xFFFFFFFF
+OPCODE_MASK: int = 0x0000007F
+OPCODE_FUNC3_MASK: int = 0x0000707F
+OPCODE_FUNC3_FUNC7_MASK: int = 0xFE000707F
+OPCODE_FUNC3_FUNC6_MASK: int = 0xFC000707F
+FULL_MASK: int = 0xFFFFFFFF
+
+# Trampoline Generation
+# \________________
+
+# This one is only used as the cmp reg when calling a pic so should be ok!!
+CALL_TMP_REG: int = 6
+
+DEFAULT_TRAMPOLINES: List[str] = [
+    "call_jit_elt",
+    "ret_from_jit_elt",
+]
 
 
 class InstructionInfo:
     def __init__(
         self,
         name: str,
-        opcode7: int,
-        opcode3: int,
+        opcode: int,
+        funct3: int,
         instr_type: str,
-        top7: int = 0,
-        cmp_mask: int = OP7_OP3_TOP7_MASK,
+        funct7: int = 0,
+        cmp_mask: int = OPCODE_FUNC3_FUNC7_MASK,
     ):
         self.name: str = name
-        self.opcode7: int = opcode7
-        self.opcode3: int = opcode3
-        self.top7: int = top7
+        self.opcode: int = opcode
+        self.funct3: int = funct3
+        self.funct7: int = funct7
         self.instr_type: str = instr_type
-        self.cmp_mask = cmp_mask
-        self.cmp_val = (
-            self.opcode7 + (self.opcode3 << 12) + (self.top7 << 25)
+        self.cmp_mask: int = cmp_mask
+        self.cmp_val: int = (
+            self.opcode + (self.funct3 << 12) + (self.funct7 << 25)
         ) & self.cmp_mask
 
 
 class ExceptionInstructionInfo(InstructionInfo):
-    def __init__(self, imm, *args, **kwargs):
+    def __init__(self, imm: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.imm = imm
-        self.cmp_val = (
-            self.opcode7 + (self.opcode3 << 12) + (self.imm << 20)
+        self.imm: int = imm
+        self.cmp_val: int = (
+            self.opcode + (self.funct3 << 12) + (self.imm << 20)
         ) & self.cmp_mask
 
 
@@ -69,148 +95,477 @@ class CustomInstructionInfo(InstructionInfo):
         xd: int = 0,
         xs1: int = 0,
         xs2: int = 0,
-        top7: int = 0,
-        cmp_mask: int = OP7_OP3_TOP7_MASK,
+        funct7: int = 0,
+        cmp_mask: int = OPCODE_FUNC3_FUNC7_MASK,
     ):
-        custom_instr_info = INSTRUCTIONS_INFO["custom-" + str(custom_nb)]
-        opcode7 = custom_instr_info.opcode7
-        opcode3 = (xd << 2) + (xs1 << 1) + xs2
-        self.xd = xd
-        self.xs1 = xs1
-        self.xs2 = xs2
-        instr_type = custom_instr_info.instr_type
+        custom_instr_info: InstructionInfo = INSTRUCTIONS_INFO[
+            "custom-" + str(custom_nb)
+        ]
+        opcode: int = custom_instr_info.opcode
+        funct3: int = (xd << 2) + (xs1 << 1) + xs2
+        self.xd: int = xd
+        self.xs1: int = xs1
+        self.xs2: int = xs2
+        instr_type: str = custom_instr_info.instr_type
         super().__init__(
             name=name,
-            opcode7=opcode7,
-            opcode3=opcode3,
+            opcode=opcode,
+            funct3=funct3,
             instr_type=instr_type,
-            top7=top7,
+            funct7=funct7,
             cmp_mask=cmp_mask,
         )
 
 
 INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     # Adds
-    "add": InstructionInfo("add", 0b0110011, 0b000, "R", cmp_mask=OP7_OP3_TOP7_MASK),
-    "addi": InstructionInfo("addi", 0b0010011, 0b000, "I", cmp_mask=OP7_OP3_MASK),
-    "addiw": InstructionInfo("addiw", 0b0011011, 0b000, "I", cmp_mask=OP7_OP3_MASK),
-    "addw": InstructionInfo("addw", 0b0111011, 0b000, "R", cmp_mask=OP7_OP3_TOP7_MASK),
+    "add": InstructionInfo(
+        name="add",
+        opcode=0b0110011,
+        funct3=0b000,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
+    ),
+    "addi": InstructionInfo(
+        name="addi",
+        opcode=0b0010011,
+        funct3=0b000,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "addiw": InstructionInfo(
+        name="addiw",
+        opcode=0b0011011,
+        funct3=0b000,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "addw": InstructionInfo(
+        name="addw",
+        opcode=0b0111011,
+        funct3=0b000,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
+    ),
     # Ands
-    "andr": InstructionInfo("andr", 0b0110011, 0b111, "R", cmp_mask=OP7_OP3_TOP7_MASK),
-    "andi": InstructionInfo("andi", 0b0010011, 0b111, "I", cmp_mask=OP7_OP3_MASK),
+    "andr": InstructionInfo(
+        name="andr",
+        opcode=0b0110011,
+        funct3=0b111,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
+    ),
+    "andi": InstructionInfo(
+        name="andi",
+        opcode=0b0010011,
+        funct3=0b111,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
     # Add upp imm to PC
-    "auipc": InstructionInfo("auipc", 0b0010111, 0b000, "U", cmp_mask=OP7_MASK),
+    "auipc": InstructionInfo(
+        name="auipc",
+        opcode=0b0010111,
+        funct3=0b000,
+        instr_type="U",
+        cmp_mask=OPCODE_MASK,
+    ),
     # Branches
-    "beq": InstructionInfo("beq", 0b1100011, 0b000, "B", cmp_mask=OP7_OP3_MASK),
-    "bge": InstructionInfo("bge", 0b1100011, 0b101, "B", cmp_mask=OP7_OP3_MASK),
-    "bgeu": InstructionInfo("bgeu", 0b1100011, 0b111, "B", cmp_mask=OP7_OP3_MASK),
-    "blt": InstructionInfo("blt", 0b1100011, 0b100, "B", cmp_mask=OP7_OP3_MASK),
-    "bltu": InstructionInfo("bltu", 0b1100011, 0b110, "B", cmp_mask=OP7_OP3_MASK),
-    "bne": InstructionInfo("bne", 0b1100011, 0b001, "B", cmp_mask=OP7_OP3_MASK),
+    "beq": InstructionInfo(
+        name="beq",
+        opcode=0b1100011,
+        funct3=0b000,
+        instr_type="B",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "bge": InstructionInfo(
+        name="bge",
+        opcode=0b1100011,
+        funct3=0b101,
+        instr_type="B",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "bgeu": InstructionInfo(
+        name="bgeu",
+        opcode=0b1100011,
+        funct3=0b111,
+        instr_type="B",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "blt": InstructionInfo(
+        name="blt",
+        opcode=0b1100011,
+        funct3=0b100,
+        instr_type="B",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "bltu": InstructionInfo(
+        name="bltu",
+        opcode=0b1100011,
+        funct3=0b110,
+        instr_type="B",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "bne": InstructionInfo(
+        name="bne",
+        opcode=0b1100011,
+        funct3=0b001,
+        instr_type="B",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
     # Jumps
-    "jal": InstructionInfo("jal", 0b1101111, 0b000, "J", cmp_mask=OP7_MASK),
-    "jalr": InstructionInfo("jalr", 0b1100111, 0b000, "I", cmp_mask=OP7_OP3_MASK),
+    "jal": InstructionInfo(
+        name="jal", opcode=0b1101111, funct3=0b000, instr_type="J", cmp_mask=OPCODE_MASK
+    ),
+    "jalr": InstructionInfo(
+        name="jalr",
+        opcode=0b1100111,
+        funct3=0b000,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
     # Loads
-    "lb": InstructionInfo("lb", 0b0000011, 0b000, "I", cmp_mask=OP7_OP3_MASK),
-    "lbu": InstructionInfo("lbu", 0b0000011, 0b100, "I", cmp_mask=OP7_OP3_MASK),
-    "ld": InstructionInfo("ld", 0b0000011, 0b011, "I", cmp_mask=OP7_OP3_MASK),
-    "lh": InstructionInfo("lh", 0b0000011, 0b001, "I", cmp_mask=OP7_OP3_MASK),
-    "lhu": InstructionInfo("lhu", 0b0000011, 0b101, "I", cmp_mask=OP7_OP3_MASK),
-    "lw": InstructionInfo("lw", 0b0000011, 0b010, "I", cmp_mask=OP7_OP3_MASK),
-    "lwu": InstructionInfo("lwu", 0b0000011, 0b110, "I", cmp_mask=OP7_OP3_MASK),
+    "lb": InstructionInfo(
+        name="lb",
+        opcode=0b0000011,
+        funct3=0b000,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "lbu": InstructionInfo(
+        name="lbu",
+        opcode=0b0000011,
+        funct3=0b100,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "ld": InstructionInfo(
+        name="ld",
+        opcode=0b0000011,
+        funct3=0b011,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "lh": InstructionInfo(
+        name="lh",
+        opcode=0b0000011,
+        funct3=0b001,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "lhu": InstructionInfo(
+        name="lhu",
+        opcode=0b0000011,
+        funct3=0b101,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "lw": InstructionInfo(
+        name="lw",
+        opcode=0b0000011,
+        funct3=0b010,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "lwu": InstructionInfo(
+        name="lwu",
+        opcode=0b0000011,
+        funct3=0b110,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
     # Load upper immediate
-    "lui": InstructionInfo("lui", 0b0110111, 0b000, "U", cmp_mask=OP7_MASK),
+    "lui": InstructionInfo(
+        name="lui", opcode=0b0110111, funct3=0b000, instr_type="U", cmp_mask=OPCODE_MASK
+    ),
     # Muls
     "mul": InstructionInfo(
-        "mul", 0b0110011, 0b000, "R", 0b0000001, cmp_mask=OP7_OP3_TOP7_MASK
+        name="mul",
+        opcode=0b0110011,
+        funct3=0b000,
+        instr_type="R",
+        funct7=0b0000001,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "mulh": InstructionInfo(
-        "mulh", 0b0110011, 0b001, "R", 0b0000001, cmp_mask=OP7_OP3_TOP7_MASK
+        name="mulh",
+        opcode=0b0110011,
+        funct3=0b001,
+        instr_type="R",
+        funct7=0b0000001,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "mulhsu": InstructionInfo(
-        "mulhsu", 0b0110011, 0b010, "R", 0b0000001, cmp_mask=OP7_OP3_TOP7_MASK
+        name="mulhsu",
+        opcode=0b0110011,
+        funct3=0b010,
+        instr_type="R",
+        funct7=0b0000001,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "mulhu": InstructionInfo(
-        "mulhu", 0b0110011, 0b011, "R", 0b0000001, cmp_mask=OP7_OP3_TOP7_MASK
+        name="mulhu",
+        opcode=0b0110011,
+        funct3=0b011,
+        instr_type="R",
+        funct7=0b0000001,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "mulw": InstructionInfo(
-        "mulw", 0b0111011, 0b000, "R", 0b0000001, cmp_mask=OP7_OP3_TOP7_MASK
+        name="mulw",
+        opcode=0b0111011,
+        funct3=0b000,
+        instr_type="R",
+        funct7=0b0000001,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     # Ors
-    "orr": InstructionInfo("orr", 0b0110011, 0b110, "R", cmp_mask=OP7_OP3_TOP7_MASK),
-    "ori": InstructionInfo("ori", 0b0010011, 0b110, "I", cmp_mask=OP7_OP3_MASK),
-    # Stores
-    "sb": InstructionInfo("sb", 0b0100011, 0b000, "S", cmp_mask=OP7_OP3_MASK),
-    "sd": InstructionInfo("sd", 0b0100011, 0b011, "S", cmp_mask=OP7_OP3_MASK),
-    "sh": InstructionInfo("sh", 0b0100011, 0b001, "S", cmp_mask=OP7_OP3_MASK),
-    "sw": InstructionInfo("sw", 0b0100011, 0b010, "S", cmp_mask=OP7_OP3_MASK),
-    # Logical shift left
-    "sll": InstructionInfo("sll", 0b0110011, 0b001, "R", cmp_mask=OP7_OP3_TOP6_MASK),
-    "slli": InstructionInfo("slli", 0b0010011, 0b001, "I", cmp_mask=OP7_OP3_TOP6_MASK),
-    "slliw": InstructionInfo(
-        "slliw", 0b0011011, 0b001, "I", cmp_mask=OP7_OP3_TOP6_MASK
+    "orr": InstructionInfo(
+        name="orr",
+        opcode=0b0110011,
+        funct3=0b110,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
-    "sllw": InstructionInfo("sllw", 0b0111011, 0b001, "R", cmp_mask=OP7_OP3_TOP6_MASK),
+    "ori": InstructionInfo(
+        name="ori",
+        opcode=0b0010011,
+        funct3=0b110,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    # Stores
+    "sb": InstructionInfo(
+        name="sb",
+        opcode=0b0100011,
+        funct3=0b000,
+        instr_type="S",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "sd": InstructionInfo(
+        name="sd",
+        opcode=0b0100011,
+        funct3=0b011,
+        instr_type="S",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "sh": InstructionInfo(
+        name="sh",
+        opcode=0b0100011,
+        funct3=0b001,
+        instr_type="S",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "sw": InstructionInfo(
+        name="sw",
+        opcode=0b0100011,
+        funct3=0b010,
+        instr_type="S",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    # Logical shift left
+    "sll": InstructionInfo(
+        name="sll",
+        opcode=0b0110011,
+        funct3=0b001,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
+    ),
+    "slli": InstructionInfo(
+        name="slli",
+        opcode=0b0010011,
+        funct3=0b001,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
+    ),
+    "slliw": InstructionInfo(
+        name="slliw",
+        opcode=0b0011011,
+        funct3=0b001,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
+    ),
+    "sllw": InstructionInfo(
+        name="sllw",
+        opcode=0b0111011,
+        funct3=0b001,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
+    ),
     # Set if
-    "slt": InstructionInfo("slt", 0b0110011, 0b010, "R", cmp_mask=OP7_OP3_TOP7_MASK),
-    "slti": InstructionInfo("slti", 0b0010011, 0b010, "I", cmp_mask=OP7_OP3_MASK),
-    "sltiu": InstructionInfo("sltiu", 0b0010011, 0b011, "I", cmp_mask=OP7_OP3_MASK),
-    "sltu": InstructionInfo("sltu", 0b0110011, 0b011, "R", cmp_mask=OP7_OP3_TOP7_MASK),
+    "slt": InstructionInfo(
+        name="slt",
+        opcode=0b0110011,
+        funct3=0b010,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
+    ),
+    "slti": InstructionInfo(
+        name="slti",
+        opcode=0b0010011,
+        funct3=0b010,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "sltiu": InstructionInfo(
+        name="sltiu",
+        opcode=0b0010011,
+        funct3=0b011,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
+    "sltu": InstructionInfo(
+        name="sltu",
+        opcode=0b0110011,
+        funct3=0b011,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
+    ),
     # Arithmetic shift right
-    # Note (srai, sraiw) the top7 here is used on top of the shift immediate
+    # Note (srai, sraiw) the funct7 here is used on top of the shift immediate
     "sra": InstructionInfo(
-        "sra", 0b0110011, 0b101, "R", 0b0100000, cmp_mask=OP7_OP3_TOP6_MASK
+        name="sra",
+        opcode=0b0110011,
+        funct3=0b101,
+        instr_type="R",
+        funct7=0b0100000,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "srai": InstructionInfo(
-        "srai", 0b0010011, 0b101, "I", 0b0100000, cmp_mask=OP7_OP3_TOP6_MASK
+        name="srai",
+        opcode=0b0010011,
+        funct3=0b101,
+        instr_type="I",
+        funct7=0b0100000,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "sraiw": InstructionInfo(
-        "sraiw", 0b0011011, 0b101, "I", 0b0100000, cmp_mask=OP7_OP3_TOP6_MASK
+        name="sraiw",
+        opcode=0b0011011,
+        funct3=0b101,
+        instr_type="I",
+        funct7=0b0100000,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "sraw": InstructionInfo(
-        "sraw", 0b0111011, 0b101, "R", 0b0100000, cmp_mask=OP7_OP3_TOP6_MASK
+        name="sraw",
+        opcode=0b0111011,
+        funct3=0b101,
+        instr_type="R",
+        funct7=0b0100000,
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     # Logical shift right
-    "srl": InstructionInfo("srl", 0b0110011, 0b101, "R", cmp_mask=OP7_OP3_TOP6_MASK),
-    "srli": InstructionInfo("srli", 0b0010011, 0b101, "I", cmp_mask=OP7_OP3_TOP6_MASK),
-    "srliw": InstructionInfo(
-        "srliw", 0b0011011, 0b101, "I", cmp_mask=OP7_OP3_TOP6_MASK
+    "srl": InstructionInfo(
+        name="srl",
+        opcode=0b0110011,
+        funct3=0b101,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
-    "srlw": InstructionInfo("srlw", 0b0111011, 0b101, "R", cmp_mask=OP7_OP3_TOP6_MASK),
+    "srli": InstructionInfo(
+        name="srli",
+        opcode=0b0010011,
+        funct3=0b101,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
+    ),
+    "srliw": InstructionInfo(
+        name="srliw",
+        opcode=0b0011011,
+        funct3=0b101,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
+    ),
+    "srlw": InstructionInfo(
+        name="srlw",
+        opcode=0b0111011,
+        funct3=0b101,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
+    ),
     # Subs
     "sub": InstructionInfo(
-        "sub", 0b0110011, 0b000, "R", 0b0100000, cmp_mask=OP7_OP3_TOP7_MASK
+        name="sub",
+        opcode=0b0110011,
+        funct3=0b000,
+        instr_type="R",
+        funct7=0b0100000,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "subw": InstructionInfo(
-        "subw", 0b0111011, 0b000, "R", 0b0100000, cmp_mask=OP7_OP3_TOP7_MASK
+        name="subw",
+        opcode=0b0111011,
+        funct3=0b000,
+        instr_type="R",
+        funct7=0b0100000,
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     # Note: subi is performed with addi!
     # Xors
-    "xor": InstructionInfo("xor", 0b0110011, 0b100, "R", cmp_mask=OP7_OP3_TOP7_MASK),
-    "xori": InstructionInfo("xori", 0b0010011, 0b100, "I", cmp_mask=OP7_OP3_MASK),
+    "xor": InstructionInfo(
+        name="xor",
+        opcode=0b0110011,
+        funct3=0b100,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
+    ),
+    "xori": InstructionInfo(
+        name="xori",
+        opcode=0b0010011,
+        funct3=0b100,
+        instr_type="I",
+        cmp_mask=OPCODE_FUNC3_MASK,
+    ),
     # Exceptions
     "ebreak": ExceptionInstructionInfo(
-        1, "ebreak", 0b1110011, 0b000, "I", cmp_mask=FULL_MASK
+        imm=1,
+        name="ebreak",
+        opcode=0b1110011,
+        funct3=0b000,
+        instr_type="I",
+        cmp_mask=FULL_MASK,
     ),
     "ecall": ExceptionInstructionInfo(
-        0, "ecall", 0b1110011, 0b000, "I", cmp_mask=FULL_MASK
+        imm=0,
+        name="ecall",
+        opcode=0b1110011,
+        funct3=0b000,
+        instr_type="I",
+        cmp_mask=FULL_MASK,
     ),
     # Custom
     "custom-0": InstructionInfo(
-        "custom-0", 0b0001011, 0b000, "R", cmp_mask=OP7_OP3_TOP7_MASK
+        name="custom-0",
+        opcode=0b0001011,
+        funct3=0b000,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "custom-1": InstructionInfo(
-        "custom-1", 0b0101011, 0b000, "R", cmp_mask=OP7_OP3_TOP7_MASK
+        name="custom-1",
+        opcode=0b0101011,
+        funct3=0b000,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "custom-2": InstructionInfo(
-        "custom-2", 0b1011011, 0b000, "R", cmp_mask=OP7_OP3_TOP7_MASK
+        name="custom-2",
+        opcode=0b1011011,
+        funct3=0b000,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "custom-3": InstructionInfo(
-        "custom-3", 0b1111011, 0b000, "R", cmp_mask=OP7_OP3_TOP7_MASK
+        name="custom-3",
+        opcode=0b1111011,
+        funct3=0b000,
+        instr_type="R",
+        cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
-    # Note: opcode3 is set at 0 by default but should be redefined by the subclasses!
+    # Note: funct3 is set at 0 by default but should be redefined by the subclasses!
 }
 
 
 if __name__ == "__main__":
-    print(INSTRUCTIONS_INFO["addi"].opcode3)
+    print(INSTRUCTIONS_INFO["addi"].funct3)
