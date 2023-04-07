@@ -2,9 +2,10 @@ import pytest
 from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_T1
 
 from gigue.helpers import bytes_to_int
-from gigue.rimi.instructions import RIMIIInstruction, RIMISInstruction
-from tests.conftest import ADDRESS, RET_ADDRESS
+from gigue.rimi.rimi_instructions import RIMIIInstruction, RIMISInstruction
+from tests.conftest import ADDRESS
 from tests.rimi.conftest import (
+    D0_ADDRESS,
     D1_ADDRESS,
     DATA_D1_ADDRESS,
     RIMI_SHADOW_STACK_ADDRESS,
@@ -34,9 +35,9 @@ def test_capstone_rimi_loads(name, cap_disasm_custom_setup, rimi_disasm_setup):
     rimi_disasm = rimi_disasm_setup
     instr_info = rimi_disasm.get_instruction_info(mc)
     assert instr_info.name == name
-    assert instr_info.opcode7 == rimi_disasm.extract_opcode7(mc)
-    assert instr_info.opcode3 == rimi_disasm.extract_opcode3(mc)
-    assert instr_info.top7 == rimi_disasm.extract_top7(mc)
+    assert instr_info.opcode == rimi_disasm.extract_opcode(mc)
+    assert instr_info.funct3 == rimi_disasm.extract_funct3(mc)
+    assert instr_info.funct7 == rimi_disasm.extract_funct7(mc)
 
 
 @pytest.mark.parametrize("name", ["ss", "sb1", "sh1", "sw1", "sd1"])
@@ -53,8 +54,8 @@ def test_capstone_rimi_stores(name, cap_disasm_custom_setup, rimi_disasm_setup):
     rimi_disasm = rimi_disasm_setup
     instr_info = rimi_disasm.get_instruction_info(mc)
     assert instr_info.name == name
-    assert instr_info.opcode7 == rimi_disasm.extract_opcode7(mc)
-    assert instr_info.opcode3 == rimi_disasm.extract_opcode3(mc)
+    assert instr_info.opcode == rimi_disasm.extract_opcode(mc)
+    assert instr_info.funct3 == rimi_disasm.extract_funct3(mc)
 
 
 def test_capstone_rimi_change_domain_fw(cap_disasm_custom_setup, rimi_disasm_setup):
@@ -70,8 +71,8 @@ def test_capstone_rimi_change_domain_fw(cap_disasm_custom_setup, rimi_disasm_set
     rimi_disasm = rimi_disasm_setup
     instr_info = rimi_disasm.get_instruction_info(mc)
     assert instr_info.name == "chdom"
-    assert instr_info.opcode7 == rimi_disasm.extract_opcode7(mc)
-    assert instr_info.opcode3 == rimi_disasm.extract_opcode3(mc)
+    assert instr_info.opcode == rimi_disasm.extract_opcode(mc)
+    assert instr_info.funct3 == rimi_disasm.extract_funct3(mc)
 
 
 def test_capstone_rimi_change_domain_bw(cap_disasm_custom_setup, rimi_disasm_setup):
@@ -87,8 +88,8 @@ def test_capstone_rimi_change_domain_bw(cap_disasm_custom_setup, rimi_disasm_set
     rimi_disasm = rimi_disasm_setup
     instr_info = rimi_disasm.get_instruction_info(mc)
     assert instr_info.name == "retdom"
-    assert instr_info.opcode7 == rimi_disasm.extract_opcode7(mc)
-    assert instr_info.opcode3 == rimi_disasm.extract_opcode3(mc)
+    assert instr_info.opcode == rimi_disasm.extract_opcode(mc)
+    assert instr_info.funct3 == rimi_disasm.extract_funct3(mc)
 
 
 # ===================================
@@ -114,13 +115,6 @@ def test_unicorn_rimi_loads(
     constr = getattr(RIMIIInstruction, name)
     instr = constr(rs1=TEST_DATA_REG_D1, rd=6, imm=0)
     bytes = instr.generate_bytes()
-    # Disassembly
-    # cap_disasm = cap_disasm_custom_setup
-    # instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
-    # print(
-    #     "0x%x:\t%s\t%s"
-    #     % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str)
-    # )
     # Handler
     rimi_handler = rimi_handler_setup
     rimi_handler.current_domain = 1
@@ -152,13 +146,6 @@ def test_unicorn_rimi_stores(
     constr = getattr(RIMISInstruction, name)
     instr = constr(rs1=TEST_DATA_REG_D1, rs2=6, imm=0)
     bytes = instr.generate_bytes()
-    # Disassembly
-    # cap_disasm = cap_disasm_custom_setup
-    # instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
-    # print(
-    #     "0x%x:\t%s\t%s"
-    #     % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str)
-    # )
     # Handler
     rimi_handler = rimi_handler_setup
     rimi_handler.current_domain = 1
@@ -178,13 +165,6 @@ def test_unicorn_rimi_stores(
 def test_unicorn_rimi_ls(rimi_handler_setup, uc_emul_setup):
     instr = RIMIIInstruction.ls(rd=1, rs1=1, imm=0)
     bytes = instr.generate_bytes()
-    # Disassembly
-    # cap_disasm = cap_disasm_custom_setup
-    # instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
-    # print(
-    #     "0x%x:\t%s\t%s"
-    #     % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str)
-    # )
     # Handler
     rimi_handler = rimi_handler_setup
     # Emulation
@@ -201,16 +181,9 @@ def test_unicorn_rimi_ls(rimi_handler_setup, uc_emul_setup):
     assert uc_emul.reg_read(UC_RISCV_REG_RA) == bytes_to_int(return_address)
 
 
-def test_unicorn_rimi_ss(rimi_handler_setup, uc_emul_setup):
+def test_unicorn_rimi_ss(rimi_handler_setup, cap_disasm_custom_setup, uc_emul_setup):
     instr = RIMISInstruction.ss(rs1=1, rs2=1, imm=0)
     bytes = instr.generate_bytes()
-    # Disassembly
-    # cap_disasm = cap_disasm_custom_setup
-    # instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
-    # print(
-    #     "0x%x:\t%s\t%s"
-    #     % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str)
-    # )
     # Handler
     rimi_handler = rimi_handler_setup
     # Emulation
@@ -233,20 +206,14 @@ def test_unicorn_rimi_chdom(
 ):
     instr = RIMIIInstruction.chdom(rd=1, rs1=1, imm=offset)
     bytes = instr.generate_bytes()
-    # Disassembly
-    # cap_disasm = cap_disasm_custom_setup
-    # instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
-    # print(
-    #     "0x%x:\t%s\t%s"
-    #     % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str)
-    # )
     # Handler
     rimi_handler = rimi_handler_setup
     assert rimi_handler.current_domain == 0
     # Emulation
     uc_emul = uc_emul_setup
     rimi_handler.hook_handler_expected(uc_emul, "chdom")
-    # rimi_handler.hook_tracer(uc_emul)
+    rimi_handler.hook_instr_tracer(uc_emul)
+    rimi_handler.hook_reg_tracer(uc_emul)
     # call is auipc,rd, offsetHi | jalr, rd, offsetLo(rd)
     # > load pc in ra
     uc_emul.reg_write(UC_RISCV_REG_RA, D1_ADDRESS)
@@ -256,25 +223,21 @@ def test_unicorn_rimi_chdom(
     assert rimi_handler.current_domain == 1
 
 
-def test_unicorn_rimi_retdom(rimi_handler_setup, uc_emul_setup):
+def test_unicorn_rimi_retdom(
+    rimi_handler_setup, cap_disasm_custom_setup, uc_emul_setup
+):
     instr = RIMIIInstruction.retdom()
     bytes = instr.generate_bytes()
-    # Disassembly
-    # cap_disasm = cap_disasm_custom_setup
-    # instr_disasm = next(cap_disasm.disasm(bytes, ADDRESS))
-    # print(
-    #     "0x%x:\t%s\t%s"
-    #     % (instr_disasm.address, instr_disasm.mnemonic, instr_disasm.op_str)
-    # )
     # Handler
     rimi_handler = rimi_handler_setup
     rimi_handler.current_domain = 1
     # Emulation
     uc_emul = uc_emul_setup
     rimi_handler.hook_handler_expected(uc_emul, "retdom")
-    # rimi_handler.hook_tracer(uc_emul)
-    uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
+    rimi_handler.hook_reg_tracer(uc_emul)
+    rimi_handler.hook_instr_tracer(uc_emul)
+    uc_emul.reg_write(UC_RISCV_REG_RA, D0_ADDRESS + 0x1000)
     uc_emul.mem_write(D1_ADDRESS, bytes)
-    uc_emul.emu_start(D1_ADDRESS, RET_ADDRESS)
+    uc_emul.emu_start(D1_ADDRESS, D0_ADDRESS + 0x1000)
     uc_emul.emu_stop()
     assert rimi_handler.current_domain == 0

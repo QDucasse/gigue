@@ -11,7 +11,7 @@ from gigue.constants import INSTRUCTIONS_INFO
 from gigue.disassembler import Disassembler
 from gigue.helpers import bytes_to_int, int_to_bytes32, int_to_bytes64
 from gigue.instructions import IInstruction, SInstruction
-from gigue.rimi.constants import (
+from gigue.rimi.rimi_constants import (
     RIMI_DATA_REG_D1,
     RIMI_INSTRUCTIONS_INFO,
     RIMI_SHADOW_STACK_REG,
@@ -31,18 +31,50 @@ assert TEST_DATA_REG_D1 + 1 == UC_RISCV_REG_T4
 UC_DATA_REG_D1 = UC_RISCV_REG_T4
 
 
-RIMI_SHADOW_STACK_ADDRESS = 0x105000
-D1_ADDRESS = 0x10A000
-DATA_D1_ADDRESS = 0x10B000
+# The memory layout is the following:
+# _________________________________
+#
+#    interpreter zone/domain 0
+#
+#               CODE
+#    (DATA) (unused by the interpreter)
+#              STACK
+# __________________________________
+# __________________________________
+#
+#        JIT zone/domain 1
+#
+#               CODE
+#               DATA
+#
+# __________________________________
+# __________________________________
+#
+#     Shadow Stack zone/domain 2
+#
+#              STACK
+# __________________________________
+
+RIMI_SHADOW_STACK_ADDRESS = 0x20000
+MAX_ADDRESS = ADDRESS + 2 * 1024 * 1024
+D0_ADDRESS = ADDRESS
+D1_ADDRESS = 0x10000
+D2_ADDRESS = RIMI_SHADOW_STACK_ADDRESS
+
+DATA_D1_ADDRESS = 0x1F000
+
+D0_SIZE = D1_ADDRESS - D0_ADDRESS
+D1_SIZE = D2_ADDRESS - D1_ADDRESS
+D2_SIZE = MAX_ADDRESS - D2_ADDRESS
 
 
 class RIMIHandler(Handler):
     # Info on domains:
     # Start address, size!
     DOMAIN_INFO = {
-        0: (ADDRESS, 0xF000),
-        1: (D1_ADDRESS, 0x1000),
-        2: (RIMI_SHADOW_STACK_ADDRESS, 0x5000),
+        0: (D0_ADDRESS, D0_SIZE),
+        1: (D1_ADDRESS, D1_SIZE),
+        2: (D2_ADDRESS, D2_SIZE),
     }
 
     # Instructions and their domain:
@@ -253,9 +285,11 @@ class RIMIHandler(Handler):
         self.current_domain = 1
 
     def handle_retdom(self, uc_emul, pc, instr):
+        print("henlo")
         self.check_domain_change(uc_emul=uc_emul, instr=instr)
         new_instr = IInstruction.ret().generate_bytes()
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
+        print("henlo")
         self.current_domain = 0
 
     # Memory accesses checks
