@@ -101,7 +101,6 @@ class FIXERInstructionBuilder(InstructionBuilder):
         # Note that:
         #  - The RA should be set by the caller.
         #  - The callee address is set in a dedicated register.
-        print("building cficall")
         return [
             FIXERCustomInstruction.cficall(rd=0, rs1=RA, rs2=0),
             IInstruction.jr(rs1=CALL_TMP_REG),
@@ -115,7 +114,6 @@ class FIXERInstructionBuilder(InstructionBuilder):
         #  - The RA should be set by the caller (in RA).
         #  - For now the branch jumps over an ecall instruction if correct
         #    but it should jump to a dedicated exception trap
-        print("building cfiret")
         return [
             FIXERCustomInstruction.cfiret(rd=FIXER_CMP_REG, rs1=0, rs2=0),
             BInstruction.beq(rs1=RA, rs2=FIXER_CMP_REG, imm=8),
