@@ -28,6 +28,7 @@ from gigue.instructions import IInstruction
 
 # Seed for reproducibility
 SEED = bytes_to_int(os.urandom(16))
+# print(SEED)
 # SEED = 248211043577579144151423267814312480480
 random.seed(SEED)
 
@@ -78,7 +79,7 @@ DATA_ADDRESS = 0xE000
 
 INTERPRETER_START_ADDRESS = 0x1000
 JIT_START_ADDRESS = 0x3000
-RET_ADDRESS = 0x20000
+RET_ADDRESS = 0xFFFE
 
 # Check for correct test data reg, config vs unicorn one
 # Note: Unicorn's 0 is the code for invalid reg so everything is shifted!

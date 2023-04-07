@@ -809,9 +809,9 @@ def test_build_pic_call_trampoline_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     CODE_ADDRESS = ADDRESS + len(tramp_bytes)
     # Disassembly
-    cap_disasm = cap_disasm_setup
-    cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
-    cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
+    # cap_disasm = cap_disasm_setup
+    # cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
+    # cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
     # Handler
     handler = handler_setup
     # Emulation

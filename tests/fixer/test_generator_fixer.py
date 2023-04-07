@@ -13,7 +13,8 @@ from tests.conftest import (
 
 
 @pytest.mark.parametrize(
-    "jit_elements_nb", [5, 20, 200],
+    "jit_elements_nb",
+    [5, 20, 200],
 )
 @pytest.mark.parametrize(
     "method_max_size",
