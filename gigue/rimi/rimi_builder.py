@@ -84,11 +84,31 @@ class RIMIShadowStackInstructionBuilder(InstructionBuilder):
             )
         return instructions
 
-    def build_trampoline_prologue(self):
-        raise Exception
-
-    def build_trampoline_epilogue(self):
-        raise Exception
+    @staticmethod
+    def build_trampoline_epilogue(
+        used_s_regs: int,
+        local_var_nb: int,
+        contains_call: bool,
+        ret_trampoline_offset: int,
+    ) -> List[Instruction]:
+        instructions: List[Instruction] = InstructionBuilder.build_trampoline_epilogue(
+            used_s_regs=used_s_regs,
+            local_var_nb=local_var_nb,
+            contains_call=False,
+            ret_trampoline_offset=ret_trampoline_offset - (8 if contains_call else 0),
+        )
+        # Note: We pass false to contains call to size the stack space without the
+        # need for RA!
+        # Note: -8 to the trampoline offset to compensate the fact that we add two
+        # intermediate instruction in case of a call!
+        if contains_call:
+            # Overwrite the RA load with a load from the shadow stack
+            instructions.insert(-1, RIMIIInstruction.ls(rd=RA, rs1=RIMI_SSP_REG, imm=0))
+            # Insert the addi
+            instructions.insert(
+                -1, IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=4)
+            )
+        return instructions
 
 
 class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
