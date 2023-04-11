@@ -157,7 +157,8 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
         # stored in rs1 + off in rd
         rd: int = random.choice(registers)
         rs1: int = data_reg
-        alignment: int = InstructionBuilder.define_memory_access_alignment(name)
+        alignment: int = InstructionBuilder.define_memory_access_alignment(name[:-1])
+        # Note: remove suffix 1 to determine alignment
         imm: int = align(random.randint(0, min(data_size, 0x7FF)), alignment)
         return constr(rd=rd, rs1=rs1, imm=imm)
 
