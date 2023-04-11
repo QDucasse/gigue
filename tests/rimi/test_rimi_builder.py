@@ -31,13 +31,13 @@ def test_build_ss_prologue(
     assert instrs[0].name == "addi"
     assert (
         rimi_disasm.extract_imm_i(gen_instrs[0], sign_extend=True)
-        == -(used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
+        == -(used_s_regs + local_var_nb) * 8
     )
     # Filling of the stack
     for i, (instr, generated) in enumerate(zip(instrs[1:-2], gen_instrs[1:-2])):
         assert instr.name == "sd"
         assert rimi_disasm.extract_imm_s(generated) == i * 8
-    # RA check
+    # Shadow stack pointer decrease and store (push)
     if contains_call:
         assert instrs[-2].name == "addi"
         assert rimi_disasm.extract_imm_i(gen_instrs[-2], sign_extend=True) == -4
@@ -49,8 +49,41 @@ def test_build_ss_prologue(
         assert rimi_disasm.extract_rs1(instrs[-1].generate()) == RIMI_SSP_REG
 
 
-def test_build_ss_epilogue():
-    pass
+@pytest.mark.parametrize("used_s_regs", [0, 5, 10])
+@pytest.mark.parametrize("local_var_nb", [0, 5, 10])
+@pytest.mark.parametrize("contains_call", [True, False])
+def test_build_ss_epilogue(used_s_regs, local_var_nb, contains_call, rimi_disasm_setup):
+    instr_builder = RIMIShadowStackInstructionBuilder()
+    instrs = instr_builder.build_epilogue(
+        used_s_regs=used_s_regs, local_var_nb=local_var_nb, contains_call=contains_call
+    )
+    gen_instrs = [instr.generate() for instr in instrs]
+    # Disassembly
+    rimi_disasm = rimi_disasm_setup
+    # Restore saved regs
+    for i, (instr, generated) in enumerate(zip(instrs[:-4], gen_instrs[:-4])):
+        assert instr.name == "ld"
+        assert rimi_disasm.extract_imm_i(generated) == i * 8
+    # Restore SP
+    assert instrs[used_s_regs].name == "addi"
+    assert (
+        rimi_disasm.extract_imm_i(gen_instrs[used_s_regs])
+        == (used_s_regs + local_var_nb) * 8
+    )
+    # Shadow stack pointer increase and store (pop)
+    if contains_call:
+        assert instrs[-3].name == "ls"
+        assert rimi_disasm.extract_imm_i(gen_instrs[-3]) == 0
+        assert rimi_disasm.extract_rd(instrs[-3].generate()) == RA
+        assert rimi_disasm.extract_rs1(instrs[-3].generate()) == RIMI_SSP_REG
+        assert instrs[-2].name == "addi"
+        assert rimi_disasm.extract_imm_i(gen_instrs[-2], sign_extend=True) == +4
+        assert rimi_disasm.extract_rs1(instrs[-2].generate()) == RIMI_SSP_REG
+        assert rimi_disasm.extract_rd(instrs[-2].generate()) == RIMI_SSP_REG
+    # Ret check
+    assert instrs[-1].name == "jalr"
+    assert instrs[-1].rd == 0
+    assert instrs[-1].rs1 == RA
 
 
 # Trampoline version

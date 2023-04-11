@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 class RIMIShadowStackInstructionBuilder(InstructionBuilder):
+    # /!\ NOTE:
+    # This version of the shadow stack DOES NOT use the traditional
+    # data stack at all to store the return address. All stores/loads
+    # of the RA to the data stack are replaced with the custom instruction
     @staticmethod
     def build_prologue(
         used_s_regs: int, local_var_nb: int, contains_call: bool
@@ -36,13 +40,15 @@ class RIMIShadowStackInstructionBuilder(InstructionBuilder):
         instructions: List[Instruction] = InstructionBuilder.build_prologue(
             used_s_regs=used_s_regs,
             local_var_nb=local_var_nb,
-            contains_call=contains_call,
+            contains_call=False,
         )
+        # Note: We pass false to contains call to size the stack space without the
+        # need for RA!
         # Shadow stack
         if contains_call:
             # Overwrite the RA store with stack pointer modif
-            instructions[-1] = IInstruction.addi(
-                rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=-4
+            instructions.append(
+                IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=-4)
             )
             # Add store to shadow stack memory
             instructions.append(RIMISInstruction.ss(rs1=RIMI_SSP_REG, rs2=RA, imm=0))
@@ -58,27 +64,24 @@ class RIMIShadowStackInstructionBuilder(InstructionBuilder):
         # ld s1 4(sp
         # ld s2 8(sp
         # REMOVED -- ld ra 12(sp) --
+        # addi sp sp 12 (+local vars)
         # ls ra 0(sp)
         # addi ssreg ssreg 4
-        # addi sp sp 12 (+local vars)
         # ret
         instructions: List[Instruction] = InstructionBuilder.build_epilogue(
             used_s_regs=used_s_regs,
             local_var_nb=local_var_nb,
-            contains_call=contains_call,
+            contains_call=False,
         )
-        # Shadow stack load ()
-        ls_instr: RIMIIInstruction = RIMIIInstruction.ls(rd=RA, rs1=RIMI_SSP_REG, imm=0)
+        # Note: We pass false to contains call to size the stack space without the
+        # need for RA!
         if contains_call:
-            # Overwrite the ra load
-            instructions[-2] = ls_instr
-        else:
-            # Otherwise insert it
-            instructions[-2:-2] = [ls_instr]
-
-        instructions[-2:-2] = [
-            IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=4)
-        ]
+            # Overwrite the RA load with a load from the shadow stack
+            instructions.insert(-1, RIMIIInstruction.ls(rd=RA, rs1=RIMI_SSP_REG, imm=0))
+            # Insert the addi
+            instructions.insert(
+                -1, IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=4)
+            )
         return instructions
 
     def build_trampoline_prologue(self):
