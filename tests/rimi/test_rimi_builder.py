@@ -1,8 +1,13 @@
 import pytest
 
 from gigue.constants import RA
-from gigue.rimi.rimi_builder import RIMIShadowStackInstructionBuilder
+from gigue.rimi.rimi_builder import (
+    RIMIFullInstructionBuilder,
+    RIMIShadowStackInstructionBuilder,
+)
 from gigue.rimi.rimi_constants import RIMI_SSP_REG
+from tests.conftest import ADDRESS, TEST_CALLER_SAVED_REG, TEST_DATA_REG, TEST_DATA_SIZE
+from tests.rimi.conftest import TEST_DATA_REG_D1, DomainAccessException, WrongDomainException
 
 # from tests.conftest import ADDRESS, RET_ADDRESS, STACK_ADDRESS, UC_CALL_TMP_REG
 
@@ -141,18 +146,112 @@ def test_build_ss_trampoline_epilogue(
 
 
 # ===================================
-#           RIMI Domains
+#             Execution
 # ===================================
+
+# Prologue/Epilogue
+# \_________________
 
 # Duplicated accesses
 # \___________________
 
 
-def test_build_random_s_instruction():
+@pytest.mark.parametrize("execution_number", range(10))
+def test_build_random_s_instruction_correct(
+    execution_number,
+    rimi_handler_setup,
+    cap_disasm_custom_setup,
+    rimi_uc_emul_full_setup,
+):
+    instr_builder = RIMIFullInstructionBuilder()
+    instr = instr_builder.build_random_s_instruction(
+        registers=TEST_CALLER_SAVED_REG,
+        data_reg=TEST_DATA_REG_D1,
+        data_size=TEST_DATA_SIZE,
+    )
+    bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_custom_setup
+    next(cap_disasm.disasm(bytes, ADDRESS))
+    # Handler
+    rimi_handler = rimi_handler_setup
+    rimi_handler.current_domain = 1
+    # Emulation
+    uc_emul = rimi_uc_emul_full_setup
+    rimi_handler.hook_handler(uc_emul)
+    bytes = instr.generate_bytes()
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.emu_start(ADDRESS, 0, count=1)
+    uc_emul.emu_stop()
+
+
+@pytest.mark.parametrize("execution_number", range(10))
+def test_build_random_s_instruction_wrong_domain(
+    execution_number,
+    rimi_handler_setup,
+    cap_disasm_custom_setup,
+    rimi_uc_emul_full_setup,
+):
+    instr_builder = RIMIFullInstructionBuilder()
+    instr = instr_builder.build_random_s_instruction(
+        registers=TEST_CALLER_SAVED_REG,
+        data_reg=TEST_DATA_REG_D1,
+        data_size=TEST_DATA_SIZE,
+    )
+    bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_custom_setup
+    next(cap_disasm.disasm(bytes, ADDRESS))
+    # Handler
+    rimi_handler = rimi_handler_setup
+    rimi_handler.current_domain = 0  # Wrong domain!!!
+    # Emulation
+    uc_emul = rimi_uc_emul_full_setup
+    rimi_handler.hook_handler(uc_emul)
+    bytes = instr.generate_bytes()
+    uc_emul.mem_write(ADDRESS, bytes)
+    with pytest.raises(WrongDomainException):
+        uc_emul.emu_start(ADDRESS, 0, count=1)
+        uc_emul.emu_stop()
+
+
+@pytest.mark.parametrize("execution_number", range(10))
+def test_build_random_s_instruction_access_fault(
+    execution_number,
+    rimi_handler_setup,
+    cap_disasm_custom_setup,
+    rimi_uc_emul_full_setup,
+):
+    instr_builder = RIMIFullInstructionBuilder()
+    instr = instr_builder.build_random_s_instruction(
+        registers=TEST_CALLER_SAVED_REG,
+        data_reg=TEST_DATA_REG,  # Wrong address for access!!!
+        data_size=TEST_DATA_SIZE,
+    )
+    bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_custom_setup
+    next(cap_disasm.disasm(bytes, ADDRESS))
+    # Handler
+    rimi_handler = rimi_handler_setup
+    rimi_handler.current_domain = 1
+    # Emulation
+    uc_emul = rimi_uc_emul_full_setup
+    rimi_handler.hook_handler(uc_emul)
+    bytes = instr.generate_bytes()
+    uc_emul.mem_write(ADDRESS, bytes)
+    with pytest.raises(DomainAccessException):
+        uc_emul.emu_start(ADDRESS, 0, count=1)
+        uc_emul.emu_stop()
+
+
+@pytest.mark.parametrize("execution_number", range(10))
+def test_build_random_l_instruction_correct(execution_number):
     pass
 
 
-def test_build_random_l_instruction():
+@pytest.mark.parametrize("execution_number", range(10))
+def test_build_random_l_instruction_fault(execution_number):
     pass
 
 

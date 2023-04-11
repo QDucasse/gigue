@@ -136,13 +136,14 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
     def build_random_s_instruction(
         registers: List[int], data_reg: int, data_size: int, *args, **kwargs
     ) -> RIMISInstruction:
-        name: str = random.choice(RIMIFullInstructionBuilder.S_INSTRUCTIONS)
+        name: str = random.choice(RIMIFullInstructionBuilder.RIMI_S_INSTRUCTIONS)
         constr: Callable = getattr(RIMISInstruction, name)
         # Note: sd, rs2, off(rs1) stores the contents of rs2
         # at the address in rs1 + offset
         rs1: int = data_reg
         rs2: int = random.choice(registers)
-        alignment: int = InstructionBuilder.define_memory_access_alignment(name)
+        alignment: int = InstructionBuilder.define_memory_access_alignment(name[:-1])
+        # Note: remove suffix 1 to determine alignment
         imm: int = align(random.randint(0, min(data_size, 0x7FF)), alignment)
         return constr(rs1=rs1, rs2=rs2, imm=imm)
 

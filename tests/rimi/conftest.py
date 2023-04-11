@@ -68,6 +68,22 @@ D1_SIZE = D2_ADDRESS - D1_ADDRESS
 D2_SIZE = MAX_ADDRESS - D2_ADDRESS
 
 
+class WrongDomainException(Exception):
+    """
+    Raised when an instruction is trying to execute in an incorrect domain.
+    """
+
+    pass
+
+
+class DomainAccessException(Exception):
+    """
+    Raised when an instruction tries to access an address outside of its domain.
+    """
+
+    pass
+
+
 class RIMIHandler(Handler):
     # Info on domains:
     # Start address, size!
@@ -105,12 +121,23 @@ class RIMIHandler(Handler):
 
     def check_domain(self, instr_name):
         domain = RIMIHandler.INSTRUCTIONS_DOMAIN[instr_name]
-        assert self.current_domain == domain
+        # ensure current_domain == domain
+        if self.current_domain != domain:
+            raise WrongDomainException(
+                f"Instruction {instr_name} should be executing in domain"
+                f" {domain} (currently {self.current_domain})"
+            )
         return domain
 
     def check_address_in_domain(self, addr, domain):
         domain_begin, domain_size = RIMIHandler.DOMAIN_INFO[domain]
-        assert domain_begin <= addr <= domain_begin + domain_size
+        # ensure domain_begin <= addr <= domain_begin + domain_size
+        if addr < domain_begin or addr > domain_begin + domain_size:
+            raise DomainAccessException(
+                f"Domain {domain} only has access to address range"
+                f" {hex(domain_begin)}-{hex(domain_begin + domain_size)}"
+                f" (trying to access {hex(addr)})"
+            )
 
     def check_load_access(self, uc_emul, instr):
         # Info extraction
@@ -183,6 +210,7 @@ class RIMIHandler(Handler):
         rs2 = self.disasm.extract_rs2(instr)
         imm = self.disasm.extract_imm_s(instr)
         # Generate bytes from given constructor
+
         return method(rs1=rs1, rs2=rs2, imm=imm).generate_bytes()
 
     # Shadow stack instructions
@@ -285,11 +313,9 @@ class RIMIHandler(Handler):
         self.current_domain = 1
 
     def handle_retdom(self, uc_emul, pc, instr):
-        print("henlo")
         self.check_domain_change(uc_emul=uc_emul, instr=instr)
         new_instr = IInstruction.ret().generate_bytes()
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
-        print("henlo")
         self.current_domain = 0
 
     # Memory accesses checks
@@ -318,3 +344,10 @@ def rimi_disasm_setup():
 @pytest.fixture
 def rimi_handler_setup(rimi_disasm_setup):
     return RIMIHandler(rimi_disasm_setup)
+
+
+@pytest.fixture
+def rimi_uc_emul_full_setup(uc_emul_full_setup):
+    uc_emul = uc_emul_full_setup
+    uc_emul.reg_write(UC_DATA_REG_D1, DATA_D1_ADDRESS)
+    return uc_emul
