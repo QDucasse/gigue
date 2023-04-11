@@ -11,7 +11,7 @@ from tests.rimi.conftest import (
     RIMI_SHADOW_STACK_ADDRESS,
     TEST_DATA_REG_D1,
     UC_DATA_REG_D1,
-    UC_RIMI_SHADOW_STACK_REG,
+    UC_RIMI_SSP_REG,
 )
 
 # ===================================
@@ -171,7 +171,7 @@ def test_unicorn_rimi_ls(rimi_handler_setup, uc_emul_setup):
     uc_emul = uc_emul_setup
     rimi_handler.hook_handler_expected(uc_emul, "ls")
     # rimi_handler.hook_tracer(uc_emul)
-    uc_emul.reg_write(UC_RIMI_SHADOW_STACK_REG, RIMI_SHADOW_STACK_ADDRESS)
+    uc_emul.reg_write(UC_RIMI_SSP_REG, RIMI_SHADOW_STACK_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_RA, 0x0)
     return_address = b"\x01\x23\x45\x67\x89\xab\xcd\xef"
     uc_emul.mem_write(RIMI_SHADOW_STACK_ADDRESS, return_address)
@@ -190,7 +190,7 @@ def test_unicorn_rimi_ss(rimi_handler_setup, cap_disasm_custom_setup, uc_emul_se
     uc_emul = uc_emul_setup
     rimi_handler.hook_handler_expected(uc_emul, "ss")
     # rimi_handler.hook_tracer(uc_emul)
-    uc_emul.reg_write(UC_RIMI_SHADOW_STACK_REG, RIMI_SHADOW_STACK_ADDRESS)
+    uc_emul.reg_write(UC_RIMI_SSP_REG, RIMI_SHADOW_STACK_ADDRESS)
     return_address = b"\x01\x23\x45\x67\x89\xab\xcd\xef"
     uc_emul.reg_write(UC_RISCV_REG_RA, bytes_to_int(return_address))
     uc_emul.mem_write(RIMI_SHADOW_STACK_ADDRESS, b"\x00\x00\x00\x00\x00\x00\x00\x00")
@@ -198,6 +198,9 @@ def test_unicorn_rimi_ss(rimi_handler_setup, cap_disasm_custom_setup, uc_emul_se
     uc_emul.emu_start(D1_ADDRESS, D1_ADDRESS + 4)
     uc_emul.emu_stop()
     assert uc_emul.mem_read(RIMI_SHADOW_STACK_ADDRESS, 8) == return_address
+
+
+# TODO: Test failing if wrong domains
 
 
 @pytest.mark.parametrize("offset", [0x0, 0x1, 0x1F, 0x7FF])
@@ -212,8 +215,8 @@ def test_unicorn_rimi_chdom(
     # Emulation
     uc_emul = uc_emul_setup
     rimi_handler.hook_handler_expected(uc_emul, "chdom")
-    rimi_handler.hook_instr_tracer(uc_emul)
-    rimi_handler.hook_reg_tracer(uc_emul)
+    # rimi_handler.hook_instr_tracer(uc_emul)
+    # rimi_handler.hook_reg_tracer(uc_emul)
     # call is auipc,rd, offsetHi | jalr, rd, offsetLo(rd)
     # > load pc in ra
     uc_emul.reg_write(UC_RISCV_REG_RA, D1_ADDRESS)
@@ -234,8 +237,8 @@ def test_unicorn_rimi_retdom(
     # Emulation
     uc_emul = uc_emul_setup
     rimi_handler.hook_handler_expected(uc_emul, "retdom")
-    rimi_handler.hook_reg_tracer(uc_emul)
-    rimi_handler.hook_instr_tracer(uc_emul)
+    # rimi_handler.hook_reg_tracer(uc_emul)
+    # rimi_handler.hook_instr_tracer(uc_emul)
     uc_emul.reg_write(UC_RISCV_REG_RA, D0_ADDRESS + 0x1000)
     uc_emul.mem_write(D1_ADDRESS, bytes)
     uc_emul.emu_start(D1_ADDRESS, D0_ADDRESS + 0x1000)

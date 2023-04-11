@@ -14,7 +14,7 @@ from gigue.instructions import IInstruction, SInstruction
 from gigue.rimi.rimi_constants import (
     RIMI_DATA_REG_D1,
     RIMI_INSTRUCTIONS_INFO,
-    RIMI_SHADOW_STACK_REG,
+    RIMI_SSP_REG,
 )
 from tests.conftest import ADDRESS, Handler
 
@@ -22,9 +22,9 @@ from tests.conftest import ADDRESS, Handler
 # Note: Unicorn's 0 is the code for invalid reg so everything is shifted!
 # Warning: UC_DATA_REG should only be used in this file and the rest
 #          should transparently use TEST_DATA_REG
-TEST_RIMI_SHADOW_STACK_REG = RIMI_SHADOW_STACK_REG
-assert RIMI_SHADOW_STACK_REG + 1 == UC_RISCV_REG_T3
-UC_RIMI_SHADOW_STACK_REG = UC_RISCV_REG_T3
+TEST_RIMI_SSP_REG = RIMI_SSP_REG
+assert RIMI_SSP_REG + 1 == UC_RISCV_REG_T3
+UC_RIMI_SSP_REG = UC_RISCV_REG_T3
 
 TEST_DATA_REG_D1 = RIMI_DATA_REG_D1
 assert TEST_DATA_REG_D1 + 1 == UC_RISCV_REG_T4
@@ -193,7 +193,7 @@ class RIMIHandler(Handler):
         previous_domain = self.current_domain
         self.current_domain = 2
         # Get the shadow stack pointer
-        ss_address = uc_emul.reg_read(UC_RIMI_SHADOW_STACK_REG)
+        ss_address = uc_emul.reg_read(UC_RIMI_SSP_REG)
         # Get the return address
         return_address = uc_emul.reg_read(UC_RISCV_REG_RA)
         # Write the return address to the shadow stack
@@ -206,7 +206,7 @@ class RIMIHandler(Handler):
         previous_domain = self.current_domain
         self.current_domain = 2
         # Get the shadow stack pointer
-        ss_address = uc_emul.reg_read(UC_RIMI_SHADOW_STACK_REG)
+        ss_address = uc_emul.reg_read(UC_RIMI_SSP_REG)
         # Read the return address from the shadow stack
         return_address = uc_emul.mem_read(ss_address, 8)
         # Write the return address in RA

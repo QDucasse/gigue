@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import random
 from typing import TYPE_CHECKING, Callable, List
@@ -10,7 +12,7 @@ from gigue.constants import CALL_TMP_REG, HIT_CASE_REG, RA
 from gigue.exceptions import WrongOffsetException
 from gigue.helpers import align
 from gigue.instructions import IInstruction, UInstruction
-from gigue.rimi.rimi_constants import RIMI_SHADOW_STACK_REG
+from gigue.rimi.rimi_constants import RIMI_SSP_REG
 from gigue.rimi.rimi_instructions import RIMIIInstruction, RIMISInstruction
 
 logger = logging.getLogger(__name__)
@@ -37,20 +39,13 @@ class RIMIShadowStackInstructionBuilder(InstructionBuilder):
             contains_call=contains_call,
         )
         # Shadow stack
-        instructions.append(
-            IInstruction.addi(
-                rd=RIMI_SHADOW_STACK_REG, rs1=RIMI_SHADOW_STACK_REG, imm=-4
-            )
-        )
-        ss_instr: RIMISInstruction = RIMISInstruction.ss(
-            rs1=RIMI_SHADOW_STACK_REG, rs2=RA, imm=0
-        )
         if contains_call:
-            # Overwrite the ra store
-            instructions[-1] = ss_instr
-        else:
-            # Otherwise simply add it!
-            instructions.append(ss_instr)
+            # Overwrite the RA store with stack pointer modif
+            instructions[-1] = IInstruction.addi(
+                rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=-4
+            )
+            # Add store to shadow stack memory
+            instructions.append(RIMISInstruction.ss(rs1=RIMI_SSP_REG, rs2=RA, imm=0))
         return instructions
 
     @staticmethod
@@ -73,9 +68,7 @@ class RIMIShadowStackInstructionBuilder(InstructionBuilder):
             contains_call=contains_call,
         )
         # Shadow stack load ()
-        ls_instr: RIMIIInstruction = RIMIIInstruction.ls(
-            rd=RA, rs1=RIMI_SHADOW_STACK_REG, imm=0
-        )
+        ls_instr: RIMIIInstruction = RIMIIInstruction.ls(rd=RA, rs1=RIMI_SSP_REG, imm=0)
         if contains_call:
             # Overwrite the ra load
             instructions[-2] = ls_instr
@@ -84,16 +77,28 @@ class RIMIShadowStackInstructionBuilder(InstructionBuilder):
             instructions[-2:-2] = [ls_instr]
 
         instructions[-2:-2] = [
-            IInstruction.addi(
-                rd=RIMI_SHADOW_STACK_REG, rs1=RIMI_SHADOW_STACK_REG, imm=4
-            )
+            IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=4)
         ]
         return instructions
+
+    def build_trampoline_prologue(self):
+        raise Exception
+
+    def build_trampoline_epilogue(self):
+        raise Exception
 
 
 class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
     RIMI_S_INSTRUCTIONS: List[str] = ["sb1", "sh1", "sw1", "sd1"]
-    RIMI_I_INSTRUCTIONS_LOAD: List[str] = ["lb1", "lbu1", "lh1", "lhu1", "lw1", "lwu1", "ld1"]
+    RIMI_I_INSTRUCTIONS_LOAD: List[str] = [
+        "lb1",
+        "lbu1",
+        "lh1",
+        "lhu1",
+        "lw1",
+        "lwu1",
+        "ld1",
+    ]
 
     # JIT Code modifications
     # 1. New instructions for stores/loads
@@ -181,8 +186,8 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
         # Note that:
         #  - The callee address is set in a dedicated register.
         return [
-            # Mask the called address
-            # Mask ra
+            # Check if called address is in a domain
+            # Check if
             # Calling and switching domain
             RIMIIInstruction.chdom(rd=0, rs1=CALL_TMP_REG, imm=0),
             # Calling without switching domain
@@ -199,7 +204,7 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
         #    but it should jump to a dedicated exception trap
         return [
             # Mask the called address
-            # Mask ra
+            # Load ra from ss and mask
             # Calling and switching domain
             RIMIIInstruction.retdom(),
             # Calling without switching domain

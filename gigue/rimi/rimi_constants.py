@@ -2,7 +2,7 @@ from typing import Dict
 
 from gigue.constants import OPCODE_FUNC3_MASK, InstructionInfo
 
-RIMI_SHADOW_STACK_REG: int = 28  # t3
+RIMI_SSP_REG: int = 28  # t3
 RIMI_DATA_REG_D1: int = 29  # t4
 
 RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
