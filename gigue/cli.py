@@ -19,6 +19,7 @@ import logging
 import os
 import random
 import sys
+from typing import Type
 
 from gigue.constants import BIN_DIR, CALLER_SAVED_REG
 from gigue.exceptions import GeneratorException
@@ -74,7 +75,7 @@ class Parser(argparse.ArgumentParser):
         )
         self.add_argument(
             "--regs",
-            type=list,
+            action="append",
             default=CALLER_SAVED_REG,
             help="Registers that can be used freely by the generated code",
         )
@@ -170,6 +171,7 @@ def main(argv=None):
 
     logger.debug("🌳 Instanciating Generator.")
 
+    gen_class: Type[Generator]
     if args.uses_trampolines:
         gen_class = TrampolineGenerator
     else:
