@@ -10,7 +10,7 @@ from gigue.exceptions import (
     EmptySectionException,
 )
 from gigue.helpers import flatten_list, gaussian_between
-from gigue.instructions import Instruction
+from gigue.instructions import Instruction, JInstruction
 from gigue.method import Method
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class PIC:
         self.hit_case_reg: int = hit_case_reg
 
         self.builder: InstructionBuilder = builder
-        self.switch_instructions: List[Instruction] = []
+        self.switch_instructions: List[List[Instruction]] = []
         self.methods: List[Method] = []
         self.callers: List[Method] = []
         self.instructions: List[Instruction] = []
@@ -150,7 +150,7 @@ class PIC:
                 raise
         logger.debug(f"{self.log_prefix()} Case methods added.")
 
-    def add_switch_instructions(self):
+    def add_switch_instructions(self) -> None:
         # WARNING!!!! hit case starts at 1
         # The switch instructions consist of:
         #   1 - Loading the value to compare in cmp_reg (x6)
@@ -160,7 +160,9 @@ class PIC:
         #   5 - Repeat (1/2/3/4)
         #   6 - Simple ret at the end if no case was reached
         for case_nb, method in enumerate(self.methods):
-            current_address = self.address + ((case_nb + 1) * 3) * 4
+            current_address = self.address + (case_nb * 3 + 2) * 4
+            # Note: base address + previous switch cases (3 instr)
+            # and current switch case (2 instrs)
             method_offset = method.address - current_address
             switch_case = self.builder.build_switch_case(
                 case_number=case_nb + 1,
@@ -193,8 +195,33 @@ class PIC:
             weights=weights,
             ret_trampoline_offset=ret_trampoline_offset,
         )
-        self.add_switch_instructions()
+        self.add_trampoline_switch_instructions(
+            ret_trampoline_offset=ret_trampoline_offset
+        )
         logger.debug(f"{self.log_prefix()} PIC filled.")
+
+    def add_trampoline_switch_instructions(self, ret_trampoline_offset: int) -> None:
+        # WARNING!!!! hit case starts at 1
+        # The switch instructions consist of:
+        #   1 - Loading the value to compare in cmp_reg (x6)
+        #   2 - Compare to the current case that should be in hit_case_reg (x5)
+        #   3 - Jump to the corresponding method if equal
+        #   4 - Go to the next case if not
+        #   5 - Repeat (1/2/3/4)
+        #   6 - Simple ret at the end if no case was reached
+        for case_nb, method in enumerate(self.methods):
+            current_address = self.address + ((case_nb + 1) * 3) * 4
+            method_offset = method.address - current_address
+            switch_case = self.builder.build_switch_case(
+                case_number=case_nb + 1,
+                method_offset=method_offset,
+                hit_case_reg=self.hit_case_reg,
+                cmp_reg=self.cmp_reg,
+            )
+            self.switch_instructions.append(switch_case)
+        self.switch_instructions.append(
+            [JInstruction.j(ret_trampoline_offset - (3 * self.case_number) * 4)]
+        )
 
     def add_trampoline_case_methods(
         self,
