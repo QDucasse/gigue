@@ -129,7 +129,7 @@ class Method:
         self.epilogue_size = len(epilogue_instructions)
 
     def fill_with_instructions(self, registers, data_reg, data_size, weights):
-        logger.info(f"{self.log_prefix()} Filling method.")
+        logger.debug(f"{self.log_prefix()} Filling method.")
         # Fill prologue
         self.fill_prologue()
         # Generate random instructions
@@ -142,12 +142,12 @@ class Method:
         )
         # Generate epilogue
         self.fill_epilogue()
-        logger.info(f"{self.log_prefix()} Method filled.")
+        logger.debug(f"{self.log_prefix()} Method filled.")
 
     def fill_with_trampoline_instructions(
         self, registers, data_reg, data_size, weights, ret_trampoline_offset
     ):
-        logger.info(f"{self.log_prefix()} Filling method.")
+        logger.debug(f"{self.log_prefix()} Filling method.")
         # Fill prologue
         self.fill_prologue()
         # Generate random instructions
@@ -164,7 +164,7 @@ class Method:
             - self.body_size * 4
             - self.prologue_size * 4
         )
-        logger.info(f"{self.log_prefix()} Method filled.")
+        logger.debug(f"{self.log_prefix()} Method filled.")
 
     # Generation
     # \__________
@@ -241,7 +241,7 @@ class Method:
         return indexes
 
     def patch_base_calls(self, callees):
-        logger.info(f"{self.log_prefix()} Patching method base calls.")
+        logger.debug(f"{self.log_prefix()} Patching method base calls.")
         self.check_callees(callees)
         self.callees = callees
 
@@ -259,12 +259,12 @@ class Method:
             # Add call instructions (2 to 3 instructions!)
             self.instructions[ind : ind + len(call_instructions)] = call_instructions
 
-        logger.info(
+        logger.debug(
             f"{self.log_prefix()} Method base calls patched and callers updated."
         )
 
     def patch_trampoline_calls(self, callees, call_trampoline_offset):
-        logger.info(f"{self.log_prefix()} Patching method trampoline calls.")
+        logger.debug(f"{self.log_prefix()} Patching method trampoline calls.")
         self.check_callees(callees)
         self.callees = callees
 
@@ -286,6 +286,6 @@ class Method:
             # Add call instructions (5 to 6 instructions!)
             self.instructions[ind : ind + len(call_instructions)] = call_instructions
 
-        logger.info(
+        logger.debug(
             f"{self.log_prefix()} Method trampoline calls patched and callers updated."
         )
