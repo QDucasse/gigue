@@ -56,4 +56,3 @@ class FIXERTrampolineGenerator(TrampolineGenerator):
             output_data_bin_file=output_data_bin_file,
         )
         self.builder: FIXERInstructionBuilder = FIXERInstructionBuilder()
-        print(type(self.builder))

@@ -27,7 +27,6 @@ from tests.conftest import (
     TEST_CALLER_SAVED_REG,
     TEST_DATA_REG,
     TEST_DATA_SIZE,
-    cap_disasm_bytes,
 )
 
 # =================================
