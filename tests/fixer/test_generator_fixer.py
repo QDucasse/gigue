@@ -54,16 +54,16 @@ def test_execute_trampoline_generated_binaries(
     generator.generate_interpreter_bytes()
 
     # Capstone disasm:
-    cap_disasm = cap_disasm_custom_setup
+    # cap_disasm = cap_disasm_custom_setup
 
     # Interpreter bin
     interpreter_binary = generator.generate_interpreter_binary()
-    bin_info(interpreter_binary, INTERPRETER_START_ADDRESS)
-    cap_disasm_bytes(cap_disasm, interpreter_binary, INTERPRETER_START_ADDRESS)
+    # bin_info(interpreter_binary, INTERPRETER_START_ADDRESS)
+    # cap_disasm_bytes(cap_disasm, interpreter_binary, INTERPRETER_START_ADDRESS)
     # JIT bin
     jit_binary = generator.generate_jit_binary()
-    bin_info(jit_binary, JIT_START_ADDRESS)
-    cap_disasm_bytes(cap_disasm, jit_binary, JIT_START_ADDRESS)
+    # bin_info(jit_binary, JIT_START_ADDRESS)
+    # cap_disasm_bytes(cap_disasm, jit_binary, JIT_START_ADDRESS)
 
     # Emulation/track/7ee1a4iou7gFi5REoufuxV
     uc_emul = uc_emul_full_setup
@@ -73,8 +73,7 @@ def test_execute_trampoline_generated_binaries(
     # Handler
     fixer_handler = fixer_handler_setup
     fixer_handler.shadow_stack.append(RET_ADDRESS)
-    # handler.hook_exception_tracer(uc_emul)
-    fixer_handler.hook_instr_tracer(uc_emul)
+    # fixer_handler.hook_instr_tracer(uc_emul)
     fixer_handler.hook_handler(uc_emul)
 
     uc_emul.emu_start(INTERPRETER_START_ADDRESS, RET_ADDRESS)

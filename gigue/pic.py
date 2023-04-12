@@ -112,7 +112,7 @@ class PIC:
     def add_case_methods(
         self, registers: List[int], data_reg: int, data_size: int, weights: List[int]
     ) -> None:
-        logger.info(f"{self.log_prefix()} Adding case methods.")
+        logger.debug(f"{self.log_prefix()} Adding case methods.")
         method_address: int = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
             body_size: int = gaussian_between(3, self.method_max_size)
@@ -148,7 +148,7 @@ class PIC:
             except EmptySectionException as err:
                 logger.exception(err)
                 raise
-        logger.info(f"{self.log_prefix()} Case methods added.")
+        logger.debug(f"{self.log_prefix()} Case methods added.")
 
     def add_switch_instructions(self):
         # WARNING!!!! hit case starts at 1
@@ -172,12 +172,12 @@ class PIC:
         self.switch_instructions.append([self.builder.build_ret()])
 
     def fill_with_instructions(self, registers, data_reg, data_size, weights):
-        logger.info(f"{self.log_prefix()} Filling PIC (case methods and switch).")
+        logger.debug(f"{self.log_prefix()} Filling PIC (case methods and switch).")
         self.add_case_methods(
             registers=registers, data_reg=data_reg, data_size=data_size, weights=weights
         )
         self.add_switch_instructions()
-        logger.info(f"{self.log_prefix()} PIC filled.")
+        logger.debug(f"{self.log_prefix()} PIC filled.")
 
     # Trampolines
     # \___________
@@ -185,7 +185,7 @@ class PIC:
     def fill_with_trampoline_instructions(
         self, registers, data_reg, data_size, weights, ret_trampoline_offset
     ):
-        logger.info(f"{self.log_prefix()} Filling PIC (case methods and switch).")
+        logger.debug(f"{self.log_prefix()} Filling PIC (case methods and switch).")
         self.add_trampoline_case_methods(
             registers=registers,
             data_reg=data_reg,
@@ -194,7 +194,7 @@ class PIC:
             ret_trampoline_offset=ret_trampoline_offset,
         )
         self.add_switch_instructions()
-        logger.info(f"{self.log_prefix()} PIC filled.")
+        logger.debug(f"{self.log_prefix()} PIC filled.")
 
     def add_trampoline_case_methods(
         self,
@@ -204,7 +204,7 @@ class PIC:
         weights: List[int],
         ret_trampoline_offset: int,
     ) -> None:
-        logger.info(f"{self.log_prefix()} Adding case methods.")
+        logger.debug(f"{self.log_prefix()} Adding case methods.")
         method_address: int = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
             body_size: int = gaussian_between(3, self.method_max_size)
@@ -242,7 +242,7 @@ class PIC:
             except EmptySectionException as err:
                 logger.exception(err)
                 raise
-        logger.info(f"{self.log_prefix()} Case methods added.")
+        logger.debug(f"{self.log_prefix()} Case methods added.")
 
     # Generation
     # \__________

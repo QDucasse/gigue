@@ -168,7 +168,7 @@ def main(argv=None):
     if not os.path.exists(BIN_DIR):
         os.makedirs(BIN_DIR)
 
-    logger.info("🌳 Instanciating Generator.")
+    logger.debug("🌳 Instanciating Generator.")
 
     if args.uses_trampolines:
         gen_class = TrampolineGenerator
@@ -206,7 +206,7 @@ def main(argv=None):
         raise
 
     random.seed(args.seed)
-    logger.info(
+    logger.debug(
         "🌱 Setting up seed as"
         f" {args.seed if isinstance(args.seed, int) else bytes_to_int(args.seed)}"
     )

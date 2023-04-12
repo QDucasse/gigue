@@ -156,7 +156,7 @@ class Generator:
                 call_size=self.call_size,
                 builder=self.builder,
             )
-            logger.info(
+            logger.debug(
                 f"{self.log_jit_prefix()} {method.log_prefix()} Method added with size"
                 f" ({body_size}), call nb ({call_nb}) and call depth ({call_depth})"
             )
@@ -179,7 +179,7 @@ class Generator:
                 call_size=self.call_size,
                 builder=self.builder,
             )
-            logger.info(
+            logger.debug(
                 f"{self.log_jit_prefix()} {method.log_prefix()} Leaf method added with"
                 f" size {body_size}"
             )
@@ -204,7 +204,7 @@ class Generator:
             call_size=self.call_size,
             builder=self.builder,
         )
-        logger.info(
+        logger.debug(
             f"{self.log_jit_prefix()} {pic.log_prefix()} PIC added with"
             f" {cases_nb} cases"
         )
@@ -218,7 +218,7 @@ class Generator:
     # \________________________
 
     def fill_jit_code(self, start_address: Optional[int] = None) -> None:
-        logger.info("Phase 1: Filling JIT code")
+        logger.debug("Phase 1: Filling JIT code")
         # start_address is used by subclasses (i.e. add trampolines before)!
         if not start_address:
             start_address = self.jit_start_address
@@ -257,7 +257,7 @@ class Generator:
             except EmptySectionException as err:
                 logger.exception(err)
                 raise
-        logger.info("Phase 1: JIT code elements filled!")
+        logger.debug("Phase 1: JIT code elements filled!")
 
     def extract_callees(self, call_depth: int, nb: int) -> List[Union[Method, PIC]]:
         # Possible nb callees given a call_depth
@@ -272,11 +272,11 @@ class Generator:
         return random.choices(possible_callees, k=nb)
 
     def patch_jit_calls(self) -> None:
-        logger.info("Phase 2: Patching calls")
+        logger.debug("Phase 2: Patching calls")
         for elt in self.jit_elements:
             # Patch PIC -> patch methods in it
             if isinstance(elt, PIC):
-                logger.info(
+                logger.debug(
                     f"{self.log_jit_prefix()} {elt.log_prefix()} Patching PIC calls."
                 )
                 for method in elt.methods:
@@ -287,11 +287,11 @@ class Generator:
             elif isinstance(elt, Method):
                 if elt.call_depth == 0:
                     continue
-                logger.info(
+                logger.debug(
                     f"{self.log_jit_prefix()} {elt.log_prefix()} Patching method calls."
                 )
                 self.patch_method_calls(elt)
-        logger.info("Phase 2: Calls patched!")
+        logger.debug("Phase 2: Calls patched!")
 
     def patch_method_calls(self, method: Method) -> None:
         # Extracted to override in subclasses!
@@ -311,7 +311,7 @@ class Generator:
     # \___________________________
 
     def fill_interpretation_loop(self) -> None:
-        logger.info("Phase 3: Filling interpretation loop")
+        logger.debug("Phase 3: Filling interpretation loop")
         # Build a prologue as if all callee-saved regs are used!
         prologue_instructions: List[Instruction] = self.builder.build_prologue(
             used_s_regs=10, local_var_nb=0, contains_call=True
@@ -329,7 +329,7 @@ class Generator:
             )
             self.interpreter_instructions += call_instructions
             current_address += len(call_instructions) * 4
-            logger.info(
+            logger.debug(
                 f"{self.log_int_prefix()} {hex(current_address)}: Adding call to JIT"
                 f" element at {hex(element.address)}."
             )
@@ -340,7 +340,7 @@ class Generator:
         self.interpreter_prologue_size = len(prologue_instructions)
         self.interpreter_epilogue_size = len(epilogue_instructions)
         self.interpreter_instructions += epilogue_instructions
-        logger.info("Phase 3: Interpretation loop filled!")
+        logger.debug("Phase 3: Interpretation loop filled!")
 
     def build_element_call(self, element: Union[Method, PIC], current_address: int):
         # Extracted to override in subclasses!
@@ -494,7 +494,7 @@ class TrampolineGenerator(Generator):
         trampoline: Trampoline = Trampoline(
             name=name, address=address, builder=self.builder
         )
-        logger.info(f"{self.log_jit_prefix()} {trampoline.log_prefix()}")
+        logger.debug(f"{self.log_jit_prefix()} {trampoline.log_prefix()}")
         self.trampolines.append(trampoline)
         return trampoline
 
@@ -511,7 +511,7 @@ class TrampolineGenerator(Generator):
         return trampoline.address - current_address
 
     def fill_jit_code(self, start_address: Optional[int] = None) -> None:
-        logger.info("Phase 1: Filling JIT code")
+        logger.debug("Phase 1: Filling JIT code")
         # Add trampolines at the start of the JIT address
         if not start_address:
             start_address = self.jit_start_address
@@ -569,7 +569,7 @@ class TrampolineGenerator(Generator):
             except EmptySectionException as err:
                 logger.exception(err)
                 raise
-        logger.info("Phase 1: JIT code elements filled!")
+        logger.debug("Phase 1: JIT code elements filled!")
 
     # Calls
     # \_____

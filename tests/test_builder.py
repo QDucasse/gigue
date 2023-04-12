@@ -525,6 +525,7 @@ def test_random_b_disassembly_execution_smoke(
 def test_random_s_disassembly_execution_smoke(
     execution_number, uc_emul_full_setup, cap_disasm_setup
 ):
+    # log_test_name
     instr_builder = InstructionBuilder()
     instr = instr_builder.build_random_s_instruction(
         registers=TEST_CALLER_SAVED_REG,
@@ -774,14 +775,14 @@ def test_build_method_call_trampoline_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     CODE_ADDRESS = ADDRESS + len(tramp_bytes)
     # Disassembly
-    cap_disasm = cap_disasm_setup
-    cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
-    cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
+    # cap_disasm = cap_disasm_setup
+    # cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
+    # cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
     # Handler
-    handler = handler_setup
+    # handler = handler_setup
     # Emulation
     uc_emul = uc_emul_full_setup
-    handler.hook_instr_tracer(uc_emul)
+    # handler.hook_instr_tracer(uc_emul)
     uc_emul.mem_write(ADDRESS, tramp_bytes)
     uc_emul.mem_write(CODE_ADDRESS, bytes)
     uc_emul.emu_start(begin=CODE_ADDRESS, until=CODE_ADDRESS + offset)
@@ -813,10 +814,10 @@ def test_build_pic_call_trampoline_execution(
     # cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
     # cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
     # Handler
-    handler = handler_setup
+    # handler = handler_setup
     # Emulation
     uc_emul = uc_emul_full_setup
-    handler.hook_instr_tracer(uc_emul)
+    # handler.hook_instr_tracer(uc_emul)
     uc_emul.mem_write(ADDRESS, tramp_bytes)
     uc_emul.mem_write(CODE_ADDRESS, bytes)
     uc_emul.emu_start(begin=CODE_ADDRESS, until=CODE_ADDRESS + offset)

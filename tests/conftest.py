@@ -1,6 +1,7 @@
 import logging
 import os
 import random
+from datetime import datetime
 
 import pytest
 from capstone import CS_ARCH_RISCV, CS_MODE_RISCV64, Cs
@@ -26,16 +27,47 @@ from gigue.exceptions import UnknownInstructionException
 from gigue.helpers import bytes_to_int
 from gigue.instructions import IInstruction
 
+
+# =================================
+#         Logging setup
+# =================================
+
+# TEST_LOG_DIR = "log/tests/"
+
+# if not os.path.exists(TEST_LOG_DIR):
+#     os.mkdir(TEST_LOG_DIR)
+
+# logger = logging.getLogger(__name__)
+
+
+# def pytest_configure(config):
+#     """ Create a log file if log_file is not mentioned in *.ini file"""
+#     if not config.option.log_file:
+#         timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+#         config.option.log_file = TEST_LOG_DIR + 'test_log.' + timestamp
+
+
 # Seed for reproducibility
 SEED = bytes_to_int(os.urandom(16))
 # print(SEED)
 # SEED = 248211043577579144151423267814312480480
 random.seed(SEED)
 
+# logger.info(f"🌱 Setting up seed as {SEED}")
+
+
+# @pytest.fixture(scope='function', autouse=True)
+# def log(request):
+#     logging.info(f"Test '{request.node.name}' launched 🚀")
+
+#     def fin():
+#         logging.info(f"Test '{request.node.name}' completed 🏁")
+#     request.addfinalizer(fin)
+
+
 # =================================
 #   Disassembler/Capstone setup
 # =================================
-
 
 @pytest.fixture
 def disasm_setup():
@@ -63,7 +95,6 @@ def disassemble_custom_callback(buffer, size, offset, userdata):
 
 
 def cap_disasm_bytes(cap_disasm, bytes, address):
-    print("capdisasm")
     for i in cap_disasm.disasm(bytes, address):
         print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
 
@@ -215,14 +246,3 @@ class Handler:
 @pytest.fixture
 def handler_setup(disasm_setup):
     return Handler(disasm_setup)
-
-
-# =================================
-#           Loggers
-# =================================
-
-
-def pytest_configure():
-    """Disable the logs when testing"""
-    logger = logging.getLogger("gigue")
-    logger.setLevel(logging.ERROR)
