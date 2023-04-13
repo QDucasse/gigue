@@ -8,6 +8,7 @@ from tests.conftest import (
     TEST_DATA_REG,
     TEST_DATA_SIZE,
     cap_disasm_bytes,
+    check_size,
 )
 
 
@@ -16,7 +17,7 @@ from tests.conftest import (
     [
         (5, 5, 0),
         (20, 20, 0.2),
-        (200, 50, 0.5),
+        (100, 50, 0.5),
     ],
 )
 def test_execute_trampoline_generated_binaries(
@@ -47,6 +48,11 @@ def test_execute_trampoline_generated_binaries(
     generator.generate_interpreter_machine_code()
     generator.generate_jit_bytes()
     generator.generate_interpreter_bytes()
+    generator.generate_output_binary()
+    generator.generate_data_binary()
+
+    # Testing guard
+    check_size(generator)
 
     # Capstone disasm:
     cap_disasm = cap_disasm_custom_setup
