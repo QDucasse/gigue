@@ -1,5 +1,12 @@
+import logging
+
 import pytest
-from unicorn.riscv_const import UC_RISCV_REG_PC, UC_RISCV_REG_RA, UC_RISCV_REG_T3
+from unicorn.riscv_const import (
+    UC_RISCV_REG_PC,
+    UC_RISCV_REG_RA,
+    UC_RISCV_REG_SP,
+    UC_RISCV_REG_T3,
+)
 from unicorn.unicorn_const import UC_HOOK_MEM_VALID
 
 from gigue.constants import INSTRUCTIONS_INFO
@@ -12,12 +19,12 @@ from tests.conftest import (
     DATA_ADDRESS,
     INTERPRETER_START_ADDRESS,
     JIT_START_ADDRESS,
-    RET_ADDRESS,
     STACK_ADDRESS,
-    UC_DATA_REG,
     UC_TEST_MEM_SIZE,
     Handler,
 )
+
+logger = logging.getLogger(__name__)
 
 # Check for correct test data reg and shadow stack reg, config vs unicorn one
 # Note: Unicorn's 0 is the code for invalid reg so everything is shifted!
@@ -331,6 +338,21 @@ class RIMIHandler(Handler):
     def hook_mem_access(self, uc_emul):
         uc_emul.hook_add(UC_HOOK_MEM_VALID, self.check_mem_access, user_data=None)
 
+    # Trace shadow stack reg
+    # \_______________________
+
+    def trace_reg(self, uc_emul, *args, **kwargs):
+        # super().trace_reg(uc_emul)
+        # Note: not overriding because it spans over multiple lines
+        current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+        current_sp = uc_emul.reg_read(UC_RISCV_REG_SP)
+        current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
+        current_ssp = uc_emul.reg_read(UC_RIMI_SSP_REG)
+        logger.debug(
+            f">>> Tracing registers PC:{hex(current_pc)}, SP:{hex(current_sp)},"
+            f" RA:{hex(current_ra)}, SSP: {hex(current_ssp)}"
+        )
+
 
 @pytest.fixture
 def rimi_disasm_setup():
@@ -346,7 +368,6 @@ def rimi_handler_setup(rimi_disasm_setup: Disassembler):
 @pytest.fixture
 def rimi_uc_emul_full_setup(uc_emul_full_setup):
     uc_emul = uc_emul_full_setup
-    # Write base return address in the shadow stack
-    uc_emul.mem_write(STACK_ADDRESS, int_to_bytes64(RET_ADDRESS))
-    uc_emul.reg_write(UC_RIMI_SSP_REG, STACK_ADDRESS - 8)
+    # Setup the stack pointer
+    uc_emul.reg_write(UC_RIMI_SSP_REG, RIMI_SHADOW_STACK_ADDRESS)
     return uc_emul

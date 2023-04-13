@@ -7,10 +7,7 @@ from gigue.rimi.rimi_builder import (
 )
 from gigue.rimi.rimi_constants import RIMI_SSP_REG
 from tests.conftest import ADDRESS, TEST_CALLER_SAVED_REG, TEST_DATA_REG, TEST_DATA_SIZE
-from tests.rimi.conftest import (
-    DomainAccessException,
-    WrongDomainException,
-)
+from tests.rimi.conftest import DomainAccessException, WrongDomainException
 
 # from tests.conftest import ADDRESS, RET_ADDRESS, STACK_ADDRESS, UC_CALL_TMP_REG
 

@@ -14,6 +14,7 @@ from gigue.rimi.rimi_builder import (
     RIMIFullInstructionBuilder,
     RIMIShadowStackInstructionBuilder,
 )
+from gigue.rimi.rimi_constants import RIMI_SSP_REG
 
 
 class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
@@ -34,6 +35,7 @@ class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
         pics_hit_case_reg: int = HIT_CASE_REG,
         registers: List[int] = CALLER_SAVED_REG,
         data_reg: int = DATA_REG,
+        rimi_ssp_reg: int = RIMI_SSP_REG,
         weights: List[int] = INSTRUCTION_WEIGHTS,
         output_bin_file: str = BIN_DIR + "out.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
@@ -61,6 +63,10 @@ class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
         self.builder: RIMIShadowStackInstructionBuilder = (
             RIMIShadowStackInstructionBuilder()
         )
+        self.rimi_ssp_reg: int = rimi_ssp_reg
+        self.registers: List[int] = [
+            reg for reg in self.registers if reg != self.rimi_ssp_reg
+        ]
 
 
 class RIMIFullTrampolineGenerator(TrampolineGenerator):
@@ -81,6 +87,7 @@ class RIMIFullTrampolineGenerator(TrampolineGenerator):
         pics_hit_case_reg: int = HIT_CASE_REG,
         registers: List[int] = CALLER_SAVED_REG,
         data_reg: int = DATA_REG,
+        rimi_ssp_reg: int = RIMI_SSP_REG,
         weights: List[int] = INSTRUCTION_WEIGHTS,
         output_bin_file: str = BIN_DIR + "out.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
@@ -106,3 +113,7 @@ class RIMIFullTrampolineGenerator(TrampolineGenerator):
             output_data_bin_file=output_data_bin_file,
         )
         self.builder: RIMIFullInstructionBuilder = RIMIFullInstructionBuilder()
+        self.rimi_ssp_reg: int = rimi_ssp_reg
+        self.registers: List[int] = [
+            reg for reg in self.registers if reg != self.rimi_ssp_reg
+        ]
