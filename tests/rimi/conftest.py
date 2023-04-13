@@ -1,22 +1,23 @@
 import pytest
-from unicorn.riscv_const import (
-    UC_RISCV_REG_PC,
-    UC_RISCV_REG_RA,
-    UC_RISCV_REG_T3,
-    UC_RISCV_REG_T4,
-)
+from unicorn.riscv_const import UC_RISCV_REG_PC, UC_RISCV_REG_RA, UC_RISCV_REG_T3
 from unicorn.unicorn_const import UC_HOOK_MEM_VALID
 
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.disassembler import Disassembler
 from gigue.helpers import bytes_to_int, int_to_bytes32, int_to_bytes64
 from gigue.instructions import IInstruction, SInstruction
-from gigue.rimi.rimi_constants import (
-    RIMI_DATA_REG_D1,
-    RIMI_INSTRUCTIONS_INFO,
-    RIMI_SSP_REG,
+from gigue.rimi.rimi_constants import RIMI_INSTRUCTIONS_INFO, RIMI_SSP_REG
+from tests.conftest import (
+    ADDRESS,
+    DATA_ADDRESS,
+    INTERPRETER_START_ADDRESS,
+    JIT_START_ADDRESS,
+    RET_ADDRESS,
+    STACK_ADDRESS,
+    UC_DATA_REG,
+    UC_TEST_MEM_SIZE,
+    Handler,
 )
-from tests.conftest import ADDRESS, Handler
 
 # Check for correct test data reg and shadow stack reg, config vs unicorn one
 # Note: Unicorn's 0 is the code for invalid reg so everything is shifted!
@@ -26,10 +27,6 @@ TEST_RIMI_SSP_REG = RIMI_SSP_REG
 assert RIMI_SSP_REG + 1 == UC_RISCV_REG_T3
 UC_RIMI_SSP_REG = UC_RISCV_REG_T3
 
-TEST_DATA_REG_D1 = RIMI_DATA_REG_D1
-assert TEST_DATA_REG_D1 + 1 == UC_RISCV_REG_T4
-UC_DATA_REG_D1 = UC_RISCV_REG_T4
-
 
 # The memory layout is the following:
 # _________________________________
@@ -38,7 +35,8 @@ UC_DATA_REG_D1 = UC_RISCV_REG_T4
 #
 #               CODE
 #    (DATA) (unused by the interpreter)
-#              STACK
+#    (STACK) (unused because no external
+#                  calls apart from JIT)
 # __________________________________
 # __________________________________
 #
@@ -46,7 +44,6 @@ UC_DATA_REG_D1 = UC_RISCV_REG_T4
 #
 #               CODE
 #               DATA
-#
 # __________________________________
 # __________________________________
 #
@@ -55,13 +52,13 @@ UC_DATA_REG_D1 = UC_RISCV_REG_T4
 #              STACK
 # __________________________________
 
-RIMI_SHADOW_STACK_ADDRESS = 0x20000
-MAX_ADDRESS = ADDRESS + 2 * 1024 * 1024
-D0_ADDRESS = ADDRESS
-D1_ADDRESS = 0x10000
+RIMI_SHADOW_STACK_ADDRESS = STACK_ADDRESS
+MAX_ADDRESS = ADDRESS + UC_TEST_MEM_SIZE
+D0_ADDRESS = INTERPRETER_START_ADDRESS
+D1_ADDRESS = JIT_START_ADDRESS
 D2_ADDRESS = RIMI_SHADOW_STACK_ADDRESS
 
-DATA_D1_ADDRESS = 0x1F000
+DATA_D1_ADDRESS = DATA_ADDRESS
 
 D0_SIZE = D1_ADDRESS - D0_ADDRESS
 D1_SIZE = D2_ADDRESS - D1_ADDRESS
@@ -342,12 +339,14 @@ def rimi_disasm_setup():
 
 
 @pytest.fixture
-def rimi_handler_setup(rimi_disasm_setup):
+def rimi_handler_setup(rimi_disasm_setup: Disassembler):
     return RIMIHandler(rimi_disasm_setup)
 
 
 @pytest.fixture
 def rimi_uc_emul_full_setup(uc_emul_full_setup):
     uc_emul = uc_emul_full_setup
-    uc_emul.reg_write(UC_DATA_REG_D1, DATA_D1_ADDRESS)
+    # Write base return address in the shadow stack
+    uc_emul.mem_write(STACK_ADDRESS, int_to_bytes64(RET_ADDRESS))
+    uc_emul.reg_write(UC_RIMI_SSP_REG, STACK_ADDRESS - 8)
     return uc_emul

@@ -3,14 +3,12 @@ from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_T1
 
 from gigue.helpers import bytes_to_int
 from gigue.rimi.rimi_instructions import RIMIIInstruction, RIMISInstruction
-from tests.conftest import ADDRESS
+from tests.conftest import ADDRESS, TEST_DATA_REG, UC_DATA_REG
 from tests.rimi.conftest import (
     D0_ADDRESS,
     D1_ADDRESS,
     DATA_D1_ADDRESS,
     RIMI_SHADOW_STACK_ADDRESS,
-    TEST_DATA_REG_D1,
-    UC_DATA_REG_D1,
     UC_RIMI_SSP_REG,
 )
 
@@ -113,7 +111,7 @@ def test_unicorn_rimi_loads(
     name, expected, cap_disasm_custom_setup, uc_emul_setup, rimi_handler_setup
 ):
     constr = getattr(RIMIIInstruction, name)
-    instr = constr(rs1=TEST_DATA_REG_D1, rd=6, imm=0)
+    instr = constr(rs1=TEST_DATA_REG, rd=6, imm=0)
     bytes = instr.generate_bytes()
     # Handler
     rimi_handler = rimi_handler_setup
@@ -122,7 +120,7 @@ def test_unicorn_rimi_loads(
     uc_emul = uc_emul_setup
     # rimi_handler.hook_tracer(uc_emul)
     rimi_handler.hook_handler_expected(uc_emul, name)
-    uc_emul.reg_write(UC_DATA_REG_D1, DATA_D1_ADDRESS)
+    uc_emul.reg_write(UC_DATA_REG, DATA_D1_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_T1, 0x0)
     uc_emul.mem_write(DATA_D1_ADDRESS, b"\xff\xff\xff\xff\xff\xff\xff\xff")
     uc_emul.mem_write(D1_ADDRESS, bytes)
@@ -144,7 +142,7 @@ def test_unicorn_rimi_stores(
     name, expected, cap_disasm_custom_setup, uc_emul_setup, rimi_handler_setup
 ):
     constr = getattr(RIMISInstruction, name)
-    instr = constr(rs1=TEST_DATA_REG_D1, rs2=6, imm=0)
+    instr = constr(rs1=TEST_DATA_REG, rs2=6, imm=0)
     bytes = instr.generate_bytes()
     # Handler
     rimi_handler = rimi_handler_setup
@@ -153,7 +151,7 @@ def test_unicorn_rimi_stores(
     uc_emul = uc_emul_setup
     # rimi_handler.hook_tracer(uc_emul)
     rimi_handler.hook_handler_expected(uc_emul, name)
-    uc_emul.reg_write(UC_DATA_REG_D1, DATA_D1_ADDRESS)
+    uc_emul.reg_write(UC_DATA_REG, DATA_D1_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_T1, 0xFFFFFFFFFFFFFFFF)
     uc_emul.mem_write(DATA_D1_ADDRESS, b"\x00\x00\x00\x00\x00\x00\x00\x00")
     uc_emul.mem_write(D1_ADDRESS, bytes)

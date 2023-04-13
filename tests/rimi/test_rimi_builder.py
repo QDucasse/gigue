@@ -8,7 +8,6 @@ from gigue.rimi.rimi_builder import (
 from gigue.rimi.rimi_constants import RIMI_SSP_REG
 from tests.conftest import ADDRESS, TEST_CALLER_SAVED_REG, TEST_DATA_REG, TEST_DATA_SIZE
 from tests.rimi.conftest import (
-    TEST_DATA_REG_D1,
     DomainAccessException,
     WrongDomainException,
 )
@@ -49,7 +48,7 @@ def test_build_ss_prologue(
     # Shadow stack pointer decrease and store (push)
     if contains_call:
         assert instrs[-2].name == "addi"
-        assert rimi_disasm.extract_imm_i(gen_instrs[-2], sign_extend=True) == -4
+        assert rimi_disasm.extract_imm_i(gen_instrs[-2], sign_extend=True) == -8
         assert rimi_disasm.extract_rs1(instrs[-2].generate()) == RIMI_SSP_REG
         assert rimi_disasm.extract_rd(instrs[-2].generate()) == RIMI_SSP_REG
         assert instrs[-1].name == "ss"
@@ -86,7 +85,7 @@ def test_build_ss_epilogue(used_s_regs, local_var_nb, contains_call, rimi_disasm
         assert rimi_disasm.extract_rd(instrs[-3].generate()) == RA
         assert rimi_disasm.extract_rs1(instrs[-3].generate()) == RIMI_SSP_REG
         assert instrs[-2].name == "addi"
-        assert rimi_disasm.extract_imm_i(gen_instrs[-2], sign_extend=True) == +4
+        assert rimi_disasm.extract_imm_i(gen_instrs[-2], sign_extend=True) == +8
         assert rimi_disasm.extract_rs1(instrs[-2].generate()) == RIMI_SSP_REG
         assert rimi_disasm.extract_rd(instrs[-2].generate()) == RIMI_SSP_REG
     # Ret check
@@ -135,7 +134,7 @@ def test_build_ss_trampoline_epilogue(
         assert rimi_disasm.extract_rd(instrs[-3].generate()) == RA
         assert rimi_disasm.extract_rs1(instrs[-3].generate()) == RIMI_SSP_REG
         assert instrs[-2].name == "addi"
-        assert rimi_disasm.extract_imm_i(gen_instrs[-2], sign_extend=True) == +4
+        assert rimi_disasm.extract_imm_i(gen_instrs[-2], sign_extend=True) == +8
         assert rimi_disasm.extract_rs1(instrs[-2].generate()) == RIMI_SSP_REG
         assert rimi_disasm.extract_rd(instrs[-2].generate()) == RIMI_SSP_REG
     # Ret check
@@ -170,7 +169,7 @@ def test_build_random_s_instruction_correct(
     instr_builder = RIMIFullInstructionBuilder()
     instr = instr_builder.build_random_s_instruction(
         registers=TEST_CALLER_SAVED_REG,
-        data_reg=TEST_DATA_REG_D1,
+        data_reg=TEST_DATA_REG,
         data_size=TEST_DATA_SIZE,
     )
     bytes = instr.generate_bytes()
@@ -199,7 +198,7 @@ def test_build_random_s_instruction_wrong_domain(
     instr_builder = RIMIFullInstructionBuilder()
     instr = instr_builder.build_random_s_instruction(
         registers=TEST_CALLER_SAVED_REG,
-        data_reg=TEST_DATA_REG_D1,
+        data_reg=TEST_DATA_REG,
         data_size=TEST_DATA_SIZE,
     )
     bytes = instr.generate_bytes()
@@ -229,7 +228,7 @@ def test_build_random_s_instruction_access_fault(
     instr_builder = RIMIFullInstructionBuilder()
     instr = instr_builder.build_random_s_instruction(
         registers=TEST_CALLER_SAVED_REG,
-        data_reg=TEST_DATA_REG,  # Wrong address for access!!!
+        data_reg=RIMI_SSP_REG,  # Wrong address for access!!!
         data_size=TEST_DATA_SIZE,
     )
     bytes = instr.generate_bytes()
@@ -259,7 +258,7 @@ def test_build_random_l_instruction_correct(
     instr_builder = RIMIFullInstructionBuilder()
     instr = instr_builder.build_random_l_instruction(
         registers=TEST_CALLER_SAVED_REG,
-        data_reg=TEST_DATA_REG_D1,
+        data_reg=TEST_DATA_REG,
         data_size=TEST_DATA_SIZE,
     )
     bytes = instr.generate_bytes()
@@ -288,7 +287,7 @@ def test_build_random_l_instruction_wrong_domain(
     instr_builder = RIMIFullInstructionBuilder()
     instr = instr_builder.build_random_l_instruction(
         registers=TEST_CALLER_SAVED_REG,
-        data_reg=TEST_DATA_REG_D1,
+        data_reg=TEST_DATA_REG,
         data_size=TEST_DATA_SIZE,
     )
     bytes = instr.generate_bytes()
@@ -318,7 +317,7 @@ def test_build_random_l_instruction_access_fault(
     instr_builder = RIMIFullInstructionBuilder()
     instr = instr_builder.build_random_l_instruction(
         registers=TEST_CALLER_SAVED_REG,
-        data_reg=TEST_DATA_REG,  # Wrong address for access!!!
+        data_reg=RIMI_SSP_REG,  # Wrong address for access!!!
         data_size=TEST_DATA_SIZE,
     )
     bytes = instr.generate_bytes()

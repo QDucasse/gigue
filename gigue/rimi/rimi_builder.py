@@ -29,13 +29,13 @@ class RIMIShadowStackInstructionBuilder(InstructionBuilder):
     ) -> List[Instruction]:
         # An example prologue would be:
         # Regular call stack!
-        # addi sp sp -12 (+local vars)
+        # addi sp sp -20 (+local vars)
         # sd s0 0(sp) ...
-        # sd s1 4(sp) ...
-        # sd s2 8(sp) ...
-        # REMOVED -- sd ra 12(sp) --
+        # sd s1 8(sp) ...
+        # sd s2 16(sp) ...
+        # REMOVED -- sd ra 20(sp) --
         # Shadow stack!
-        # addi ssreg ssreg -4
+        # addi ssreg ssreg -8
         # ss  ra, 0(ssreg)
         instructions: List[Instruction] = InstructionBuilder.build_prologue(
             used_s_regs=used_s_regs,
@@ -48,7 +48,7 @@ class RIMIShadowStackInstructionBuilder(InstructionBuilder):
         if contains_call:
             # Overwrite the RA store with stack pointer modif
             instructions.append(
-                IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=-4)
+                IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=-8)
             )
             # Add store to shadow stack memory
             instructions.append(RIMISInstruction.ss(rs1=RIMI_SSP_REG, rs2=RA, imm=0))
@@ -61,12 +61,12 @@ class RIMIShadowStackInstructionBuilder(InstructionBuilder):
         # An example epilogue would be:
         # Regular call stack!
         # ld s0 0(sp)
-        # ld s1 4(sp
-        # ld s2 8(sp
-        # REMOVED -- ld ra 12(sp) --
-        # addi sp sp 12 (+local vars)
+        # ld s1 8(sp
+        # ld s2 16(sp
+        # REMOVED -- ld ra 20(sp) --
+        # addi sp sp 20 (+local vars)
         # ls ra 0(sp)
-        # addi ssreg ssreg 4
+        # addi ssreg ssreg 8
         # ret
         instructions: List[Instruction] = InstructionBuilder.build_epilogue(
             used_s_regs=used_s_regs,
@@ -80,7 +80,7 @@ class RIMIShadowStackInstructionBuilder(InstructionBuilder):
             instructions.insert(-1, RIMIIInstruction.ls(rd=RA, rs1=RIMI_SSP_REG, imm=0))
             # Insert the addi
             instructions.insert(
-                -1, IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=4)
+                -1, IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=8)
             )
         return instructions
 
@@ -106,7 +106,7 @@ class RIMIShadowStackInstructionBuilder(InstructionBuilder):
             instructions.insert(-1, RIMIIInstruction.ls(rd=RA, rs1=RIMI_SSP_REG, imm=0))
             # Insert the addi
             instructions.insert(
-                -1, IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=4)
+                -1, IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=8)
             )
         return instructions
 
