@@ -10,6 +10,7 @@ from gigue.constants import (
     INSTRUCTION_WEIGHTS,
 )
 from gigue.fixer.fixer_builder import FIXERInstructionBuilder
+from gigue.fixer.fixer_constants import FIXER_CMP_REG
 from gigue.generator import TrampolineGenerator
 
 
@@ -31,6 +32,7 @@ class FIXERTrampolineGenerator(TrampolineGenerator):
         pics_hit_case_reg: int = HIT_CASE_REG,
         registers: List[int] = CALLER_SAVED_REG,
         data_reg: int = DATA_REG,
+        fixer_cmp_reg: int = FIXER_CMP_REG,
         weights: List[int] = INSTRUCTION_WEIGHTS,
         output_bin_file: str = BIN_DIR + "out.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
@@ -56,3 +58,7 @@ class FIXERTrampolineGenerator(TrampolineGenerator):
             output_data_bin_file=output_data_bin_file,
         )
         self.builder: FIXERInstructionBuilder = FIXERInstructionBuilder()
+        self.fixer_cmp_reg: int = fixer_cmp_reg
+        self.registers: List[int] = [
+            reg for reg in self.registers if reg != self.fixer_cmp_reg
+        ]

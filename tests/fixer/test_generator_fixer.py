@@ -10,6 +10,7 @@ from tests.conftest import (
     cap_disasm_bytes,
     check_size,
 )
+from tests.fixer.conftest import TEST_FIXER_CMP_REG
 
 
 @pytest.mark.parametrize(
@@ -40,6 +41,7 @@ def test_execute_trampoline_generated_binaries(
         pics_ratio=pics_ratio,
         data_reg=TEST_DATA_REG,
         data_size=TEST_DATA_SIZE,
+        fixer_cmp_reg=TEST_FIXER_CMP_REG,
     )
     generator.fill_jit_code()
     generator.patch_jit_calls()

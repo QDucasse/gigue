@@ -10,6 +10,7 @@ from tests.conftest import Handler
 # To simulate this behavior, we use a software "register" for the handler to
 # store values in.
 
+TEST_FIXER_CMP_REG = FIXER_CMP_REG
 assert FIXER_CMP_REG + 1 == UC_RISCV_REG_T3
 UC_FIXER_CMP_REG = UC_RISCV_REG_T3
 
