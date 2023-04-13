@@ -26,9 +26,9 @@ from gigue.disassembler import Disassembler
 from gigue.exceptions import UnknownInstructionException
 from gigue.helpers import bytes_to_int
 
-# =================================
-#         Logging setup
-# =================================
+# =================================================
+#                  Logging setup
+# =================================================
 
 TEST_LOG_DIR = "log/tests/"
 
@@ -69,9 +69,27 @@ def log_trace(request, caplog):
     request.addfinalizer(fin)
 
 
-# =================================
-#   Disassembler/Capstone setup
-# =================================
+# =================================================
+#    Disassembler/Capstone setup and utilities
+# =================================================
+
+
+class IncorrectSizeException(Exception):
+    """
+    Raised when the generated binaries are too big for the unit test framework
+    and memory layout.
+    """
+
+    pass
+
+
+class EmptyBinaryException(Exception):
+    """
+    Raised when the generator has not yet generated binaries and is expected to test
+    them.
+    """
+
+    pass
 
 
 @pytest.fixture
@@ -109,30 +127,65 @@ def cap_disasm_bytes(cap_disasm, binary, address):
 
 
 def check_size(generator):
+    # 0. Check that the binaries have been generated
+    if any(
+        len(binary) == 0
+        for binary in [generator.jit_bin, generator.interpreter_bin, generator.data_bin]
+    ):
+        raise EmptyBinaryException(
+            "Binaries not generated before checking size. Generate them with"
+            " generate_output_binary() and generate_data_binary()"
+        )
+
     logger.debug("Checking binary size before testing 📏")
-    # 1. Assert interpreter size fits in
-    assert (
-        INTERPRETER_START_ADDRESS + len(generator.interpreter_bytes) * 4
-        <= JIT_START_ADDRESS
+    # 1. Check interpreter binary!
+    #  \__ Check that int bin fits before the start of the jit bin
+    if INTERPRETER_START_ADDRESS + len(generator.interpreter_bin) > JIT_START_ADDRESS:
+        raise IncorrectSizeException(
+            "Generated interpreter binary is too big for the test framework. Expecting"
+            f" a max size of {hex(JIT_START_ADDRESS - INTERPRETER_START_ADDRESS)} and"
+            f" got {hex(len(generator.interpreter_bin))}."
+        )
+    # 2. Check jit binary!
+    #  \_ Check that jit bin fits before the start of the data bin
+    if JIT_START_ADDRESS + len(generator.jit_bin) > DATA_ADDRESS:
+        raise IncorrectSizeException(
+            "Generated JIT binary is too big for the test framework."
+            f" Expecting a max size of {hex(DATA_ADDRESS - JIT_START_ADDRESS)}"
+            f" and got {hex(len(generator.jit_bin))}."
+        )
+    # 3. Check data binary!
+    #  \_ Check that data bin fits before the stack
+    if DATA_ADDRESS + len(generator.data_bin) > STACK_ADDRESS:
+        raise IncorrectSizeException(
+            "Generated data binary is too big for the test framework."
+            f" Expecting a max size of {hex(STACK_ADDRESS - DATA_ADDRESS)}"
+            f" and got {hex(len(generator.data_bin))}."
+        )
+    logger.debug("Binary compliant with tests memory structure ✅")
+    logger.debug("Binary info:")
+    logger.debug("Name | Start address | End address | Size")
+    logger.debug("_____|_______________|_____________|_____")
+    logger.debug(
+        f"INT  | {hex(INTERPRETER_START_ADDRESS):<{13}} |"
+        f" {hex(INTERPRETER_START_ADDRESS + len(generator.interpreter_bin)):<{11}} |"
+        f" {hex(len(generator.interpreter_bin))}"
     )
     logger.debug(
-        f"INT binary at {hex(INTERPRETER_START_ADDRESS)} --"
-        f" {hex(INTERPRETER_START_ADDRESS + len(generator.interpreter_bytes) * 4)}"
-    )
-    # 2. Assert jit size fits in
-    assert (
-        JIT_START_ADDRESS + len(generator.jit_bytes) * 4
-        <= INTERPRETER_START_ADDRESS + UC_TEST_MEM_SIZE
+        f"JIT  | {hex(JIT_START_ADDRESS):<{13}} |"
+        f" {hex(JIT_START_ADDRESS + len(generator.jit_bin)):<{11}} |"
+        f" {hex(len(generator.jit_bin))}"
     )
     logger.debug(
-        f"JIT binary at {hex(JIT_START_ADDRESS)} --"
-        f" {hex(JIT_START_ADDRESS + len(generator.jit_bytes) * 4)}"
+        f"DAT  | {hex(DATA_ADDRESS):<{13}} |"
+        f" {hex(DATA_ADDRESS + len(generator.data_bin)):<{11}} |"
+        f" {hex(len(generator.data_bin))}"
     )
 
 
-# =================================
-#         Unicorn setup
-# =================================
+# =================================================
+#                   Unicorn setup
+# =================================================
 
 # The memory layout is the following:
 # _________________________________
@@ -151,6 +204,7 @@ def check_size(generator):
 #
 # __________________________________
 # __________________________________
+#
 #               STACK
 # __________________________________
 
@@ -158,12 +212,12 @@ def check_size(generator):
 # Address layout for tests
 ADDRESS = 0x1000
 STACK_ADDRESS = 0x30000
-DATA_ADDRESS = 0x20000
+DATA_ADDRESS = 0x25000
 UC_TEST_MEM_SIZE = 3 * 1024 * 1024
 MAX_ADDRESS = ADDRESS + UC_TEST_MEM_SIZE
 
 INTERPRETER_START_ADDRESS = 0x1000
-JIT_START_ADDRESS = 0x10000
+JIT_START_ADDRESS = 0x6000
 RET_ADDRESS = 0xFFFE
 
 # Check for correct test data reg, config vs unicorn one
@@ -198,8 +252,6 @@ def uc_emul_full_setup(uc_emul_setup):
     uc_emul = uc_emul_setup
     # Fill memory with nops up to RET_ADDRESS by default
     # Note: Takes A LOT of time... but maybe needed if we want to break by default
-    # for addr in range(ADDRESS, MAX_ADDRESS - 4, 4):
-    #     uc_emul.mem_write(addr, IInstruction.ebreak().generate_bytes())
     # Zero out registers
     for reg in TEST_CALLER_SAVED_REG:
         uc_emul.reg_write(reg, 0)
@@ -214,6 +266,11 @@ def uc_emul_full_setup(uc_emul_setup):
     # Write STACK ADDRESS in SP
     uc_emul.reg_write(UC_RISCV_REG_SP, STACK_ADDRESS)
     return uc_emul
+
+
+# =================================================
+#                   Handler setup
+# =================================================
 
 
 class Handler:
