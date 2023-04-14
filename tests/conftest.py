@@ -41,10 +41,15 @@ logger = logging.getLogger(__name__)
 
 
 def pytest_configure(config):
-    """Create a log file if log_file is not mentioned in *.ini file"""
-    if not config.option.log_file:
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        config.option.log_file = TEST_LOG_DIR + "test_log." + timestamp
+    # Set up name format  for test logfiles
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    config.option.log_file = TEST_LOG_DIR + "test_run_" + timestamp
+    # Keep only 10 newest files
+    log_files = [file for file in os.listdir(TEST_LOG_DIR) if "test_run" in file]
+    full_paths = [os.path.join(TEST_LOG_DIR, file) for file in log_files]
+    full_paths.sort(key=os.path.getmtime, reverse=True)
+    for file in full_paths[9:]:
+        os.remove(file)
 
 
 # Seed for reproducibility
@@ -316,9 +321,10 @@ class Handler:
         current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
         current_sp = uc_emul.reg_read(UC_RISCV_REG_SP)
         current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
+        current_call_tmp = uc_emul.reg_read(UC_CALL_TMP_REG)
         logger.debug(
             f">>> Tracing registers PC:{hex(current_pc)}, SP:{hex(current_sp)},"
-            f" RA:{hex(current_ra)}"
+            f" RA:{hex(current_ra)}, CTMP: {hex(current_call_tmp)}"
         )
 
     def trace_exception(self, uc_emul, intno, user_data):
