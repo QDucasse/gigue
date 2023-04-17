@@ -8,10 +8,10 @@ if TYPE_CHECKING:
     from gigue.instructions import Instruction
 
 from gigue.builder import InstructionBuilder
-from gigue.constants import CALL_TMP_REG, HIT_CASE_REG, RA
+from gigue.constants import CALL_TMP_REG, HIT_CASE_REG, RA, T2
 from gigue.exceptions import WrongOffsetException
 from gigue.helpers import align
-from gigue.instructions import IInstruction, UInstruction
+from gigue.instructions import BInstruction, IInstruction, UInstruction
 from gigue.rimi.rimi_constants import RIMI_SSP_REG
 from gigue.rimi.rimi_instructions import RIMIIInstruction, RIMISInstruction
 
@@ -211,12 +211,14 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
         # Note that:
         #  - The callee address is set in a dedicated register.
         return [
-            # Check if called address is in a domain
-            # Check if
+            # Load the PC
+            UInstruction.auipc(rd=T2, imm=0),
+            # Compare the PC to the RA, if RA < PC need to change domain
+            BInstruction.blt(rs1=RA, rs2=T2, imm=8),
             # Calling and switching domain
-            RIMIIInstruction.chdom(rd=0, rs1=CALL_TMP_REG, imm=0),
-            # Calling without switching domain
             IInstruction.jr(rs1=CALL_TMP_REG),
+            # Calling without switching domain
+            RIMIIInstruction.chdom(rd=0, rs1=CALL_TMP_REG, imm=0),
         ]
 
     @staticmethod
@@ -228,10 +230,12 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
         #  - For now the branch jumps over an ecall instruction if correct
         #    but it should jump to a dedicated exception trap
         return [
-            # Mask the called address
-            # Load ra from ss and mask
-            # Calling and switching domain
-            RIMIIInstruction.retdom(),
+            # Load the PC
+            UInstruction.auipc(rd=T2, imm=0),
+            # Compare the PC to the RA, if RA < PC need to change domain
+            BInstruction.blt(rs1=RA, rs2=T2, imm=8),
             # Calling without switching domain
             IInstruction.ret(),
+            # Calling and switching domain
+            RIMIIInstruction.retdom(),
         ]

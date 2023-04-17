@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from gigue.rimi.rimi_generator import (
@@ -13,7 +15,9 @@ from tests.conftest import (
     cap_disasm_bytes,
     check_size,
 )
-from tests.rimi.conftest import TEST_RIMI_SSP_REG
+from tests.rimi.conftest import TEST_RIMI_SSP_REG, start_resumable_emulation
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.mark.parametrize(
@@ -78,10 +82,11 @@ def test_execute_shadow_stack_trampoline_generated_binaries(
     rimi_handler = rimi_handler_setup
     rimi_handler.hook_instr_tracer(uc_emul)
     rimi_handler.hook_handler(uc_emul)
-    rimi_handler.hook_exception_tracer(uc_emul)
 
-    uc_emul.emu_start(INTERPRETER_START_ADDRESS, RET_ADDRESS)
-    uc_emul.emu_stop()
+    start_address = INTERPRETER_START_ADDRESS
+    end_address = RET_ADDRESS
+
+    start_resumable_emulation(uc_emul, start_address, end_address)
 
 
 @pytest.mark.parametrize(
@@ -147,5 +152,7 @@ def test_execute_full_trampoline_generated_binaries(
     rimi_handler.hook_instr_tracer(uc_emul)
     rimi_handler.hook_handler(uc_emul)
 
-    uc_emul.emu_start(INTERPRETER_START_ADDRESS, RET_ADDRESS)
-    uc_emul.emu_stop()
+    start_address = INTERPRETER_START_ADDRESS
+    end_address = RET_ADDRESS
+
+    start_resumable_emulation(uc_emul, start_address, end_address)

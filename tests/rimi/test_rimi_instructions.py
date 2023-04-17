@@ -1,9 +1,13 @@
+import logging
+
 import pytest
 from unicorn.riscv_const import UC_RISCV_REG_RA, UC_RISCV_REG_T1
 
+from gigue.constants import RA
 from gigue.helpers import bytes_to_int
+from gigue.rimi.rimi_constants import RIMI_SSP_REG
 from gigue.rimi.rimi_instructions import RIMIIInstruction, RIMISInstruction
-from tests.conftest import ADDRESS, TEST_DATA_REG, UC_DATA_REG
+from tests.conftest import ADDRESS, TEST_DATA_REG, UC_DATA_REG, cap_disasm_bytes
 from tests.rimi.conftest import (
     D0_ADDRESS,
     D1_ADDRESS,
@@ -108,7 +112,12 @@ def test_capstone_rimi_change_domain_bw(cap_disasm_custom_setup, rimi_disasm_set
     ],
 )
 def test_unicorn_rimi_loads(
-    name, expected, cap_disasm_custom_setup, uc_emul_setup, rimi_handler_setup
+    name,
+    expected,
+    cap_disasm_custom_setup,
+    uc_emul_setup,
+    rimi_handler_setup,
+    log_trace,
 ):
     constr = getattr(RIMIIInstruction, name)
     instr = constr(rs1=TEST_DATA_REG, rd=6, imm=0)
@@ -116,16 +125,27 @@ def test_unicorn_rimi_loads(
     # Handler
     rimi_handler = rimi_handler_setup
     rimi_handler.current_domain = 1
+    logger = logging.getLogger(__name__)
+    # Capstone disassembler
+    logger.debug("Before")
+    cap_disasm = cap_disasm_custom_setup
+    cap_disasm_bytes(cap_disasm, bytes, D1_ADDRESS)
     # Emulation
     uc_emul = uc_emul_setup
-    # rimi_handler.hook_tracer(uc_emul)
-    rimi_handler.hook_handler_expected(uc_emul, name)
+    rimi_handler.hook_instr_tracer(uc_emul)
+    # rimi_handler.hook_handler_expected(uc_emul, name)
+    rimi_handler.hook_handler_end_address(uc_emul, D1_ADDRESS + 4)
     uc_emul.reg_write(UC_DATA_REG, DATA_D1_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_T1, 0x0)
     uc_emul.mem_write(DATA_D1_ADDRESS, b"\xff\xff\xff\xff\xff\xff\xff\xff")
     uc_emul.mem_write(D1_ADDRESS, bytes)
     uc_emul.emu_start(D1_ADDRESS, D1_ADDRESS + 4)
     uc_emul.emu_stop()
+
+    logger.debug("after")
+    cap_disasm = cap_disasm_custom_setup
+    cap_disasm_bytes(cap_disasm, bytes, D1_ADDRESS)
+
     assert uc_emul.reg_read(UC_RISCV_REG_T1) == expected
 
 
@@ -149,8 +169,9 @@ def test_unicorn_rimi_stores(
     rimi_handler.current_domain = 1
     # Emulation
     uc_emul = uc_emul_setup
-    # rimi_handler.hook_tracer(uc_emul)
-    rimi_handler.hook_handler_expected(uc_emul, name)
+    rimi_handler.hook_instr_tracer(uc_emul)
+    # rimi_handler.hook_handler_expected(uc_emul, name)
+    rimi_handler.hook_handler_end_address(uc_emul, D1_ADDRESS + 4)
     uc_emul.reg_write(UC_DATA_REG, DATA_D1_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_T1, 0xFFFFFFFFFFFFFFFF)
     uc_emul.mem_write(DATA_D1_ADDRESS, b"\x00\x00\x00\x00\x00\x00\x00\x00")
@@ -160,15 +181,16 @@ def test_unicorn_rimi_stores(
     assert uc_emul.mem_read(DATA_D1_ADDRESS, 8) == expected
 
 
-def test_unicorn_rimi_ls(rimi_handler_setup, uc_emul_setup):
-    instr = RIMIIInstruction.ls(rd=1, rs1=1, imm=0)
+def test_unicorn_rimi_ls(rimi_handler_setup, rimi_uc_emul_full_setup, log_trace):
+    instr = RIMIIInstruction.ls(rd=RA, rs1=RIMI_SSP_REG, imm=0)
     bytes = instr.generate_bytes()
     # Handler
     rimi_handler = rimi_handler_setup
     # Emulation
-    uc_emul = uc_emul_setup
-    rimi_handler.hook_handler_expected(uc_emul, "ls")
-    # rimi_handler.hook_tracer(uc_emul)
+    uc_emul = rimi_uc_emul_full_setup
+    rimi_handler.hook_instr_tracer(uc_emul)
+    # rimi_handler.hook_handler_expected(uc_emul, "ls")
+    rimi_handler.hook_handler_end_address(uc_emul, D1_ADDRESS + 4)
     uc_emul.reg_write(UC_RIMI_SSP_REG, RIMI_SHADOW_STACK_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_RA, 0x0)
     return_address = b"\x01\x23\x45\x67\x89\xab\xcd\xef"
@@ -179,15 +201,18 @@ def test_unicorn_rimi_ls(rimi_handler_setup, uc_emul_setup):
     assert uc_emul.reg_read(UC_RISCV_REG_RA) == bytes_to_int(return_address)
 
 
-def test_unicorn_rimi_ss(rimi_handler_setup, cap_disasm_custom_setup, uc_emul_setup):
-    instr = RIMISInstruction.ss(rs1=1, rs2=1, imm=0)
+def test_unicorn_rimi_ss(
+    rimi_handler_setup, cap_disasm_custom_setup, rimi_uc_emul_full_setup, log_trace
+):
+    instr = RIMISInstruction.ss(rs1=RIMI_SSP_REG, rs2=RA, imm=0)
     bytes = instr.generate_bytes()
     # Handler
     rimi_handler = rimi_handler_setup
     # Emulation
-    uc_emul = uc_emul_setup
-    rimi_handler.hook_handler_expected(uc_emul, "ss")
-    # rimi_handler.hook_tracer(uc_emul)
+    uc_emul = rimi_uc_emul_full_setup
+    rimi_handler.hook_instr_tracer(uc_emul)
+    # rimi_handler.hook_handler_expected(uc_emul, "ss")
+    rimi_handler.hook_handler_end_address(uc_emul, D1_ADDRESS + 4)
     uc_emul.reg_write(UC_RIMI_SSP_REG, RIMI_SHADOW_STACK_ADDRESS)
     return_address = b"\x01\x23\x45\x67\x89\xab\xcd\xef"
     uc_emul.reg_write(UC_RISCV_REG_RA, bytes_to_int(return_address))
@@ -212,8 +237,9 @@ def test_unicorn_rimi_chdom(
     assert rimi_handler.current_domain == 0
     # Emulation
     uc_emul = uc_emul_setup
-    rimi_handler.hook_handler_expected(uc_emul, "chdom")
-    # rimi_handler.hook_instr_tracer(uc_emul)
+    # rimi_handler.hook_handler_expected(uc_emul, "chdom")
+    rimi_handler.hook_instr_tracer(uc_emul)
+    rimi_handler.hook_handler_end_address(uc_emul, D1_ADDRESS + offset)
     # rimi_handler.hook_reg_tracer(uc_emul)
     # call is auipc,rd, offsetHi | jalr, rd, offsetLo(rd)
     # > load pc in ra
@@ -225,7 +251,9 @@ def test_unicorn_rimi_chdom(
 
 
 def test_unicorn_rimi_retdom(
-    rimi_handler_setup, cap_disasm_custom_setup, uc_emul_setup
+    rimi_handler_setup,
+    cap_disasm_custom_setup,
+    uc_emul_setup,
 ):
     instr = RIMIIInstruction.retdom()
     bytes = instr.generate_bytes()
@@ -234,9 +262,10 @@ def test_unicorn_rimi_retdom(
     rimi_handler.current_domain = 1
     # Emulation
     uc_emul = uc_emul_setup
-    rimi_handler.hook_handler_expected(uc_emul, "retdom")
+    # rimi_handler.hook_handler_expected(uc_emul, "retdom")
+    rimi_handler.hook_instr_tracer(uc_emul)
+    rimi_handler.hook_handler_end_address(uc_emul, D0_ADDRESS + 0x1000)
     # rimi_handler.hook_reg_tracer(uc_emul)
-    # rimi_handler.hook_instr_tracer(uc_emul)
     uc_emul.reg_write(UC_RISCV_REG_RA, D0_ADDRESS + 0x1000)
     uc_emul.mem_write(D1_ADDRESS, bytes)
     uc_emul.emu_start(D1_ADDRESS, D0_ADDRESS + 0x1000)
