@@ -223,7 +223,7 @@ MAX_ADDRESS = ADDRESS + UC_TEST_MEM_SIZE
 
 INTERPRETER_START_ADDRESS = 0x1000
 JIT_START_ADDRESS = 0x6000
-RET_ADDRESS = 0xFFFE
+RET_ADDRESS = 0x5FFE
 
 # Check for correct test data reg, config vs unicorn one
 # Note: Unicorn's 0 is the code for invalid reg so everything is shifted!
@@ -291,8 +291,12 @@ class Handler:
             # Extracts the instruction name
             instr_name = self.disasm.get_instruction_info(instr).name
             # Compare it to the one expected (if needed)
-            if user_data:
+            if isinstance(user_data, str):
                 assert instr_name == user_data
+            # End of emulation if needed
+            # end_emu = 0
+            # if isinstance(user_data, int):
+            #     end_emu = user_data
             # Call the handler if it exists
             try:
                 handler_method = getattr(self.__class__, "handle_" + instr_name)
@@ -307,8 +311,11 @@ class Handler:
             # Otherwise stop the simulation and raise an exception
             uc_emul.emu_stop()
             raise
+        new_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
+        if new_pc == pc:
+            new_pc = pc + 4
         # Update the PC if the instruction handling went correctly
-        uc_emul.reg_write(UC_RISCV_REG_PC, pc + 4)
+        uc_emul.reg_write(UC_RISCV_REG_PC, new_pc)
 
     # Tracing methods for instrumentation
     # \__________________________________
@@ -340,6 +347,11 @@ class Handler:
     def hook_handler_expected(self, uc_emul, expected):
         uc_emul.hook_add(
             UC_HOOK_INTR, self.handle_custom_instruction, user_data=expected
+        )
+
+    def hook_handler_end_address(self, uc_emul, end_address):
+        uc_emul.hook_add(
+            UC_HOOK_INTR, self.handle_custom_instruction, user_data=end_address
         )
 
     def hook_instr_tracer(self, uc_emul):

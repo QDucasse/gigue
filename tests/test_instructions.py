@@ -13,7 +13,13 @@ from gigue.instructions import (
     SInstruction,
     UInstruction,
 )
-from tests.conftest import ADDRESS, DATA_ADDRESS, TEST_DATA_REG, UC_DATA_REG
+from tests.conftest import (
+    ADDRESS,
+    DATA_ADDRESS,
+    TEST_DATA_REG,
+    UC_DATA_REG,
+    cap_disasm_bytes,
+)
 
 # =================================
 #            Helpers
@@ -186,13 +192,19 @@ def test_capstone_rinstr_special_cases(name, cap_disasm_setup):
         "xor",
     ],
 )
-def test_unicorn_smoke_rinstr(name, uc_emul_setup):
+def test_unicorn_smoke_rinstr(name, cap_disasm_setup, uc_emul_setup, handler_setup):
     constr = getattr(RInstruction, name)
     instr = constr(rd=5, rs1=6, rs2=7)
     bytes = instr.generate_bytes()
+    # Disassembler
+    cap_disasm = cap_disasm_setup
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Emulation
     uc_emul = uc_emul_setup
     uc_emul.mem_write(ADDRESS, bytes)
+    # Handler
+    handler = handler_setup
+    handler.hook_instr_tracer(uc_emul)
     uc_emul.emu_start(ADDRESS, ADDRESS + len(bytes))
     uc_emul.emu_stop()
 
@@ -348,12 +360,21 @@ def test_unicorn_iinstr_loads(name, expected, cap_disasm_setup, uc_emul_setup):
 
 @pytest.mark.parametrize("name", ["lb", "lbu", "ld", "lh", "lhu", "lw", "lwu"])
 @pytest.mark.parametrize("imm", [0x0, 0x1, 0xF, 0x1F, 0x7FF, -0x1, -0xF, -0x1F, -0x7FF])
-def test_unicorn_iinstr_loads_smoke(name, imm, uc_emul_setup):
+def test_unicorn_iinstr_loads_smoke(
+    name, imm, cap_disasm_setup, uc_emul_setup, handler_setup
+):
     constr = getattr(IInstruction, name)
     instr = constr(rs1=TEST_DATA_REG, rd=6, imm=imm)
     bytes = instr.generate_bytes()
+    # Disassembler
+    cap_disasm = cap_disasm_setup
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Emulation
     uc_emul = uc_emul_setup
+    uc_emul.mem_write(ADDRESS, bytes)
+    # Handler
+    handler = handler_setup
+    handler.hook_instr_tracer(uc_emul)
     uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS + 0x7FF)  # To test negatives values!
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, ADDRESS + 4)
@@ -521,13 +542,19 @@ def test_capstone_sinstr(name, imm, cap_disasm_setup):
         ("sd", b"\xff\xff\xff\xff\xff\xff\xff\xff"),
     ],
 )
-def test_unicorn_sinstr(name, expected, cap_disasm_setup, uc_emul_setup):
+def test_unicorn_sinstr(name, expected, cap_disasm_setup, uc_emul_setup, handler_setup):
     constr = getattr(SInstruction, name)
     instr = constr(rs1=TEST_DATA_REG, rs2=6, imm=0)
     bytes = instr.generate_bytes()
-    # Disassembly
+    # Disassembler
     cap_disasm = cap_disasm_setup
-    next(cap_disasm.disasm(bytes, ADDRESS))
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
+    # Emulation
+    uc_emul = uc_emul_setup
+    uc_emul.mem_write(ADDRESS, bytes)
+    # Handler
+    handler = handler_setup
+    handler.hook_instr_tracer(uc_emul)
     # Emulation
     uc_emul = uc_emul_setup
     uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS)

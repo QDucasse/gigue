@@ -27,6 +27,7 @@ from tests.conftest import (
     TEST_CALLER_SAVED_REG,
     TEST_DATA_REG,
     TEST_DATA_SIZE,
+    cap_disasm_bytes,
 )
 
 # =================================
@@ -576,8 +577,7 @@ def test_build_method_call_execution(offset, uc_emul_full_setup, cap_disasm_setu
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_setup
-    for _ in cap_disasm.disasm(bytes, ADDRESS):
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
@@ -599,8 +599,7 @@ def test_build_pic_call_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_setup
-    for _ in cap_disasm.disasm(bytes, ADDRESS):
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
@@ -630,8 +629,7 @@ def test_build_switch_pic_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_setup
-    for _ in cap_disasm.disasm(bytes, ADDRESS):
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
@@ -660,8 +658,7 @@ def test_build_prologue_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_setup
-    for _ in cap_disasm.disasm(bytes, ADDRESS):
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
@@ -700,8 +697,7 @@ def test_build_epilogue_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_setup
-    for _ in cap_disasm.disasm(bytes, ADDRESS):
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
@@ -774,16 +770,17 @@ def test_build_method_call_trampoline_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     CODE_ADDRESS = ADDRESS + len(tramp_bytes)
     # Disassembly
-    # cap_disasm = cap_disasm_setup
-    # cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
-    # cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
-    # Handler
-    # handler = handler_setup
+    cap_disasm = cap_disasm_setup
+    cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
+    cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
     # Emulation
     uc_emul = uc_emul_full_setup
-    # handler.hook_instr_tracer(uc_emul)
     uc_emul.mem_write(ADDRESS, tramp_bytes)
     uc_emul.mem_write(CODE_ADDRESS, bytes)
+    # Handler
+    handler = handler_setup
+    handler.hook_instr_tracer(uc_emul)
+    # Start
     uc_emul.emu_start(begin=CODE_ADDRESS, until=CODE_ADDRESS + offset)
     current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
     current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
@@ -809,16 +806,17 @@ def test_build_pic_call_trampoline_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     CODE_ADDRESS = ADDRESS + len(tramp_bytes)
     # Disassembly
-    # cap_disasm = cap_disasm_setup
-    # cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
-    # cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
-    # Handler
-    # handler = handler_setup
+    cap_disasm = cap_disasm_setup
+    cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
+    cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
     # Emulation
     uc_emul = uc_emul_full_setup
-    # handler.hook_instr_tracer(uc_emul)
     uc_emul.mem_write(ADDRESS, tramp_bytes)
     uc_emul.mem_write(CODE_ADDRESS, bytes)
+    # Handler
+    handler = handler_setup
+    handler.hook_instr_tracer(uc_emul)
+    # Start
     uc_emul.emu_start(begin=CODE_ADDRESS, until=CODE_ADDRESS + offset)
     current_t0 = uc_emul.reg_read(UC_RISCV_REG_T0)
     current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
@@ -837,6 +835,8 @@ def test_build_trampoline_epilogue_execution(
     local_var_nb,
     contains_call,
     uc_emul_full_setup,
+    cap_disasm_setup,
+    handler_setup,
 ):
     instr_builder = InstructionBuilder()
     tramp_instrs = instr_builder.build_ret_from_jit_elt_trampoline()
@@ -878,14 +878,16 @@ def test_build_trampoline_epilogue_execution(
             STACK_ADDRESS + used_s_regs * 8, int_to_bytes64(called_address)
         )
     # Setup capstone
-    # cap_disasm = cap_disasm_setup
-    # cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
-    # cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
+    cap_disasm = cap_disasm_setup
+    cap_disasm_bytes(cap_disasm, tramp_bytes, ADDRESS)
+    cap_disasm_bytes(cap_disasm, bytes, CODE_ADDRESS)
+    # Emulation
+    uc_emul = uc_emul_full_setup
+    uc_emul.mem_write(CODE_ADDRESS, bytes)
     # Handler
-    # handler = handler_setup
-    # handler.hook_instr_tracer(uc_emul)
-    # handler.hook_reg_tracer(uc_emul)
-    # Launch emulation
+    handler = handler_setup
+    handler.hook_instr_tracer(uc_emul)
+    # Start
     uc_emul.emu_start(
         begin=CODE_ADDRESS, until=(called_address if contains_call else RET_ADDRESS)
     )

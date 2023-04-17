@@ -179,10 +179,11 @@ def test_disassembly_execution(
     handler = handler_setup
     # Emulation
     uc_emul = uc_emul_full_setup
-    handler.hook_instr_tracer(uc_emul)
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_T1, hit_case)
     uc_emul.mem_write(ADDRESS, pic_bytes)
+    # Start emulation
+    handler.hook_instr_tracer(uc_emul)
     uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()
 
@@ -197,6 +198,7 @@ def test_trampoline_disassembly_execution(
     hit_case,
     cap_disasm_setup,
     uc_emul_full_setup,
+    handler_setup,
 ):
     call_tramp = Trampoline(
         name="call_jit_elt", address=ADDRESS, builder=default_builder_setup
@@ -232,17 +234,19 @@ def test_trampoline_disassembly_execution(
     pic_bytes = pic.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
-    for _ in cap_disasm.disasm(pic_bytes, ADDRESS):
-        pass
+    cap_disasm_bytes(cap_disasm, pic_bytes, ADDRESS)
+    # Handler
+    handler = handler_setup
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(call_tramp.address, bytes_call_tramp)
     uc_emul.mem_write(ret_tramp.address, bytes_ret_tramp)
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
-    # Should do PIC --run through switch--> method
-    #           --ret--> PIC --ret-->
-    #
     uc_emul.reg_write(UC_RISCV_REG_T1, hit_case)
     uc_emul.mem_write(CODE_ADDRESS, pic_bytes)
+    # Start emulation
+    # Should do PIC --run through switch--> method
+    #           --ret--> PIC --ret-->
+    handler.hook_instr_tracer(uc_emul)
     uc_emul.emu_start(CODE_ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()

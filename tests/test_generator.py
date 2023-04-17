@@ -313,9 +313,7 @@ def test_execute_generated_binaries(
 
     # Handler
     handler = handler_setup
-    handler.hook_exception_tracer(uc_emul)
     handler.hook_instr_tracer(uc_emul)
-    handler.hook_reg_tracer(uc_emul)
 
     uc_emul.emu_start(INTERPRETER_START_ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()
@@ -380,7 +378,6 @@ def test_execute_trampoline_generated_binaries(
 
     # Handler
     handler = handler_setup
-    handler.hook_exception_tracer(uc_emul)
     handler.hook_instr_tracer(uc_emul)
 
     uc_emul.emu_start(INTERPRETER_START_ADDRESS, RET_ADDRESS)

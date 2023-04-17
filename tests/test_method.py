@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 from unicorn.riscv_const import UC_RISCV_REG_RA
 
@@ -13,7 +15,9 @@ from gigue.helpers import window
 from gigue.method import Method
 from gigue.pic import PIC
 from gigue.trampoline import Trampoline
-from tests.conftest import ADDRESS, RET_ADDRESS, TEST_CALLER_SAVED_REG
+from tests.conftest import ADDRESS, RET_ADDRESS, TEST_CALLER_SAVED_REG, cap_disasm_bytes
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -25,19 +29,19 @@ def default_builder_setup():
 def callees_method_setup(default_builder_setup):
     default_builder = default_builder_setup
     callee1 = Method(
-        address=0x1100,
+        address=ADDRESS + 0x100,
         body_size=2,
         call_number=0,
         builder=default_builder,
     )
     callee2 = Method(
-        address=0x1200,
+        address=ADDRESS + 0x200,
         body_size=2,
         call_number=0,
         builder=default_builder,
     )
     callee3 = Method(
-        address=0x1300,
+        address=ADDRESS + 0x300,
         body_size=2,
         call_number=0,
         builder=default_builder,
@@ -49,7 +53,7 @@ def callees_method_setup(default_builder_setup):
 def callees_pic_setup(default_builder_setup):
     default_builder = default_builder_setup
     callee1 = PIC(
-        address=0x1100,
+        address=ADDRESS + 0x100,
         case_number=2,
         method_max_size=2,
         method_max_call_number=0,
@@ -57,7 +61,7 @@ def callees_pic_setup(default_builder_setup):
         builder=default_builder,
     )
     callee2 = PIC(
-        address=0x1200,
+        address=ADDRESS + 0x200,
         case_number=2,
         method_max_size=2,
         method_max_call_number=0,
@@ -65,7 +69,7 @@ def callees_pic_setup(default_builder_setup):
         builder=default_builder,
     )
     callee3 = PIC(
-        address=0x1300,
+        address=ADDRESS + 0x300,
         case_number=2,
         method_max_size=2,
         method_max_call_number=0,
@@ -83,14 +87,14 @@ def callees_pic_setup(default_builder_setup):
 @pytest.mark.parametrize("call_size", [3, 6])
 def test_initialization(call_size, default_builder_setup):
     method = Method(
-        address=0x7FFFFF,
+        address=ADDRESS,
         body_size=30,
         call_number=5,
         call_size=call_size,
         builder=default_builder_setup,
     )
     assert method.body_size == 30
-    assert method.address == 0x7FFFFF
+    assert method.address == ADDRESS
     assert method.call_number == 5
     assert method.call_size == call_size
 
@@ -98,7 +102,7 @@ def test_initialization(call_size, default_builder_setup):
 def test_error_initialization(default_builder_setup):
     with pytest.raises(CallNumberException):
         Method(
-            address=0x7FFFFF,
+            address=ADDRESS,
             body_size=10,
             call_number=5,
             call_size=3,
@@ -108,7 +112,7 @@ def test_error_initialization(default_builder_setup):
 
 def test_error_total_size_while_empty(default_builder_setup):
     m = Method(
-        address=0x7FFFFF, body_size=30, call_number=5, builder=default_builder_setup
+        address=ADDRESS, body_size=30, call_number=5, builder=default_builder_setup
     )
     with pytest.raises(EmptySectionException):
         m.total_size()
@@ -116,7 +120,7 @@ def test_error_total_size_while_empty(default_builder_setup):
 
 def test_fill_with_nops(default_builder_setup, cap_disasm_setup):
     method = Method(
-        address=0x7FFFFF, body_size=30, call_number=5, builder=default_builder_setup
+        address=ADDRESS, body_size=30, call_number=5, builder=default_builder_setup
     )
     method.fill_with_nops()
     bytes = method.generate_bytes()
@@ -133,7 +137,7 @@ def test_instructions_filling(
     used_s_regs, call_number, call_size, default_builder_setup, cap_disasm_setup
 ):
     method = Method(
-        address=0x1000,
+        address=ADDRESS,
         body_size=100,
         call_number=call_number,
         call_size=call_size,
@@ -174,7 +178,7 @@ def test_instructions_filling(
 
 def test_check_recursive_call_exception(callees_method_setup, default_builder_setup):
     method = Method(
-        address=0x1000, body_size=10, call_number=3, builder=default_builder_setup
+        address=ADDRESS, body_size=10, call_number=3, builder=default_builder_setup
     )
     callee1, callee2, _ = callees_method_setup
     for elt in [method, callee1, callee2]:
@@ -194,7 +198,7 @@ def test_check_recursive_call_exception(callees_method_setup, default_builder_se
 
 def test_check_call_number_exception(callees_method_setup, default_builder_setup):
     method = Method(
-        address=0x1000,
+        address=ADDRESS,
         body_size=10,
         call_number=3,
         builder=default_builder_setup,
@@ -213,13 +217,13 @@ def test_check_call_number_exception(callees_method_setup, default_builder_setup
 
 def test_check_mutual_call_exception(default_builder_setup):
     method = Method(
-        address=0x1000,
+        address=ADDRESS,
         body_size=3,
         call_number=1,
         builder=default_builder_setup,
     )
     callee = Method(
-        address=0x1100,
+        address=ADDRESS + 0x100,
         body_size=3,
         call_number=1,
         builder=default_builder_setup,
@@ -244,7 +248,7 @@ def test_patch_base_calls_methods(
     default_builder_setup, disasm_setup, callees_method_setup
 ):
     method = Method(
-        address=0x1000,
+        address=ADDRESS,
         body_size=20,
         call_number=3,
         call_size=3,
@@ -280,7 +284,7 @@ def test_patch_base_calls_pics(
     default_builder_setup, disasm_setup, callees_pic_setup, cap_disasm_setup
 ):
     method = Method(
-        address=0x1000,
+        address=ADDRESS,
         body_size=10,
         call_number=3,
         call_size=3,
@@ -331,7 +335,7 @@ def test_patch_trampoline_calls_methods(
     default_builder_setup, disasm_setup, callees_method_setup, call_trampoline_offset
 ):
     method = Method(
-        address=0x1000,
+        address=ADDRESS,
         body_size=20,
         call_number=3,
         call_size=6,
@@ -391,7 +395,7 @@ def test_patch_trampoline_calls_pics(
     default_builder_setup, disasm_setup, callees_pic_setup, call_trampoline_offset
 ):
     method = Method(
-        address=0x1000,
+        address=ADDRESS,
         body_size=20,
         call_number=3,
         call_size=6,
@@ -475,7 +479,7 @@ def test_instructions_disassembly_execution_smoke(
     uc_emul_full_setup,
 ):
     method = Method(
-        address=0x1000,
+        address=ADDRESS,
         body_size=100,
         call_number=3,
         builder=default_builder_setup,
@@ -489,8 +493,7 @@ def test_instructions_disassembly_execution_smoke(
     bytes = method.generate_bytes()
     # Disassembly
     cap_disasm = cap_disasm_setup
-    for _ in cap_disasm.disasm(bytes, ADDRESS):
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
@@ -508,7 +511,9 @@ def test_patch_base_calls_disassembly_execution(
     execution_number,
     default_builder_setup,
     callees_method_setup,
+    cap_disasm_setup,
     uc_emul_full_setup,
+    handler_setup,
 ):
     method = Method(
         address=ADDRESS, body_size=10, call_number=3, builder=default_builder_setup
@@ -526,6 +531,18 @@ def test_patch_base_calls_disassembly_execution(
     bytes_callee1 = callee1.generate_bytes()
     bytes_callee2 = callee2.generate_bytes()
     bytes_callee3 = callee3.generate_bytes()
+    # Capstone disassembler
+    cap_disasm = cap_disasm_setup
+    logger.debug("Main Method")
+    cap_disasm_bytes(cap_disasm, bytes_method, method.address)
+    logger.debug("Callee 1")
+    cap_disasm_bytes(cap_disasm, bytes_callee1, callee1.address)
+    logger.debug("Callee 2")
+    cap_disasm_bytes(cap_disasm, bytes_callee2, callee2.address)
+    logger.debug("Callee 3")
+    cap_disasm_bytes(cap_disasm, bytes_callee3, callee3.address)
+    # Handler
+    handler = handler_setup
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes_method)
@@ -533,6 +550,8 @@ def test_patch_base_calls_disassembly_execution(
     uc_emul.mem_write(callee2.address, bytes_callee2)
     uc_emul.mem_write(callee3.address, bytes_callee3)
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
+    # Start emulation
+    handler.hook_instr_tracer(uc_emul)
     uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()
 
@@ -588,26 +607,23 @@ def test_patch_trampoline_calls_execution(
     bytes_callee2 = callee2.generate_bytes()
     bytes_callee3 = callee3.generate_bytes()
     # Capstone disassembler
-    # cap_disasm = cap_disasm_setup
-    # print("Call trampoline")
-    # cap_disasm_bytes(cap_disasm, bytes_call_tramp, call_tramp.address)
-    # print("Ret trampoline")
-    # cap_disasm_bytes(cap_disasm, bytes_ret_tramp, ret_tramp.address)
-    # print("Method")
-    # cap_disasm_bytes(cap_disasm, bytes_method, method.address)
-    # print("Callee 1")
-    # cap_disasm_bytes(cap_disasm, bytes_callee1, callee1.address)
-    # print("Callee 2")
-    # cap_disasm_bytes(cap_disasm, bytes_callee2, callee2.address)
-    # print("Callee 3")
-    # cap_disasm_bytes(cap_disasm, bytes_callee3, callee3.address)
+    cap_disasm = cap_disasm_setup
+    logger.debug("Call trampoline")
+    cap_disasm_bytes(cap_disasm, bytes_call_tramp, call_tramp.address)
+    logger.debug("Ret trampoline")
+    cap_disasm_bytes(cap_disasm, bytes_ret_tramp, ret_tramp.address)
+    logger.debug("Main Method")
+    cap_disasm_bytes(cap_disasm, bytes_method, method.address)
+    logger.debug("Callee 1")
+    cap_disasm_bytes(cap_disasm, bytes_callee1, callee1.address)
+    logger.debug("Callee 2")
+    cap_disasm_bytes(cap_disasm, bytes_callee2, callee2.address)
+    logger.debug("Callee 3")
+    cap_disasm_bytes(cap_disasm, bytes_callee3, callee3.address)
     # Handler
-    # handler = handler_setup
+    handler = handler_setup
     # Emulation
     uc_emul = uc_emul_full_setup
-    # handler.hook_instr_tracer(uc_emul)
-    # handler.hook_reg_tracer(uc_emul)
-    # handler.hook_exception_tracer(uc_emul)
     uc_emul.mem_write(call_tramp.address, bytes_call_tramp)
     uc_emul.mem_write(ret_tramp.address, bytes_ret_tramp)
     uc_emul.mem_write(CODE_ADDRESS, bytes_method)
@@ -615,9 +631,11 @@ def test_patch_trampoline_calls_execution(
     uc_emul.mem_write(callee2.address, bytes_callee2)
     uc_emul.mem_write(callee3.address, bytes_callee3)
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
+    # Launch emulation
     # Should do method --call--> callee1 --ret-->
     #           method --call--> callee2 --ret-->
     #           method --call--> callee3 --ret-->
     #           method --ret-->  RET_ADDRESS
+    handler.hook_instr_tracer(uc_emul)
     uc_emul.emu_start(CODE_ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()

@@ -18,10 +18,13 @@ CALLEE_SAVED_REG: List[int] = [8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
 X0: int = 0
 RA: int = 1
 SP: int = 2
+T0: int = 5
+T1: int = 6
+T2: int = 7
 
 # PICs info
-HIT_CASE_REG: int = 5
-CMP_REG: int = 6
+HIT_CASE_REG: int = T0
+CMP_REG: int = T1
 
 # Binary path
 # \____________
