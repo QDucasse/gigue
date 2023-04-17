@@ -5,7 +5,13 @@ from gigue.constants import CALL_TMP_REG, HIT_CASE_REG, RA
 from gigue.fixer.fixer_builder import FIXERInstructionBuilder
 from gigue.fixer.fixer_constants import FIXER_CMP_REG
 from gigue.helpers import int_to_bytes64
-from tests.conftest import ADDRESS, RET_ADDRESS, STACK_ADDRESS, UC_CALL_TMP_REG
+from tests.conftest import (
+    ADDRESS,
+    RET_ADDRESS,
+    STACK_ADDRESS,
+    UC_CALL_TMP_REG,
+    cap_disasm_bytes,
+)
 from tests.fixer.conftest import UC_FIXER_CMP_REG
 
 # =================================
@@ -204,15 +210,15 @@ def test_build_method_base_call_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_custom_setup
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        # print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Handler
     fixer_handler = fixer_handler_setup
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
     fixer_handler.hook_handler(uc_emul)
+    fixer_handler.hook_instr_tracer(uc_emul)
+    # Start emulation
     uc_emul.emu_start(ADDRESS, ADDRESS + offset)
     current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
     current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
@@ -234,15 +240,15 @@ def test_build_pic_base_call_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_custom_setup
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        # print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Handler
     fixer_handler = fixer_handler_setup
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
     fixer_handler.hook_handler(uc_emul)
+    fixer_handler.hook_instr_tracer(uc_emul)
+    # Start emulation
     uc_emul.emu_start(ADDRESS, ADDRESS + offset)
     current_ra = uc_emul.reg_read(UC_RISCV_REG_RA)
     current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
@@ -269,9 +275,7 @@ def test_build_epilogue_correct_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_custom_setup
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        # print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Handler
     fixer_handler = fixer_handler_setup
     # Add the called address to the shadow stack
@@ -285,6 +289,8 @@ def test_build_epilogue_correct_execution(
         uc_emul.mem_write(STACK_ADDRESS + i * 8, int_to_bytes64(i + 1))
     uc_emul.mem_write(STACK_ADDRESS + used_s_regs * 8, int_to_bytes64(called_address))
     fixer_handler.hook_handler(uc_emul)
+    fixer_handler.hook_instr_tracer(uc_emul)
+    # Start emulation
     uc_emul.emu_start(ADDRESS, called_address)
     current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
     assert current_pc == called_address
@@ -309,9 +315,7 @@ def test_build_epilogue_failing_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_custom_setup
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        # print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Handler
     fixer_handler = fixer_handler_setup
     # Add the called address to the shadow stack
@@ -325,6 +329,8 @@ def test_build_epilogue_failing_execution(
         uc_emul.mem_write(STACK_ADDRESS + i * 8, int_to_bytes64(i + 1))
     uc_emul.mem_write(STACK_ADDRESS + used_s_regs * 8, int_to_bytes64(called_address))
     fixer_handler.hook_handler(uc_emul)
+    fixer_handler.hook_instr_tracer(uc_emul)
+    # Start emulation
     uc_emul.emu_start(ADDRESS, ADDRESS + len(bytes) - 4)
     current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
     assert current_pc == ADDRESS + len(bytes) - 4
@@ -348,18 +354,17 @@ def test_build_trampoline_call_jit_elt_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_custom_setup
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        # print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Handler
     fixer_handler = fixer_handler_setup
     # Emulation
     called_address = RET_ADDRESS - 24
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
-    # Write saved values and the return address in the stack
-    fixer_handler.hook_handler(uc_emul)
     uc_emul.reg_write(UC_CALL_TMP_REG, called_address)
+    fixer_handler.hook_handler(uc_emul)
+    fixer_handler.hook_instr_tracer(uc_emul)
+    # Start emulation
     uc_emul.emu_start(ADDRESS, called_address)
     current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
     assert current_pc == called_address
@@ -377,17 +382,15 @@ def test_build_trampoline_ret_from_jit_elt_correct_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_custom_setup
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        # print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Handler
     fixer_handler = fixer_handler_setup
     fixer_handler.shadow_stack.append(RET_ADDRESS)
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.mem_write(ADDRESS, bytes)
-    # Write saved values and the return address in the stack
     fixer_handler.hook_handler(uc_emul)
+    fixer_handler.hook_instr_tracer(uc_emul)
     uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     fixer_cmp_reg = uc_emul.reg_read(UC_FIXER_CMP_REG)
     assert len(fixer_handler.shadow_stack) == 0
@@ -406,9 +409,7 @@ def test_build_trampoline_ret_from_jit_elt_incorrect_execution(
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_custom_setup
-    for i in cap_disasm.disasm(bytes, ADDRESS):
-        # print("0x%x:\t%s\t%s" % (i.address, i.mnemonic, i.op_str))
-        pass
+    cap_disasm_bytes(cap_disasm, bytes, ADDRESS)
     # Handler
     fixer_handler = fixer_handler_setup
     fixer_handler.shadow_stack.append(RET_ADDRESS - 8)  # Differrent value!!
@@ -417,6 +418,7 @@ def test_build_trampoline_ret_from_jit_elt_incorrect_execution(
     uc_emul.mem_write(ADDRESS, bytes)
     # Write saved values and the return address in the stack
     fixer_handler.hook_handler(uc_emul)
+    fixer_handler.hook_instr_tracer(uc_emul)
     uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     fixer_cmp_reg = uc_emul.reg_read(UC_FIXER_CMP_REG)
     assert len(fixer_handler.shadow_stack) == 0
