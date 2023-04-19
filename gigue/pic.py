@@ -4,7 +4,11 @@ from typing import List
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CMP_REG, HIT_CASE_REG
-from gigue.exceptions import BuilderException, CallNumberException, EmptySectionException
+from gigue.exceptions import (
+    BuilderException,
+    CallNumberException,
+    EmptySectionException,
+)
 from gigue.helpers import flatten_list, gaussian_between
 from gigue.instructions import Instruction, JInstruction
 from gigue.method import Method

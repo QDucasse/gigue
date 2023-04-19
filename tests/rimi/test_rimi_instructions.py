@@ -16,6 +16,7 @@ from tests.rimi.conftest import (
     UC_RIMI_SSP_REG,
 )
 
+
 # ===================================
 #        Disassembly Tests
 # ===================================
