@@ -5,7 +5,7 @@ import os
 import random
 import subprocess
 import sys
-from typing import List, Type
+from typing import List, Optional, Type
 
 from benchmarks.data import (
     CompilationData,
@@ -49,10 +49,12 @@ class Runner:
     DUMP_FILE: str = "out.dump"
     ROCKET_FILE: str = "out.rocket"
 
-    def __init__(self):
+    def __init__(self, config_file: Optional[str]):
         self.parser: LogParser = LogParser()
+        if config_file is None:
+            config_file = Runner.CONFIG_DIR + "default.json"
         self.config_data: ConfigData = self.load_config(
-            Runner.CONFIG_DIR + "default.json"
+            config_file=config_file
         )
         self.input_data = self.config_data["input_data"]
         self.generation_ok: int = 0
@@ -75,6 +77,15 @@ class Runner:
             )
 
     def load_config(self, config_file: str) -> ConfigData:
+        try:
+            subprocess.run(["make", "cleanall"], timeout=10, check=True)
+        except (
+            FileNotFoundError,
+            subprocess.CalledProcessError,
+            subprocess.TimeoutExpired,
+        ) as err:
+            logger.error(err)
+            raise
         try:
             with open(config_file, "r") as config:
                 config_data: ConfigData = json.load(config)
@@ -140,13 +151,13 @@ class Runner:
                 pics_cmp_reg=self.input_data["pics_cmp_reg"],
                 pics_hit_case_reg=self.input_data["pics_hit_case_reg"],
             )
+            print(type(generator))
             # Generation complete!
             self.generation_ok = 1
         except GeneratorException as err:
             logger.exception(err)
             # Exit run
             self.generation_ok = 0
-            raise
         try:
             # Generate the binary
             generator.main()
@@ -154,7 +165,6 @@ class Runner:
             logger.exception(err)
             # Exit run
             self.generation_ok = 0
-            raise
 
         # Fill the generation data
         # \_________________________
@@ -237,7 +247,6 @@ class Runner:
         ) as err:
             logger.error(err)
             self.execution_ok = 0
-            raise
         # Parse execution logs
         emulation_data: EmulationData = self.parser.parse_rocket_log(
             log_file=Runner.BIN_DIR + Runner.ROCKET_FILE,
@@ -286,7 +295,6 @@ class Runner:
         ) as err:
             logger.error(err)
             consolidation_ok = 0
-            raise
         consolidation_data: ConsolidationData = {
             "consolidation_ok": consolidation_ok,
             "run_path": run_dir_name,
@@ -299,7 +307,7 @@ def main(argv=None) -> int:
         argv = sys.argv[1:]
 
     config_file: str = f"{Runner.CONFIG_DIR}{argv[0]}.json"
-    runner = Runner()
+    runner = Runner(config_file)
     # TODO: Setup logger to debug
     # Check environment variables
     try:

@@ -48,7 +48,6 @@ class LogParser:
             # If missing info in the dump trigger flag
             logger.error(err)
             dump_ok = 0
-            raise
         # Format output data
         dump_info: DumpData = {
             "dump_ok": dump_ok,
@@ -83,7 +82,6 @@ class LogParser:
             # If missing info in the logs trigger flag
             logger.error(err)
             emulation_ok = 0
-            raise
         # Format output data
         emulation_info: EmulationData = {
             "emulation_ok": emulation_ok,
