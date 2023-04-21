@@ -11,7 +11,10 @@ The project was developed using `pipenv` and can be installed with:
 $ pipenv install gigue
 ```
 
-
+If you have an issue while executing `pipenv install`, you may need a few packages regarding `ssl` and `bzip2`:
+```bash
+sudo apt-get install build-essential zlib1g-dev libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev
+```
 
 ## Documentation
 
@@ -40,7 +43,7 @@ The project consists of three main parts:
 
 ## Binary Generation
 
-> Note: a RISC-V compilation toolchain needs to be installed
+> Note: a RISC-V compilation toolchain needs to be installed. This tool was developed in a project using the toolchain available in [rocket-tools](https://github.com/chipsalliance/rocket-tools).
 
 Once the binaries are generated in the `bin/` directory, they can be transformed to ELF files using:
 ```bash
