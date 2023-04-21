@@ -6,14 +6,38 @@
 
 ## Installation
 
-The project was developed using `pipenv` and can be installed with:
+The project was developed using `pipenv` and Python 3.9. It can be installed with:
+
 ```bash
-$ pipenv install gigue
+# Install required library headers for pyenv
+sudo apt-get install build-essential zlib1g-dev libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev
+
+# Install pyenv to manage Python versions
+curl https://pyenv.run | bash
+
+# Update PATH (append these to ~/.bashrc)
+export PYENV_ROOT="$HOME/.pyenv"
+command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+
+# Install pip
+sudo apt-get install python3-pip
+
+# Install pipenv
+pip install --user pipenv
+
+# Update PATH (append these to ~/.bashrc)
+export PIPENV_BIN="$HOME/.local/bin"
+command -v pipenv >/dev/null || export PATH="$PIPENV_BIN:$PATH"
 ```
 
-If you have an issue while executing `pipenv install`, you may need a few packages regarding `ssl` and `bzip2`:
+## Usage
+
 ```bash
-sudo apt-get install build-essential zlib1g-dev libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev
+# One binary can be generated with
+python -m gigue 
+# A full run using a configuration in benchmarks/config/
+python -m benchmarks default  # for default.json config
 ```
 
 ## Documentation
@@ -45,7 +69,9 @@ The project consists of three main parts:
 
 > Note: a RISC-V compilation toolchain needs to be installed. This tool was developed in a project using the toolchain available in [rocket-tools](https://github.com/chipsalliance/rocket-tools).
 
-Once the binaries are generated in the `bin/` directory, they can be transformed to ELF files using:
+DOC WIP
+
+<!-- Once the binaries are generated in the `bin/` directory, they can be transformed to ELF files using:
 ```bash
 $ riscv64-unknown-linux-gnu-objcopy --input-target=binary --output-target=elf32-little jit.bin jit.elf
 $ riscv64-unknown-linux-gnu-readelf -a jit.elf  
@@ -55,21 +81,19 @@ They can be disassembled with either of the following:
 ```bash
 $ riscv64-unknown-linux-gnu-objdump -m riscv -b binary --adjust-vma=0x1000 -D jit.elf
 $ riscv64-unknown-linux-gnu-objdump -m riscv  --adjust-vma=0x1000 -D jit.elf
-```
+``` -->
 
 
 ## Development
 
-The project was developed using `pipenv` and can be installed and run with:
-```bash
-$ pipenv install
-$ pipenv shell
-$ python -m gigue
-```
-
 To run all the tests on all environments or specific ones, run:
-```
-$ tox           # all environments
-$ tox -e check  # run the linters and type checker (do it before pushing!)
-$ tox -e py39   # run one environment
+```bash
+# Install test dependencies
+pipenv install --dev  
+# Launching the tests
+pytest                
+# Running all test environments
+tox                   
+# Running the linters and type checker (do it before pushing!)
+tox -e check          
 ```
