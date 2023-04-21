@@ -72,7 +72,7 @@ $(bin_dir)/out.bin.dump: $(bin_dir)/out.bin
 $(bin_dir)/out.rocket: $(bin_dir)/out.elf
 	$(ROCKET_EMU)/emulator-freechips.rocketchip.system-freechips.rocketchip.system.DefaultConfig \
 	+max-cycles=$(ROCKET_CYCLES) +verbose $< 3>&1 1>&2 2>&3 | \
-	 spike-dasm > $@
+	 $(RISCV)/bin/spike-dasm > $@
 
 
 DUMPS=$(wildcard $(bin_dir)/*.dump)
