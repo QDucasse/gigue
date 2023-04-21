@@ -23,8 +23,13 @@ from typing import Type
 
 from gigue.constants import BIN_DIR, CALLER_SAVED_REG
 from gigue.exceptions import GeneratorException
+from gigue.fixer.fixer_generator import FIXERTrampolineGenerator
 from gigue.generator import Generator, TrampolineGenerator
 from gigue.helpers import bytes_to_int
+from gigue.rimi.rimi_generator import (
+    RIMIFullTrampolineGenerator,
+    RIMIShadowStackTrampolineGenerator,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +53,12 @@ class Parser(argparse.ArgumentParser):
             "--uses_trampolines",
             action="store_true",
             help="Name of the binary file",
+        )
+        self.add_argument(
+            "--isolation",
+            type=str,
+            default="none",
+            help="Start address of the interpretation loop",
         )
         # Addresses
         self.add_argument(
@@ -172,11 +183,20 @@ def main(argv=None):
     logger.debug("🌳 Instanciating Generator.")
 
     gen_class: Type[Generator]
-    if args.uses_trampolines:
-        gen_class = TrampolineGenerator
-    else:
-        gen_class = Generator
-
+    if args.isolation == "none":
+        if args.uses_trampolines:
+            gen_class = TrampolineGenerator
+        else:
+            gen_class = Generator
+    elif args.isolation == "fixer":
+        assert args.uses_trampolines
+        gen_class = FIXERTrampolineGenerator
+    elif args.isolation == "rimiss":
+        assert args.uses_trampolines
+        gen_class = RIMIShadowStackTrampolineGenerator
+    elif args.isolation == "rimifull":
+        assert args.uses_trampolines
+        gen_class = RIMIFullTrampolineGenerator
     try:
         gen = gen_class(
             # Addresses

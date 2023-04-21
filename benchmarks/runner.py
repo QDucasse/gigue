@@ -53,9 +53,11 @@ class Runner:
         self.parser: LogParser = LogParser()
         if config_file is None:
             config_file = Runner.CONFIG_DIR + "default.json"
-        self.config_data: ConfigData = self.load_config(
-            config_file=config_file
-        )
+        self.config_data: ConfigData = self.load_config(config_file=config_file)
+        if not os.path.exists(Runner.BIN_DIR):
+            os.mkdir(Runner.BIN_DIR)
+        if not os.path.exists(Runner.RESULTS_DIR):
+            os.mkdir(Runner.RESULTS_DIR)
         self.input_data = self.config_data["input_data"]
         self.generation_ok: int = 0
         self.compilation_ok: int = 0
