@@ -3,6 +3,12 @@ ifndef RISCV
 $(error Please set environment variable RISCV to your installed toolchain location (i.e. /opt/riscv-rocket))
 endif
 
+# Check for ROCKET toolchain env variable
+ifndef ROCKET
+$(error Please set environment variable ROCKET to the rocket-chip repo (it is expected to have the emulator compiled))
+endif
+
+
 # Directories
 src_dir = resources/common
 bin_dir = bin
@@ -14,6 +20,10 @@ RISCV_GCC ?= $(RISCV_PREFIX)gcc
 RISCV_GCC_OPTS ?= -march=rv64g -mabi=lp64d -DPREALLOCATE=1 -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf
 RISCV_LINK_OPTS ?= -static -nostdlib -nostartfiles -lm -lgcc -T $(src_dir)/test.ld
 RISCV_OBJDUMP ?= $(RISCV_PREFIX)objdump --disassemble --full-contents --disassemble-zeroes --section=.text --section=.text.startup --section=.text.init --section=.data
+
+# Rocket
+ROCKET_EMU ?= $(ROCKET)/emulator
+ROCKET_CYCLES ?= 100000000
 
 # Define sources
 SRCS_C=$(wildcard $(src_dir)/*.c) 
@@ -32,8 +42,10 @@ default: $(bin_dir)/out
 
 dump: $(bin_dir)/out.dump $(bin_dir)/out.bin.dump
 
+exec: $(bin_dir)/out.rocket
+
 # Link all the object files!
-$(bin_dir)/out: $(OBJS) $(bin_dir)/out.bin
+$(bin_dir)/out.elf: $(OBJS) $(bin_dir)/out.bin
 	$(RISCV_GCC) $(RISCV_LINK_OPTS) $(OBJS) -o $@
 
 # the objcopy way, the issue with this method is that the labels are auto generated!
@@ -48,7 +60,7 @@ bin/%.o: $(src_dir)/%.S $(bin_dir)/out.bin
 	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
 
 # Dumps
-$(bin_dir)/out.dump: $(bin_dir)/out
+$(bin_dir)/out.dump: $(bin_dir)/out.elf
 	$(RISCV_OBJDUMP) $< > $@
 
 $(bin_dir)/out.bin.dump: $(bin_dir)/out.bin
@@ -56,10 +68,23 @@ $(bin_dir)/out.bin.dump: $(bin_dir)/out.bin
 	$(RISCV_OBJDUMP) $@.temp > $@
 	rm $@.temp
 
+# Rocket eecution
+$(bin_dir)/out.rocket: $(bin_dir)/out.elf
+	$(ROCKET_EMU)/emulator-freechips.rocketchip.system-freechips.rocketchip.system.DefaultConfig \
+	+max-cycles=$(ROCKET_CYCLES) +verbose $< 3>&1 1>&2 2>&3 | \
+	 spike-dasm > $@
+
+
 DUMPS=$(wildcard $(bin_dir)/*.dump)
+BINS=$(wildcard $(bin_dir)/*.bin)
 TEMPS=$(wildcard $(bin_dir)/*.temp)
+ELFS=$(wildcard $(bin_dir)/*.elf)
+ROCKET_LOGS=$(wildcard $(bin_dir)/*.rocket)
 
 .PHONY: clean
 
 clean:
-	rm -rf $(OBJS) $(DUMPS) $(TEMPS) $(bin_dir)/out
+	rm -rf $(ELFS) $(OBJS) $(DUMPS) $(TEMPS) $(ROCKET_LOGS)
+
+cleanall: clean
+	rm -rf $(BINS)
