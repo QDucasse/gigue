@@ -70,7 +70,7 @@ class Parser(argparse.ArgumentParser):
             "-N",
             "--nbelt",
             type=int,
-            default=200,
+            default=100,
             help="Number of JIT code elements (methods/pics)",
         )
         self.add_argument(
