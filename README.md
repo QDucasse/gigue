@@ -4,7 +4,7 @@
 
 ---
 
-**Gigue** (*french for jitter*) consists of a machine code generator for RISC-V that mimics the execution of JIT code in concordance with an interpretation loop. The objective is to compare memory isolation memory on a simple model and easily (re-)generate the corresponding machine code parts for both the interpretation loop and JITed code. The base model generates an interpretation loop, a succession of calls to the JIT code. It generates a static binary with both binaries (interpretation loop and JIT elements) along with data the JIT elements use and basic OS facilities to run on top of the [Rocket CPU](https://github.com/chipsalliance/rocket-chip).
+**Gigue** (*french for jitter*) consists of a machine code generator for RISC-V that mimics the execution of JIT code in concordance with an interpretation loop. The objective is to compare memory isolation memory on a simple model and easily (re-)generate the corresponding machine code parts for both the interpretation loop and JITed code. The base model generates an interpretation loop, a succession of calls to the JIT code. It generates a static binary with both binaries (interpretation loop and JIT elements) along with data the JIT elements use and basic OS facilities to run on top of the [Rocket CPU](https://github.com/chipsalliance/rocket-chip) (v1.5 version).
 
 ## Installation
 
@@ -110,7 +110,7 @@ The [`Makefile`](https://github.com/QDucasse/gigue/blob/main/Makefile) then prov
   2. compiles the `gigue` binary using the [`template.S`](https://github.com/QDucasse/gigue/blob/main/resources/template.S)that loads `out.bin`, loads data address in a register and puts the data right after.
   3. links them all together using a slightly modified [linker script](https://github.com/QDucasse/gigue/blob/main/resources/test.ld) than the one provided in the Rocket tests suite to generate an `elf` file
   4. generates the dump of both the generated `gigue` binary alone (obtained by "forcing" a conversion using `obj-copy` before `obj-dump`) and the linked binary
-- `make exec` runs the binary on top of the rocket emulator, default configuration is `DefaultConfig` but can be specified with *e.g.* `ROCKET_CONFIG=SmallConfig` and maximum test cycless with `ROCKET_MAX_CYCLES=10000000`.
+- `make exec` runs the binary on top of the rocket emulator, default configuration is `DefaultConfig` but can be specified with *e.g.* `ROCKET_CONFIG=DefaultSmallConfig` and maximum test cycles with `ROCKET_MAX_CYCLES=10000000`.
 
 TODO: Expand on the execution model
 
