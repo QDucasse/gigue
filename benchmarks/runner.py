@@ -5,7 +5,7 @@ import os
 import random
 import subprocess
 import sys
-from typing import List, Optional, Type
+from typing import List, Optional, Tuple, Type
 
 from benchmarks.data import (
     CompilationData,
@@ -16,6 +16,8 @@ from benchmarks.data import (
     ExecutionData,
     FullData,
     GenerationData,
+    GigueData,
+    JITElementsData,
     MethodData,
     PICData,
     RunData,
@@ -51,6 +53,12 @@ class Runner:
 
     def __init__(self, config_file: Optional[str]):
         self.parser: LogParser = LogParser()
+        # Check environment variables
+        try:
+            self.check_envs()
+        except RunnerEnvironmentException as err:
+            logger.error(err)
+            raise
         if config_file is None:
             config_file = Runner.CONFIG_DIR + "default.json"
         self.config_data: ConfigData = self.load_config(config_file=config_file)
@@ -96,15 +104,15 @@ class Runner:
             raise
         return config_data
 
-    def store_full_data(self, full_data: FullData, data_file: str) -> None:
+    def store_gigue_data(self, gigue_data: GigueData, data_file: str) -> None:
         try:
             with open(data_file, "w") as outfile:
-                json.dump(full_data, outfile, indent=2, separators=(",", ": "))
+                json.dump(gigue_data, outfile, indent=2, separators=(",", ": "))
         except EnvironmentError as err:
             logger.error(err)
             raise
 
-    def generate_binary(self) -> GenerationData:
+    def generate_binary(self) -> Tuple[GenerationData, JITElementsData]:
         # Setup seed
         # \____________
         if self.input_data["seed"] == 0:
@@ -203,15 +211,17 @@ class Runner:
                     "methods_info": pic_methods_info,
                 }
                 pics_info.append(pic_data)
+        jit_elements_data: JITElementsData = {
+            "methods_info": methods_info,
+            "pics_info": pics_info,
+        }
         generation_data: GenerationData = {
             "generation_ok": self.generation_ok,
             "gigue_seed": seed,
             "nb_method": generator.method_count,
             "nb_pics": generator.pic_count,
-            "methods_info": methods_info,
-            "pics_info": pics_info,
         }
-        return generation_data
+        return generation_data, jit_elements_data
 
     def compile_binary(self) -> CompilationData:
         # Compile binary
@@ -272,7 +282,11 @@ class Runner:
         return execution_data
 
     def consolidate_logs(
-        self, base_dir_name: str, config_name: str, run_number: int
+        self,
+        base_dir_name: str,
+        config_name: str,
+        run_number: int,
+        jit_elements_data: JITElementsData,
     ) -> ConsolidationData:
         try:
             # Create results directory
@@ -282,20 +296,28 @@ class Runner:
             if run_number == 0 and not os.path.exists(base_dir_name):
                 os.makedirs(base_dir_name)
             os.makedirs(run_dir_name)
+            # Base name
+            base_name: str = (
+                f"{run_dir_name}{config_name}_{formatted_date}-{run_number}"
+            )
+            # Store JIT elements data
+            self.store_gigue_data(
+                gigue_data=jit_elements_data, data_file=f"{base_name}.json"
+            )
             # Rename elf
             os.rename(
                 src=Runner.BIN_DIR + Runner.ELF_FILE,
-                dst=f"{run_dir_name}{config_name}_{formatted_date}-{run_number}.elf",
+                dst=f"{base_name}.elf",
             )
             # Rename dump
             os.rename(
                 src=Runner.BIN_DIR + Runner.DUMP_FILE,
-                dst=f"{run_dir_name}{config_name}_{formatted_date}-{run_number}.dump",
+                dst=f"{base_name}.dump",
             )
             # Rename exec log
             os.rename(
                 src=Runner.BIN_DIR + Runner.ROCKET_FILE,
-                dst=f"{run_dir_name}{config_name}_{formatted_date}-{run_number}.rocket",
+                dst=f"{base_name}.rocket",
             )
             # Cleanup
             subprocess.run(["make", "clean"], timeout=10, check=True)
@@ -314,33 +336,34 @@ class Runner:
         return consolidation_data
 
 
-def main(argv=None) -> int:
+def main(argv: Optional[List[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
 
+    if len(argv) != 1:
+        raise OSError(
+            "Wrong usage: python -m benchmarks <config_name> (should be in the config"
+            " directory)"
+        )
     config_file: str = f"{Runner.CONFIG_DIR}{argv[0]}.json"
-    runner = Runner(config_file)
+    runner: Runner = Runner(config_file)
     # TODO: Setup logger to debug
-    # Check environment variables
-    try:
-        runner.check_envs()
-    except RunnerEnvironmentException as err:
-        logger.error(err)
-        raise
     # Load the config
     config_data: ConfigData = runner.load_config(config_file=config_file)
-    config_name = config_file.split("/")[-1].split(".")[0]  # for consolidation
+    config_name: str = config_file.split("/")[-1].split(".")[0]  # for consolidation
     # Format result directory name
-    now = datetime.datetime.now()
-    formatted_date = now.strftime("%Y-%m-%d_%H-%M-%S")
-    base_dir_name = f"{Runner.RESULTS_DIR}{config_name}_{formatted_date}/"
-    nb_runs = config_data["nb_runs"]
+    now: datetime.datetime = datetime.datetime.now()
+    formatted_date: str = now.strftime("%Y-%m-%d_%H-%M-%S")
+    base_dir_name: str = f"{Runner.RESULTS_DIR}{config_name}_{formatted_date}/"
+    nb_runs: int = config_data["nb_runs"]
     # Setup full data
     full_data: FullData = {"config_data": config_data, "run_data": []}
     # Launch the runs
     for run_number in range(nb_runs):
         # Generate binary
-        generation_data: GenerationData = runner.generate_binary()
+        generation_data: GenerationData
+        jit_elements_data: JITElementsData
+        generation_data, jit_elements_data = runner.generate_binary()
         # Compile binary
         compilation_data: CompilationData = runner.compile_binary()
         # Execute binary
@@ -353,6 +376,7 @@ def main(argv=None) -> int:
             base_dir_name=base_dir_name,
             config_name=config_name,
             run_number=run_number,
+            jit_elements_data=jit_elements_data,
         )
         # Agglomerate data
         run_data: RunData = {
@@ -363,5 +387,5 @@ def main(argv=None) -> int:
             "consolidation_data": consolidation_data,
         }
         full_data["run_data"].append(run_data)
-    runner.store_full_data(full_data, f"{base_dir_name}data.json")
+    runner.store_gigue_data(gigue_data=full_data, data_file=f"{base_dir_name}data.json")
     return 0

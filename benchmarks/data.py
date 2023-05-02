@@ -3,12 +3,16 @@ from __future__ import annotations
 from typing import List, TypedDict
 
 
-class ConfigData(TypedDict):
+class GigueData(TypedDict):
+    pass
+
+
+class ConfigData(GigueData):
     nb_runs: int
     input_data: InputData
 
 
-class InputData(TypedDict):
+class InputData(GigueData):
     # Global info
     uses_trampolines: int
     isolation_solution: str
@@ -38,7 +42,7 @@ class InputData(TypedDict):
     rocket_max_cycles: int
 
 
-class MethodData(TypedDict):
+class MethodData(GigueData):
     address: int
     body_size: int
     call_number: int
@@ -47,7 +51,7 @@ class MethodData(TypedDict):
     local_vars_nb: int
 
 
-class PICData(TypedDict):
+class PICData(GigueData):
     address: int
     case_number: int
     method_max_size: int
@@ -56,22 +60,25 @@ class PICData(TypedDict):
     methods_info: List[MethodData]
 
 
-class GenerationData(TypedDict):
+class GenerationData(GigueData):
     generation_ok: int
     # Stats on the generation
     gigue_seed: int
     nb_method: int
     nb_pics: int
+
+
+class JITElementsData(GigueData):
     methods_info: List[MethodData]
     pics_info: List[PICData]
 
 
-class CompilationData(TypedDict):
+class CompilationData(GigueData):
     compilation_ok: int
     dump_data: DumpData
 
 
-class DumpData(TypedDict):
+class DumpData(GigueData):
     dump_ok: int
     # Binary info
     start_address: int
@@ -81,12 +88,12 @@ class DumpData(TypedDict):
     # Syscalls info?
 
 
-class ExecutionData(TypedDict):
+class ExecutionData(GigueData):
     execution_ok: int
     emulation_data: EmulationData
 
 
-class EmulationData(TypedDict):
+class EmulationData(GigueData):
     emulation_ok: int
     # Emulation info
     verilator_seed: int
@@ -98,12 +105,12 @@ class EmulationData(TypedDict):
     # nb_custom: int
 
 
-class ConsolidationData(TypedDict):
+class ConsolidationData(GigueData):
     consolidation_ok: int
     run_path: str
 
 
-class RunData(TypedDict):
+class RunData(GigueData):
     run_number: int
     generation_data: GenerationData
     compilation_data: CompilationData
@@ -111,6 +118,6 @@ class RunData(TypedDict):
     consolidation_data: ConsolidationData
 
 
-class FullData(TypedDict):
+class FullData(GigueData):
     config_data: ConfigData
     run_data: List[RunData]
