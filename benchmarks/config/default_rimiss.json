@@ -18,6 +18,8 @@
         "pics_method_max_size": 25,
         "pics_max_cases": 5,
         "pics_cmp_reg": 6,
-        "pics_hit_case_reg": 5
+        "pics_hit_case_reg": 5,
+        "rocket_config": "DefaultConfig",
+        "rocket_max_cycles": 100000000
     }
 }

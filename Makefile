@@ -24,6 +24,7 @@ RISCV_OBJDUMP ?= $(RISCV_PREFIX)objdump --disassemble --full-contents --disassem
 # Rocket
 ROCKET_EMU ?= $(ROCKET)/emulator
 ROCKET_CYCLES ?= 100000000
+ROCKET_CONFIG ?= DefaultConfig
 
 # Define sources
 SRCS_C=$(wildcard $(src_dir)/*.c) 
@@ -70,9 +71,9 @@ $(bin_dir)/out.bin.dump: $(bin_dir)/out.bin
 
 # Rocket eecution
 $(bin_dir)/out.rocket: $(bin_dir)/out.elf
-	$(ROCKET_EMU)/emulator-freechips.rocketchip.system-freechips.rocketchip.system.DefaultConfig \
+	$(ROCKET_EMU)/emulator-freechips.rocketchip.system-freechips.rocketchip.system.$(ROCKET_CONFIG) \
 	+max-cycles=$(ROCKET_CYCLES) +verbose $< 3>&1 1>&2 2>&3 | \
-	 spike-dasm > $@
+	$(RISCV)/bin/spike-dasm > $@
 
 
 DUMPS=$(wildcard $(bin_dir)/*.dump)

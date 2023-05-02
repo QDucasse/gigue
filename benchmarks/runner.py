@@ -153,7 +153,6 @@ class Runner:
                 pics_cmp_reg=self.input_data["pics_cmp_reg"],
                 pics_hit_case_reg=self.input_data["pics_hit_case_reg"],
             )
-            print(type(generator))
             # Generation complete!
             self.generation_ok = 1
         except GeneratorException as err:
@@ -238,8 +237,19 @@ class Runner:
 
     def execute_binary(self, start_address: int, ret_address: int) -> ExecutionData:
         # Execute on top of rocket
+        rocket_config = self.input_data["rocket_config"]
+        rocket_max_cycles = self.input_data["rocket_max_cycles"]
         try:
-            subprocess.run(["make", "exec"], timeout=200, check=True)
+            subprocess.run(
+                [
+                    "make",
+                    "exec",
+                    f"ROCKET_CYCLES={rocket_max_cycles}",
+                    f"ROCKET_CONFIG={rocket_config}",
+                ],
+                timeout=200,
+                check=True,
+            )
             # Execution complete!
             self.execution_ok = 1
         except (

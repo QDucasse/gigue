@@ -33,6 +33,9 @@ class InputData(TypedDict):
     pics_max_cases: int
     pics_cmp_reg: int
     pics_hit_case_reg: int
+    # Execution info
+    rocket_config: str
+    rocket_max_cycles: int
 
 
 class MethodData(TypedDict):
