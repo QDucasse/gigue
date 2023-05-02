@@ -39,7 +39,7 @@ OBJS=$(patsubst $(src_dir)/%.c,$(bin_dir)/%.o,$(SRCS_C)) $(patsubst $(src_dir)/%
 # Headers!
 incs  += -I$(src_dir)
 
-default: $(bin_dir)/out
+default: dump
 
 dump: $(bin_dir)/out.dump $(bin_dir)/out.bin.dump
 

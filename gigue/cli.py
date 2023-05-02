@@ -52,13 +52,16 @@ class Parser(argparse.ArgumentParser):
             "-T",
             "--uses_trampolines",
             action="store_true",
-            help="Name of the binary file",
+            help="Uses trampoline for calls/returns",
         )
         self.add_argument(
             "--isolation",
             type=str,
             default="none",
-            help="Start address of the interpretation loop",
+            help=(
+                "Isolation solution to protect the binary (none, fixer, rimiss,"
+                " rimifull)"
+            ),
         )
         # Addresses
         self.add_argument(
