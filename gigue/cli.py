@@ -189,13 +189,19 @@ def main(argv=None):
         else:
             gen_class = Generator
     elif args.isolation == "fixer":
-        assert args.uses_trampolines
+        assert (
+            args.uses_trampolines
+        ), "FIXER requires the use of trampolines (use the -T flag)."
         gen_class = FIXERTrampolineGenerator
     elif args.isolation == "rimiss":
-        assert args.uses_trampolines
+        assert (
+            args.uses_trampolines
+        ), "RIMI (shadow stack) requires the use of trampolines (use the -T flag)."
         gen_class = RIMIShadowStackTrampolineGenerator
     elif args.isolation == "rimifull":
-        assert args.uses_trampolines
+        assert (
+            args.uses_trampolines
+        ), "RIMI (full) requires the use of trampolines (use the -T flag)."
         gen_class = RIMIFullTrampolineGenerator
     try:
         gen = gen_class(
