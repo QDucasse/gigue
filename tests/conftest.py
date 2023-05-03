@@ -35,43 +35,48 @@ TEST_LOG_DIR = "log/tests/"
 if not os.path.exists(TEST_LOG_DIR):
     os.mkdir(TEST_LOG_DIR)
 
-# TODO: Dedicated test logger
-# For now use root logger
-logger = logging.getLogger(__name__)
-
-
-def pytest_configure(config):
-    # Set up name format  for test logfiles
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    config.option.log_file = TEST_LOG_DIR + "test_run_" + timestamp
-    # Keep only 10 newest files
-    log_files = [file for file in os.listdir(TEST_LOG_DIR) if "test_run" in file]
-    full_paths = [os.path.join(TEST_LOG_DIR, file) for file in log_files]
-    full_paths.sort(key=os.path.getmtime, reverse=True)
-    for file in full_paths[9:]:
-        os.remove(file)
-
+logger = logging.getLogger("gigue")
 
 # Seed for reproducibility
 SEED = bytes_to_int(os.urandom(16))
 random.seed(SEED)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def log_seed():
+    logger.info(f"🌱 Seed for this test run: {SEED}")
+
+
 @pytest.fixture(scope="function", autouse=True)
-def disable_root_log(caplog):
-    caplog.set_level(logging.CRITICAL, logger="root")
+def disable_logger(caplog):
+    caplog.set_level(logging.CRITICAL, logger="gigue")
 
 
 @pytest.fixture(scope="function")
 def log_trace(request, caplog):
-    caplog.set_level(logging.DEBUG, logger="root")
+    caplog.set_level(logging.DEBUG, logger="gigue")
     logger.info(f"Tracing test '{request.node.name}'  🚀")
-    logger.info(f"🌱 Seed for this test run: {SEED}")
 
     def fin():
         logger.info(f"Trace complete for test '{request.node.name}' 🏁")
+        caplog.set_level(logging.CRITICAL, logger="gigue")
 
     request.addfinalizer(fin)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def move_log_file():
+    # Set up name format  for test logfiles
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    test_log = f"{TEST_LOG_DIR}test_run_{timestamp}.log"
+    os.rename("log/gigue.log", test_log)
+    # Keep only 10 newest files
+    log_files = [file for file in os.listdir(TEST_LOG_DIR) if "test_run" in file]
+    full_paths = [os.path.join(TEST_LOG_DIR, file) for file in log_files]
+    full_paths.sort(key=os.path.getmtime, reverse=True)
+    for file in full_paths[9:]:
+        os.remove(file)
+    logger.info("Test run complete 🏁")
 
 
 # =================================================

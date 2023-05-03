@@ -28,7 +28,7 @@ from gigue.method import Method
 from gigue.pic import PIC
 from gigue.trampoline import Trampoline
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gigue")
 
 
 class Generator:

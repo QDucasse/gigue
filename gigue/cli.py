@@ -31,7 +31,7 @@ from gigue.rimi.rimi_generator import (
     RIMIShadowStackTrampolineGenerator,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gigue")
 
 
 class Parser(argparse.ArgumentParser):

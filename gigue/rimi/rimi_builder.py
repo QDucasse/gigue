@@ -15,7 +15,7 @@ from gigue.instructions import BInstruction, IInstruction, UInstruction
 from gigue.rimi.rimi_constants import RIMI_SSP_REG
 from gigue.rimi.rimi_instructions import RIMIIInstruction, RIMISInstruction
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gigue.rimi")
 
 
 class RIMIShadowStackInstructionBuilder(InstructionBuilder):

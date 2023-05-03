@@ -13,7 +13,7 @@ from gigue.helpers import flatten_list, gaussian_between
 from gigue.instructions import Instruction, JInstruction
 from gigue.method import Method
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gigue")
 
 
 class PIC:

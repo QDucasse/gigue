@@ -4,7 +4,7 @@ from typing import List
 from gigue.builder import InstructionBuilder
 from gigue.instructions import Instruction
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gigue")
 
 
 class Trampoline:

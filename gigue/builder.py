@@ -34,7 +34,7 @@ from gigue.instructions import (
     UInstruction,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gigue")
 
 
 class InstructionBuilder:

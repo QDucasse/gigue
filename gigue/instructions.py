@@ -9,7 +9,7 @@ from gigue.helpers import format_to, format_to_aligned, int_to_bytes32, to_unsig
 # Note: Annotate with current typesss
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gigue")
 
 
 # TODO: Doc
