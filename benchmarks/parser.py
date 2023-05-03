@@ -181,3 +181,18 @@ class LogParser:
             raise
         # TODO: Use a data structure
         return seed, start_cycle, end_cycle
+
+
+if __name__ == "__main__":
+    parser = LogParser()
+    start_address, ret_address, _ = parser.extract_from_dump("bin/out.dump")
+    _, start_cycle, end_cycle = parser.extract_from_rocket_log(
+        start_address=start_address,
+        ret_address=ret_address,
+        rocket_log_file="bin/out.rocket",
+    )
+    print(
+        f"Start address: {hex(start_address)}\n"
+        f"Ret address:   {hex(ret_address)}\n"
+        f"Nb cycles:     {end_cycle - start_cycle}"
+    )

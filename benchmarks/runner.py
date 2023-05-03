@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import os
+import shutil
 import random
 import subprocess
 import sys
@@ -34,7 +35,7 @@ from gigue.rimi.rimi_generator import (
     RIMIShadowStackTrampolineGenerator,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gigue")
 
 
 class RunnerEnvironmentException(Exception):
@@ -46,10 +47,12 @@ class Runner:
     RESULTS_DIR: str = "benchmarks/results/"
     CONFIG_DIR: str = "benchmarks/config/"
     BIN_DIR: str = "bin/"
+    LOG_DIR: str = "log/"
     # Files
     ELF_FILE: str = "out.elf"
     DUMP_FILE: str = "out.dump"
     ROCKET_FILE: str = "out.rocket"
+    GIGUE_LOG_FILE: str = "gigue.log"
 
     def __init__(self, config_file: Optional[str]):
         self.parser: LogParser = LogParser()
@@ -304,18 +307,23 @@ class Runner:
             self.store_gigue_data(
                 gigue_data=jit_elements_data, data_file=f"{base_name}.json"
             )
-            # Rename elf
-            os.rename(
+            # Copy gigue log
+            shutil.copy(
+                src=Runner.LOG_DIR + Runner.GIGUE_LOG_FILE,
+                dst=f"{base_name}.log",
+            )
+            # Copy elf
+            shutil.copy(
                 src=Runner.BIN_DIR + Runner.ELF_FILE,
                 dst=f"{base_name}.elf",
             )
-            # Rename dump
-            os.rename(
+            # Copy dump
+            shutil.copy(
                 src=Runner.BIN_DIR + Runner.DUMP_FILE,
                 dst=f"{base_name}.dump",
             )
-            # Rename exec log
-            os.rename(
+            # Copy exec log
+            shutil.copy(
                 src=Runner.BIN_DIR + Runner.ROCKET_FILE,
                 dst=f"{base_name}.rocket",
             )
