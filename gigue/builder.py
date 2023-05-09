@@ -248,7 +248,9 @@ class InstructionBuilder:
         # Choose registers
         rs1: int
         rs2: int
-        [rs1, rs2] = random.choices(registers, k=2)
+        [rs1, rs2] = random.choices(
+            [0] + registers, k=2, weights=[50] + [5] * len(registers)
+        )
         # Define branch offset
         offset: int = random.choice(
             InstructionBuilder.size_offset(max_offset, call_size)

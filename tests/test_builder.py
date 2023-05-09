@@ -74,8 +74,8 @@ def test_build_random_j_instruction(execution_number):
 def test_build_random_b_instruction(execution_number):
     instr_builder = InstructionBuilder()
     instr = instr_builder.build_random_b_instruction(TEST_CALLER_SAVED_REG, 0x7FF)
-    assert instr.rs1 in TEST_CALLER_SAVED_REG
-    assert instr.rs2 in TEST_CALLER_SAVED_REG
+    assert instr.rs1 in TEST_CALLER_SAVED_REG + [0]
+    assert instr.rs2 in TEST_CALLER_SAVED_REG + [0]
     assert 0 <= instr.imm <= 0xFFF
     assert instr.imm % 2 == 0
 

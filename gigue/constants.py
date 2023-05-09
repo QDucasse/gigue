@@ -661,6 +661,13 @@ INSTRUCTIONS_INFO_ALIASES = {
     "ble": "bge",
     "bgtu": "bltu",
     "bleu": "bgeu",
+    # Branches compare to 0
+    "beqz": "beq",
+    "bnez": "bne",
+    "blez": "bge",
+    "bgez": "bge",
+    "bltz": "blt",
+    "bgtz": "blt",
 }
 
 for key, value in INSTRUCTIONS_INFO_ALIASES.items():
