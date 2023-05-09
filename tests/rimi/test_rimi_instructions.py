@@ -118,7 +118,6 @@ def test_unicorn_rimi_loads(
     cap_disasm_custom_setup,
     uc_emul_setup,
     rimi_handler_setup,
-    log_trace,
 ):
     constr = getattr(RIMIIInstruction, name)
     instr = constr(rs1=TEST_DATA_REG, rd=6, imm=0)
@@ -182,7 +181,7 @@ def test_unicorn_rimi_stores(
     assert uc_emul.mem_read(DATA_D1_ADDRESS, 8) == expected
 
 
-def test_unicorn_rimi_ls(rimi_handler_setup, rimi_uc_emul_full_setup, log_trace):
+def test_unicorn_rimi_ls(rimi_handler_setup, rimi_uc_emul_full_setup):
     instr = RIMIIInstruction.ls(rd=RA, rs1=RIMI_SSP_REG, imm=0)
     bytes = instr.generate_bytes()
     # Handler
@@ -203,7 +202,7 @@ def test_unicorn_rimi_ls(rimi_handler_setup, rimi_uc_emul_full_setup, log_trace)
 
 
 def test_unicorn_rimi_ss(
-    rimi_handler_setup, cap_disasm_custom_setup, rimi_uc_emul_full_setup, log_trace
+    rimi_handler_setup, cap_disasm_custom_setup, rimi_uc_emul_full_setup
 ):
     instr = RIMISInstruction.ss(rs1=RIMI_SSP_REG, rs2=RA, imm=0)
     bytes = instr.generate_bytes()
