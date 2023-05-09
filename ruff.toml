@@ -1,3 +1,4 @@
 # pyflakes, pycodestyle, isort
 select = ["F", "E", "W", "I001"]
 line-length = 89
+ignore = ["E741"]

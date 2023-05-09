@@ -2,11 +2,11 @@ import datetime
 import json
 import logging
 import os
-import shutil
 import random
+import shutil
 import subprocess
 import sys
-from typing import List, Optional, Tuple, Type
+from typing import Dict, List, Optional, Tuple, Type
 
 from benchmarks.data import (
     CompilationData,
@@ -24,12 +24,15 @@ from benchmarks.data import (
     RunData,
 )
 from benchmarks.parser import LogParser
+from gigue.constants import INSTRUCTIONS_INFO, InstructionInfo
 from gigue.exceptions import BuilderException, GeneratorException, MethodException
+from gigue.fixer.fixer_constants import FIXER_INSTRUCTIONS_INFO
 from gigue.fixer.fixer_generator import FIXERTrampolineGenerator
 from gigue.generator import Generator, TrampolineGenerator
 from gigue.helpers import bytes_to_int
 from gigue.method import Method
 from gigue.pic import PIC
+from gigue.rimi.rimi_constants import RIMI_INSTRUCTIONS_INFO
 from gigue.rimi.rimi_generator import (
     RIMIFullTrampolineGenerator,
     RIMIShadowStackTrampolineGenerator,
@@ -70,6 +73,8 @@ class Runner:
         if not os.path.exists(Runner.RESULTS_DIR):
             os.mkdir(Runner.RESULTS_DIR)
         self.input_data = self.config_data["input_data"]
+        self.gen_class: Type[Generator] = Generator
+        self.instructions_info: Dict[str, InstructionInfo] = {}
         self.generation_ok: int = 0
         self.compilation_ok: int = 0
         self.dump_ok: int = 0
@@ -124,31 +129,36 @@ class Runner:
 
         # Instanciate generator
         # \______________________
-        gen_class: Type[Generator]
         if self.input_data["isolation_solution"] == "none":
             if self.input_data["uses_trampolines"]:
-                gen_class = TrampolineGenerator
+                self.gen_class = TrampolineGenerator
+                self.instructions_info = INSTRUCTIONS_INFO
             else:
-                gen_class = Generator
+                self.gen_class = Generator
+                self.instructions_info = INSTRUCTIONS_INFO
         elif self.input_data["isolation_solution"] == "rimiss":
             assert self.input_data["uses_trampolines"]
-            gen_class = RIMIShadowStackTrampolineGenerator
+            self.gen_class = RIMIShadowStackTrampolineGenerator
+            self.instructions_info = RIMI_INSTRUCTIONS_INFO
         elif self.input_data["isolation_solution"] == "rimifull":
             assert self.input_data["uses_trampolines"]
-            gen_class = RIMIFullTrampolineGenerator
+            self.gen_class = RIMIFullTrampolineGenerator
+            self.instructions_info = RIMI_INSTRUCTIONS_INFO
         elif self.input_data["isolation_solution"] == "fixer":
             assert self.input_data["uses_trampolines"]
-            gen_class = FIXERTrampolineGenerator
+            self.gen_class = FIXERTrampolineGenerator
+            self.instructions_info = FIXER_INSTRUCTIONS_INFO
         # TODO: raise unknown config
         try:
             # Instanciate the generator
-            generator: Generator = gen_class(
+            generator: Generator = self.gen_class(
                 # Addresses
                 jit_start_address=self.input_data["jit_start_address"],
                 interpreter_start_address=self.input_data["interpreter_start_address"],
                 # General
                 registers=self.input_data["registers"],
                 jit_elements_nb=self.input_data["jit_elements_nb"],
+                weights=self.input_data["weights"],
                 # Data
                 data_reg=self.input_data["data_reg"],
                 data_generation_strategy=self.input_data["data_generation_strategy"],
@@ -277,6 +287,7 @@ class Runner:
             log_file=Runner.BIN_DIR + Runner.ROCKET_FILE,
             start_address=start_address,
             ret_address=ret_address,
+            instructions_info=self.instructions_info,
         )
         execution_data: ExecutionData = {
             "execution_ok": self.execution_ok,

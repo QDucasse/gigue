@@ -23,6 +23,7 @@ class InputData(GigueData):
     # General
     jit_elements_nb: int
     registers: List[int]
+    weights: List[int]
     # Data info
     data_reg: int
     data_size: int
@@ -101,8 +102,50 @@ class EmulationData(GigueData):
     end_cycle: int
     nb_cycles: int
     # Instruction info?
-    # nb_jumps: int
-    # nb_custom: int
+    tracing_data: TracingData
+
+
+class TracingData(GigueData):
+    instrs_type: InstrTypeData
+    instrs_class: InstrClassData
+
+
+class InstrTypeData(GigueData):
+    I: int
+    R: int
+    U: int
+    B: int
+    J: int
+    S: int
+
+
+def default_instr_type_data() -> InstrTypeData:
+    return {
+        "I": 0,
+        "R": 0,
+        "U": 0,
+        "B": 0,
+        "J": 0,
+        "S": 0,
+    }
+
+
+class InstrClassData(GigueData):
+    arithmetic: int
+    branching: int
+    memory: int
+    custom: int
+    exception: int
+
+
+def default_instr_class_data() -> InstrClassData:
+    return {
+        "arithmetic": 0,
+        "branching": 0,
+        "memory": 0,
+        "custom": 0,
+        "exception": 0,
+    }
 
 
 class ConsolidationData(GigueData):

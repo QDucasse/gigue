@@ -17,6 +17,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0011111,
         funct3=0b000,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lbu1": InstructionInfo(
@@ -24,6 +25,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0011111,
         funct3=0b100,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lh1": InstructionInfo(
@@ -31,6 +33,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0011111,
         funct3=0b001,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lhu1": InstructionInfo(
@@ -38,6 +41,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0011111,
         funct3=0b101,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lw1": InstructionInfo(
@@ -45,6 +49,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0011111,
         funct3=0b010,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lwu1": InstructionInfo(
@@ -52,6 +57,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0011111,
         funct3=0b110,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "ld1": InstructionInfo(
@@ -59,6 +65,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0011111,
         funct3=0b011,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Duplicated stores
@@ -67,6 +74,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0111111,
         funct3=0b000,
         instr_type="S",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sh1": InstructionInfo(
@@ -74,6 +82,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0111111,
         funct3=0b001,
         instr_type="S",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sw1": InstructionInfo(
@@ -81,6 +90,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0111111,
         funct3=0b010,
         instr_type="S",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sd1": InstructionInfo(
@@ -88,6 +98,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0111111,
         funct3=0b011,
         instr_type="S",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Domain switching routines
@@ -96,6 +107,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1110111,
         funct3=0b000,
         instr_type="I",
+        instr_class="branching",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "retdom": InstructionInfo(
@@ -103,6 +115,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1111111,
         funct3=0b000,
         instr_type="I",
+        instr_class="branching",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Shadow stack instructions
@@ -111,6 +124,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0111111,
         funct3=0b111,
         instr_type="S",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "ls": InstructionInfo(
@@ -118,6 +132,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0011111,
         funct3=0b111,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
 }

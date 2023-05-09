@@ -1,8 +1,17 @@
 import logging
 import re
-from typing import Tuple
+from typing import Dict, List, Tuple
 
-from benchmarks.data import DumpData, EmulationData
+from benchmarks.data import (
+    DumpData,
+    EmulationData,
+    InstrClassData,
+    InstrTypeData,
+    TracingData,
+    default_instr_class_data,
+    default_instr_type_data,
+)
+from gigue.constants import InstructionInfo
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +32,11 @@ class MissingCycleException(ParserException):
 
 
 class LogParser:
-    # Extracts the cycle in the first group and pc in the second
-    #                               vvvvv            vvvvv
-    ROCKET_PC_CYCLE_REGEX: str = r"C0:\s*(\d+) \[1\] pc=\[(.*?)\]"
+    # Extracts the cycle in the first group, the pc in the second and instr
+    #            vvvv             vvvvvvvvv                     vvvvv
+    ROCKET_PC_CYCLE_INSTR_REGEX: str = (
+        r"C0:\s*(\d+) \[1\] pc=\[([0-9a-fA-F]+)\].*inst=\[.*?\] (\w*)"
+    )
 
     # Main methods
     # \____________
@@ -59,7 +70,11 @@ class LogParser:
         return dump_info
 
     def parse_rocket_log(
-        self, log_file: str, start_address: int, ret_address: int
+        self,
+        log_file: str,
+        start_address: int,
+        ret_address: int,
+        instructions_info: Dict[str, InstructionInfo],
     ) -> EmulationData:
         # Correctness flag
         emulation_ok: int = 0
@@ -69,10 +84,12 @@ class LogParser:
         end_cycle: int = 0
         try:
             # Extract info
-            seed, start_cycle, end_cycle = self.extract_from_rocket_log(
-                start_address=start_address,
-                ret_address=ret_address,
-                rocket_log_file=log_file,
+            seed, start_cycle, end_cycle, executed_instructions = (
+                self.extract_from_rocket_log(
+                    start_address=start_address,
+                    ret_address=ret_address,
+                    rocket_log_file=log_file,
+                )
             )
             emulation_ok = 1
         except (
@@ -82,6 +99,32 @@ class LogParser:
             # If missing info in the logs trigger flag
             logger.error(err)
             emulation_ok = 0
+        # Instr type
+        instrs_type: InstrTypeData = default_instr_type_data()
+        executed_instrs_type = [
+            instructions_info[instr].instr_type for instr in executed_instructions
+        ]
+        instrs_type = {
+            instr_type: instrs_type.get(instr_type, 0) + executed_instrs_type.count(
+                instr_type
+            )
+            for instr_type in executed_instrs_type
+        }
+        # Instr class
+        instrs_class: InstrClassData = default_instr_class_data()
+        executed_instrs_class = [
+            instructions_info[instr].instr_class for instr in executed_instructions
+        ]
+        instrs_class = {
+            instr_class: instrs_class.get(instr_class, 0) + executed_instrs_class.count(
+                instr_class
+            )
+            for instr_class in executed_instrs_class
+        }
+        tracing_info: TracingData = {
+            "instrs_type": instrs_type,
+            "instrs_class": instrs_class,
+        }
         # Format output data
         emulation_info: EmulationData = {
             "emulation_ok": emulation_ok,
@@ -89,6 +132,7 @@ class LogParser:
             "start_cycle": start_cycle,
             "end_cycle": end_cycle,
             "nb_cycles": end_cycle - start_cycle,
+            "tracing_data": tracing_info,
         }
         return emulation_info
 
@@ -142,7 +186,7 @@ class LogParser:
     @staticmethod
     def extract_from_rocket_log(
         start_address: int, ret_address: int, rocket_log_file: str
-    ) -> Tuple[int, int, int]:
+    ) -> Tuple[int, int, int, List[str]]:
         # using random seed 1681861037
         # ...
         # C0:    1114705 [1]
@@ -153,19 +197,25 @@ class LogParser:
         seed: int = -1
         start_cycle: int = -1
         end_cycle: int = -1
+        executed_instructions: List[str] = []
         try:
             with open(rocket_log_file) as rocket_log:
+                in_gigue = False
                 for i, line in enumerate(rocket_log):
                     # Extract the seed on the first line
                     if i == 0:
                         seed = int(line.split(" ")[-1])
                     # Extract both the PC and cycle info
-                    match = re.search(LogParser.ROCKET_PC_CYCLE_REGEX, line)
+                    match = re.search(LogParser.ROCKET_PC_CYCLE_INSTR_REGEX, line)
                     if match:
                         if int(match.group(2), 16) == start_address:
                             start_cycle = int(match.group(1))
+                            in_gigue = True
                         if int(match.group(2), 16) == ret_address:
                             end_cycle = int(match.group(1))
+                            in_gigue = False
+                        if in_gigue:
+                            executed_instructions.append(match.group(3))
             if start_cycle == -1:
                 raise MissingCycleException(
                     "Start cycle was not found (start address never met) in the rocket"
@@ -180,19 +230,25 @@ class LogParser:
             logger.error(err)
             raise
         # TODO: Use a data structure
-        return seed, start_cycle, end_cycle
+        return seed, start_cycle, end_cycle, executed_instructions
 
 
 if __name__ == "__main__":
+    from gigue.constants import INSTRUCTIONS_INFO
+
     parser = LogParser()
-    start_address, ret_address, _ = parser.extract_from_dump("bin/out.dump")
-    _, start_cycle, end_cycle = parser.extract_from_rocket_log(
-        start_address=start_address,
-        ret_address=ret_address,
-        rocket_log_file="bin/out.rocket",
+    instructions_info: Dict[str, InstructionInfo] = INSTRUCTIONS_INFO
+    dump_data: DumpData = parser.parse_dump(dump_file="bin/out.dump")
+    emulation_data: EmulationData = parser.parse_rocket_log(
+        start_address=dump_data["start_address"],
+        ret_address=dump_data["ret_address"],
+        log_file="bin/out.rocket",
+        instructions_info=instructions_info,
     )
     print(
-        f"Start address: {hex(start_address)}\n"
-        f"Ret address:   {hex(ret_address)}\n"
-        f"Nb cycles:     {end_cycle - start_cycle}"
+        f"Start address: {hex(dump_data['start_address'])}\n"
+        f"Ret address:   {hex(dump_data['ret_address'])}\n"
+        f"Nb cycles:     {emulation_data['nb_cycles']}\n"
+        f"Instrs type:   {emulation_data['tracing_data']['instrs_type']}\n"
+        f"Instrs class:  {emulation_data['tracing_data']['instrs_class']}"
     )

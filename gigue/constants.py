@@ -67,6 +67,7 @@ class InstructionInfo:
         opcode: int,
         funct3: int,
         instr_type: str,
+        instr_class: str,
         funct7: int = 0,
         cmp_mask: int = OPCODE_FUNC3_FUNC7_MASK,
     ):
@@ -75,6 +76,7 @@ class InstructionInfo:
         self.funct3: int = funct3
         self.funct7: int = funct7
         self.instr_type: str = instr_type
+        self.instr_class: str = instr_class
         self.cmp_mask: int = cmp_mask
         self.cmp_val: int = (
             self.opcode + (self.funct3 << 12) + (self.funct7 << 25)
@@ -110,11 +112,13 @@ class CustomInstructionInfo(InstructionInfo):
         self.xs1: int = xs1
         self.xs2: int = xs2
         instr_type: str = custom_instr_info.instr_type
+        instr_class: str = custom_instr_info.instr_class
         super().__init__(
             name=name,
             opcode=opcode,
             funct3=funct3,
             instr_type=instr_type,
+            instr_class=instr_class,
             funct7=funct7,
             cmp_mask=cmp_mask,
         )
@@ -127,6 +131,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b000,
         instr_type="R",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "addi": InstructionInfo(
@@ -134,6 +139,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0010011,
         funct3=0b000,
         instr_type="I",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "addiw": InstructionInfo(
@@ -141,6 +147,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0011011,
         funct3=0b000,
         instr_type="I",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "addw": InstructionInfo(
@@ -148,6 +155,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0111011,
         funct3=0b000,
         instr_type="R",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     # Ands
@@ -156,6 +164,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b111,
         instr_type="R",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "andi": InstructionInfo(
@@ -163,6 +172,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0010011,
         funct3=0b111,
         instr_type="I",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Add upp imm to PC
@@ -171,6 +181,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0010111,
         funct3=0b000,
         instr_type="U",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_MASK,
     ),
     # Branches
@@ -179,6 +190,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1100011,
         funct3=0b000,
         instr_type="B",
+        instr_class="branching",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "bge": InstructionInfo(
@@ -186,6 +198,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1100011,
         funct3=0b101,
         instr_type="B",
+        instr_class="branching",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "bgeu": InstructionInfo(
@@ -193,6 +206,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1100011,
         funct3=0b111,
         instr_type="B",
+        instr_class="branching",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "blt": InstructionInfo(
@@ -200,6 +214,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1100011,
         funct3=0b100,
         instr_type="B",
+        instr_class="branching",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "bltu": InstructionInfo(
@@ -207,6 +222,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1100011,
         funct3=0b110,
         instr_type="B",
+        instr_class="branching",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "bne": InstructionInfo(
@@ -214,17 +230,24 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1100011,
         funct3=0b001,
         instr_type="B",
+        instr_class="branching",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Jumps
     "jal": InstructionInfo(
-        name="jal", opcode=0b1101111, funct3=0b000, instr_type="J", cmp_mask=OPCODE_MASK
+        name="jal",
+        opcode=0b1101111,
+        funct3=0b000,
+        instr_type="J",
+        instr_class="branching",
+        cmp_mask=OPCODE_MASK,
     ),
     "jalr": InstructionInfo(
         name="jalr",
         opcode=0b1100111,
         funct3=0b000,
         instr_type="I",
+        instr_class="branching",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Loads
@@ -233,6 +256,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0000011,
         funct3=0b000,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lbu": InstructionInfo(
@@ -240,6 +264,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0000011,
         funct3=0b100,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "ld": InstructionInfo(
@@ -247,6 +272,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0000011,
         funct3=0b011,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lh": InstructionInfo(
@@ -254,6 +280,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0000011,
         funct3=0b001,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lhu": InstructionInfo(
@@ -261,6 +288,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0000011,
         funct3=0b101,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lw": InstructionInfo(
@@ -268,6 +296,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0000011,
         funct3=0b010,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "lwu": InstructionInfo(
@@ -275,11 +304,17 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0000011,
         funct3=0b110,
         instr_type="I",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Load upper immediate
     "lui": InstructionInfo(
-        name="lui", opcode=0b0110111, funct3=0b000, instr_type="U", cmp_mask=OPCODE_MASK
+        name="lui",
+        opcode=0b0110111,
+        funct3=0b000,
+        instr_type="U",
+        instr_class="arithmetic",
+        cmp_mask=OPCODE_MASK,
     ),
     # Muls
     "mul": InstructionInfo(
@@ -288,6 +323,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         funct3=0b000,
         instr_type="R",
         funct7=0b0000001,
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "mulh": InstructionInfo(
@@ -295,6 +331,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b001,
         instr_type="R",
+        instr_class="arithmetic",
         funct7=0b0000001,
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
@@ -303,6 +340,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b010,
         instr_type="R",
+        instr_class="arithmetic",
         funct7=0b0000001,
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
@@ -311,6 +349,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b011,
         instr_type="R",
+        instr_class="arithmetic",
         funct7=0b0000001,
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
@@ -319,6 +358,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0111011,
         funct3=0b000,
         instr_type="R",
+        instr_class="arithmetic",
         funct7=0b0000001,
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
@@ -328,6 +368,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b110,
         instr_type="R",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "ori": InstructionInfo(
@@ -335,6 +376,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0010011,
         funct3=0b110,
         instr_type="I",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Stores
@@ -343,6 +385,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0100011,
         funct3=0b000,
         instr_type="S",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sd": InstructionInfo(
@@ -350,6 +393,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0100011,
         funct3=0b011,
         instr_type="S",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sh": InstructionInfo(
@@ -357,6 +401,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0100011,
         funct3=0b001,
         instr_type="S",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sw": InstructionInfo(
@@ -364,6 +409,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0100011,
         funct3=0b010,
         instr_type="S",
+        instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Logical shift left
@@ -372,6 +418,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b001,
         instr_type="R",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "slli": InstructionInfo(
@@ -379,6 +426,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0010011,
         funct3=0b001,
         instr_type="I",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "slliw": InstructionInfo(
@@ -386,6 +434,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0011011,
         funct3=0b001,
         instr_type="I",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "sllw": InstructionInfo(
@@ -393,6 +442,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0111011,
         funct3=0b001,
         instr_type="R",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     # Set if
@@ -401,6 +451,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b010,
         instr_type="R",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "slti": InstructionInfo(
@@ -408,6 +459,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0010011,
         funct3=0b010,
         instr_type="I",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sltiu": InstructionInfo(
@@ -415,6 +467,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0010011,
         funct3=0b011,
         instr_type="I",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     "sltu": InstructionInfo(
@@ -422,6 +475,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b011,
         instr_type="R",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     # Arithmetic shift right
@@ -431,6 +485,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b101,
         instr_type="R",
+        instr_class="arithmetic",
         funct7=0b0100000,
         cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
@@ -439,6 +494,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0010011,
         funct3=0b101,
         instr_type="I",
+        instr_class="arithmetic",
         funct7=0b0100000,
         cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
@@ -447,6 +503,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0011011,
         funct3=0b101,
         instr_type="I",
+        instr_class="arithmetic",
         funct7=0b0100000,
         cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
@@ -455,6 +512,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0111011,
         funct3=0b101,
         instr_type="R",
+        instr_class="arithmetic",
         funct7=0b0100000,
         cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
@@ -464,6 +522,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b101,
         instr_type="R",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "srli": InstructionInfo(
@@ -471,6 +530,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0010011,
         funct3=0b101,
         instr_type="I",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "srliw": InstructionInfo(
@@ -478,6 +538,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0011011,
         funct3=0b101,
         instr_type="I",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     "srlw": InstructionInfo(
@@ -485,6 +546,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0111011,
         funct3=0b101,
         instr_type="R",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC6_MASK,
     ),
     # Subs
@@ -493,6 +555,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b000,
         instr_type="R",
+        instr_class="arithmetic",
         funct7=0b0100000,
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
@@ -501,6 +564,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0111011,
         funct3=0b000,
         instr_type="R",
+        instr_class="arithmetic",
         funct7=0b0100000,
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
@@ -511,6 +575,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0110011,
         funct3=0b100,
         instr_type="R",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "xori": InstructionInfo(
@@ -518,6 +583,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0010011,
         funct3=0b100,
         instr_type="I",
+        instr_class="arithmetic",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Exceptions
@@ -527,6 +593,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1110011,
         funct3=0b000,
         instr_type="I",
+        instr_class="exception",
         cmp_mask=FULL_MASK,
     ),
     "ecall": ExceptionInstructionInfo(
@@ -535,6 +602,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1110011,
         funct3=0b000,
         instr_type="I",
+        instr_class="exception",
         cmp_mask=FULL_MASK,
     ),
     # Custom
@@ -543,6 +611,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0001011,
         funct3=0b000,
         instr_type="R",
+        instr_class="custom",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "custom-1": InstructionInfo(
@@ -550,6 +619,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b0101011,
         funct3=0b000,
         instr_type="R",
+        instr_class="custom",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "custom-2": InstructionInfo(
@@ -557,6 +627,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1011011,
         funct3=0b000,
         instr_type="R",
+        instr_class="custom",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     "custom-3": InstructionInfo(
@@ -564,11 +635,36 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         opcode=0b1111011,
         funct3=0b000,
         instr_type="R",
+        instr_class="custom",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
     # Note: funct3 is set at 0 by default but should be redefined by the subclasses!
 }
 
+# Aliases
+INSTRUCTIONS_INFO_ALIASES = {
+    # Reserved keyword
+    "and": "andr",
+    "or": "orr",
+    # Jumps
+    "ret": "jalr",
+    "j": "jal",
+    "jr": "jalr",
+    # Load immediate (can extend to more!)
+    "li": "addi",
+    # Arithmetic
+    "mov": "addi",
+    "not": "xori",
+    "nop": "addi",
+    # Branches
+    "bgt": "blt",
+    "ble": "bge",
+    "bgtu": "bltu",
+    "bleu": "bgeu",
+}
+
+for key, value in INSTRUCTIONS_INFO_ALIASES.items():
+    INSTRUCTIONS_INFO[key] = INSTRUCTIONS_INFO[value]
 
 if __name__ == "__main__":
     print(INSTRUCTIONS_INFO["addi"].funct3)
