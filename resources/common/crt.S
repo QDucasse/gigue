@@ -3,13 +3,13 @@
 #include "encoding.h"
 
 #if __riscv_xlen == 64
-# define LREG ld
-# define SREG sd
-# define REGBYTES 8
+#define LREG ld
+#define SREG sd
+#define REGBYTES 8
 #else
-# define LREG lw
-# define SREG sw
-# define REGBYTES 4
+#define LREG lw
+#define SREG sw
+#define REGBYTES 4
 #endif
 
   .section ".text.init"
