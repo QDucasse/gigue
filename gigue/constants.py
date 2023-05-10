@@ -733,6 +733,10 @@ INSTRUCTIONS_INFO_ALIASES = {
     "mv": "addi",
     "not": "xori",
     "nop": "addi",
+    "seqz": "sltiu",
+    "snez": "sltu",
+    "sltz": "slt",
+    "sgtz": "slt",
     # Branches
     "bgt": "blt",
     "ble": "bge",
