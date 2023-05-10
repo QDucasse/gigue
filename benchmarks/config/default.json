@@ -1,5 +1,5 @@
 {
-    "nb_runs": 3,
+    "nb_runs": 1,
     "input_data": {
         "uses_trampolines": 0,
         "isolation_solution": "none",

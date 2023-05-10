@@ -1,5 +1,5 @@
 {
-    "nb_runs": 3,
+    "nb_runs": 1,
     "input_data": {
         "uses_trampolines": 1,
         "isolation_solution": "rimifull",
@@ -8,6 +8,7 @@
         "jit_start_address": 8192,
         "jit_elements_nb": 100,
         "registers": [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31],
+        "weights": [25, 30, 10, 5, 10, 10, 10],
         "data_reg": 31,
         "data_size": 1600,
         "data_generation_strategy": "random",
