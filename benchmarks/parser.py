@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, List, Tuple
+from typing import List, Mapping, Tuple
 
 from benchmarks.data import (
     DumpData,
@@ -32,12 +32,6 @@ class MissingCycleException(ParserException):
 
 
 class LogParser:
-    # Extracts the cycle in the first group, the pc in the second and instr
-    #            vvvv             vvvvvvvvv                     vvvvv
-    ROCKET_PC_CYCLE_INSTR_REGEX: str = (
-        r"C0:\s*(\d+) \[1\] pc=\[([0-9a-fA-F]+)\].*inst=\[.*?\] (\w*)"
-    )
-
     # Main methods
     # \____________
     # TODO: Split in two
@@ -74,7 +68,8 @@ class LogParser:
         log_file: str,
         start_address: int,
         ret_address: int,
-        instructions_info: Dict[str, InstructionInfo],
+        instructions_info: Mapping[str, InstructionInfo],
+        verbose: bool = False,
     ) -> EmulationData:
         # Correctness flag
         emulation_ok: int = 0
@@ -99,6 +94,8 @@ class LogParser:
             # If missing info in the logs trigger flag
             logger.error(err)
             emulation_ok = 0
+
+        # TODO: Cursed
         # Instr type
         instrs_type: InstrTypeData = default_instr_type_data()
         executed_instrs_type = [
@@ -109,7 +106,7 @@ class LogParser:
                 instr_type
             )
             for instr_type in executed_instrs_type
-        }
+        }  # type: ignore
         # Instr class
         instrs_class: InstrClassData = default_instr_class_data()
         executed_instrs_class = [
@@ -120,11 +117,17 @@ class LogParser:
                 instr_class
             )
             for instr_class in executed_instrs_class
-        }
+        }  # type: ignore
         tracing_info: TracingData = {
             "instrs_type": instrs_type,
             "instrs_class": instrs_class,
         }
+
+        if verbose:
+            print("Executed instructions:")
+            from collections import Counter
+
+            print(Counter(executed_instructions))
         # Format output data
         emulation_info: EmulationData = {
             "emulation_ok": emulation_ok,
@@ -194,6 +197,11 @@ class LogParser:
         # R[r 2=0000000080030c80] R[r 0=0000000000000000]
         # inst=[fa810113] addi    sp, sp, -88
         # ...
+        # Extracts the cycle in the first group, the pc in the second and instr
+        #            vvvv             vvvvvvvvv                     vvvvv
+        ROCKET_PC_CYCLE_INSTR_REGEX: str = (
+            r"C0:\s*(\d+) \[1\] pc=\[([0-9a-fA-F]+)\].*inst=\[.*?\] (\w*)"
+        )
         seed: int = -1
         start_cycle: int = -1
         end_cycle: int = -1
@@ -206,7 +214,7 @@ class LogParser:
                     if i == 0:
                         seed = int(line.split(" ")[-1])
                     # Extract both the PC and cycle info
-                    match = re.search(LogParser.ROCKET_PC_CYCLE_INSTR_REGEX, line)
+                    match = re.search(ROCKET_PC_CYCLE_INSTR_REGEX, line)
                     if match:
                         if int(match.group(2), 16) == start_address:
                             start_cycle = int(match.group(1))
@@ -214,6 +222,7 @@ class LogParser:
                         if int(match.group(2), 16) == ret_address:
                             end_cycle = int(match.group(1))
                             in_gigue = False
+                            break
                         if in_gigue:
                             executed_instructions.append(match.group(3))
             if start_cycle == -1:
@@ -237,13 +246,14 @@ if __name__ == "__main__":
     from gigue.constants import INSTRUCTIONS_INFO
 
     parser = LogParser()
-    instructions_info: Dict[str, InstructionInfo] = INSTRUCTIONS_INFO
+    instructions_info: Mapping[str, InstructionInfo] = INSTRUCTIONS_INFO
     dump_data: DumpData = parser.parse_dump(dump_file="bin/out.dump")
     emulation_data: EmulationData = parser.parse_rocket_log(
         start_address=dump_data["start_address"],
         ret_address=dump_data["ret_address"],
         log_file="bin/out.rocket",
         instructions_info=instructions_info,
+        verbose=True,
     )
     print(
         f"Start address: {hex(dump_data['start_address'])}\n"

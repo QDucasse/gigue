@@ -45,7 +45,7 @@ class InputData(GigueData):
 
 class MethodData(GigueData):
     address: int
-    body_size: int
+    full_size: int
     call_number: int
     call_depth: int
     used_s_regs: int
@@ -54,6 +54,7 @@ class MethodData(GigueData):
 
 class PICData(GigueData):
     address: int
+    full_size: int
     case_number: int
     method_max_size: int
     method_max_call_number: int
@@ -135,7 +136,7 @@ class InstrClassData(GigueData):
     branching: int
     memory: int
     custom: int
-    exception: int
+    internal: int
 
 
 def default_instr_class_data() -> InstrClassData:
@@ -144,7 +145,7 @@ def default_instr_class_data() -> InstrClassData:
         "branching": 0,
         "memory": 0,
         "custom": 0,
-        "exception": 0,
+        "internal": 0,
     }
 
 

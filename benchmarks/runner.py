@@ -6,7 +6,7 @@ import random
 import shutil
 import subprocess
 import sys
-from typing import Dict, List, Optional, Tuple, Type
+from typing import List, Mapping, Optional, Tuple, Type
 
 from benchmarks.data import (
     CompilationData,
@@ -74,7 +74,7 @@ class Runner:
             os.mkdir(Runner.RESULTS_DIR)
         self.input_data = self.config_data["input_data"]
         self.gen_class: Type[Generator] = Generator
-        self.instructions_info: Dict[str, InstructionInfo] = {}
+        self.instructions_info: Mapping[str, InstructionInfo] = {}
         self.generation_ok: int = 0
         self.compilation_ok: int = 0
         self.dump_ok: int = 0
@@ -196,7 +196,7 @@ class Runner:
             if isinstance(elt, Method):
                 method_data: MethodData = {
                     "address": elt.address,
-                    "body_size": elt.body_size,
+                    "full_size": elt.total_size(),
                     "call_number": elt.call_number,
                     "call_depth": elt.call_depth,
                     "used_s_regs": elt.used_s_regs,
@@ -208,7 +208,7 @@ class Runner:
                 for method in elt.methods:
                     pic_method_data: MethodData = {
                         "address": method.address,
-                        "body_size": method.body_size,
+                        "full_size": method.total_size(),
                         "call_number": method.call_number,
                         "call_depth": method.call_depth,
                         "used_s_regs": method.used_s_regs,
@@ -217,6 +217,7 @@ class Runner:
                     pic_methods_info.append(pic_method_data)
                 pic_data: PICData = {
                     "address": elt.address,
+                    "full_size": elt.total_size(),
                     "case_number": elt.case_number,
                     "method_max_size": elt.method_max_size,
                     "method_max_call_number": elt.method_max_call_number,
@@ -270,7 +271,7 @@ class Runner:
                     f"ROCKET_CYCLES={rocket_max_cycles}",
                     f"ROCKET_CONFIG={rocket_config}",
                 ],
-                timeout=200,
+                timeout=300,
                 check=True,
             )
             # Execution complete!
@@ -278,10 +279,12 @@ class Runner:
         except (
             FileNotFoundError,
             subprocess.CalledProcessError,
-            subprocess.TimeoutExpired,
         ) as err:
             logger.error(err)
             self.execution_ok = 0
+        except subprocess.TimeoutExpired as war:
+            logger.warning(war)
+            self.execution_ok = 1
         # Parse execution logs
         emulation_data: EmulationData = self.parser.parse_rocket_log(
             log_file=Runner.BIN_DIR + Runner.ROCKET_FILE,
@@ -408,3 +411,55 @@ def main(argv: Optional[List[str]] = None) -> int:
         full_data["run_data"].append(run_data)
     runner.store_gigue_data(gigue_data=full_data, data_file=f"{base_dir_name}data.json")
     return 0
+
+
+if __name__ == "__main__":
+    with open(sys.argv[1], "r") as config:
+        config_data: ConfigData = json.load(config)
+
+    def max_jit_bin_size(
+        nb_elts,
+        pics_ratio,
+        method_max_size,
+        pics_max_cases,
+        pics_method_max_size,
+        prologue_size,
+        epilogue_size,
+    ):
+        return (
+            int(
+                nb_elts
+                * (1 - pics_ratio)
+                * (method_max_size + prologue_size + epilogue_size)
+                + nb_elts
+                * pics_ratio
+                * pics_max_cases
+                * (pics_method_max_size + prologue_size + epilogue_size)
+            )
+            * 4
+        )
+
+    nb_elts = config_data["input_data"]["jit_elements_nb"]
+    pics_ratio = config_data["input_data"]["pics_ratio"]
+    method_max_size = config_data["input_data"]["method_max_size"]
+    pics_max_cases = config_data["input_data"]["pics_max_cases"]
+    pics_method_max_size = config_data["input_data"]["pics_method_max_size"]
+    jit_start_address = config_data["input_data"]["jit_start_address"]
+    # Methods: elts * methods ratio * method size (body + epilogue + prologue)
+    # PICs: elts * pics ratio * nb case * pic method size (body + epilogue + prologue)
+    max_bin_size = (
+        max_jit_bin_size(
+            nb_elts=nb_elts,
+            pics_ratio=pics_ratio,
+            method_max_size=method_max_size,
+            pics_max_cases=pics_max_cases,
+            pics_method_max_size=pics_method_max_size,
+            prologue_size=10,
+            epilogue_size=10,
+        )
+        + jit_start_address
+    )
+    print(
+        f"Max binary size: {max_bin_size} bytes, or {max_bin_size / 1024} kB, or"
+        f" {max_bin_size / (1024*1024)} mB"
+    )
