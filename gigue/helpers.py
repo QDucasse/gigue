@@ -18,6 +18,7 @@ def window(arr: List[Any], k: int) -> Generator:
 def mean(list: Union[List[int], List[float]]):
     return sum(list) / len(list)
 
+
 # Sign extension
 # \_____________
 

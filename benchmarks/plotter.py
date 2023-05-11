@@ -233,7 +233,10 @@ class Plotter:
         # ax.legend([app_data["name"] for app_data in application_classes_data])
         ax.set_xlabel("Method density")
         ax.set_ylabel("Memory instruction density")
-        ax.set_title("Application classes with varying method size and memory instruction density")
+        ax.set_title(
+            "Application classes with varying method size and memory instruction"
+            " density"
+        )
 
     # Plot Call Cycles
     # \___________________
@@ -295,8 +298,12 @@ class Plotter:
 if __name__ == "__main__":
     _, axs = plt.subplots(3, 2)
     plotter = Plotter()
-    call_application_classes: List[CallApplicationClassData] = plotter.process_call_application_classes(["no_isolation"])
-    mem_application_classes: List[MemoryApplicationClassData] = plotter.process_mem_application_classes(["no_isolation"])
+    call_application_classes: List[CallApplicationClassData] = (
+        plotter.process_call_application_classes(["no_isolation"])
+    )
+    mem_application_classes: List[MemoryApplicationClassData] = (
+        plotter.process_mem_application_classes(["no_isolation"])
+    )
     plotter.plot_call_application_classes(axs[0, 0], call_application_classes)
     plotter.plot_mem_application_classes(axs[0, 1], mem_application_classes)
     plotter.plot_call_nb_cycles(axs[1, 0], call_application_classes)
