@@ -29,7 +29,7 @@ from gigue.exceptions import BuilderException, GeneratorException, MethodExcepti
 from gigue.fixer.fixer_constants import FIXER_INSTRUCTIONS_INFO
 from gigue.fixer.fixer_generator import FIXERTrampolineGenerator
 from gigue.generator import Generator, TrampolineGenerator
-from gigue.helpers import bytes_to_int
+from gigue.helpers import bytes_to_int, mean
 from gigue.method import Method
 from gigue.pic import PIC
 from gigue.rimi.rimi_constants import RIMI_INSTRUCTIONS_INFO
@@ -192,6 +192,13 @@ class Runner:
         # \_________________________
         methods_info: List[MethodData] = []
         pics_info: List[PICData] = []
+        methods_size: List[int] = []
+        methods_call_nb: List[int] = []
+        methods_call_depth: List[int] = []
+        pics_case_nb: List[int] = []
+        pics_methods_size: List[int] = []
+        pics_methods_call_nb: List[int] = []
+        pics_methods_call_depth: List[int] = []
         for elt in generator.jit_elements:
             if isinstance(elt, Method):
                 method_data: MethodData = {
@@ -203,6 +210,9 @@ class Runner:
                     "local_vars_nb": elt.local_vars_nb,
                 }
                 methods_info.append(method_data)
+                methods_size.append(elt.total_size())
+                methods_call_nb.append(elt.call_number)
+                methods_call_depth.append(elt.call_depth)
             elif isinstance(elt, PIC):
                 pic_methods_info: List[MethodData] = []
                 for method in elt.methods:
@@ -215,6 +225,9 @@ class Runner:
                         "local_vars_nb": method.local_vars_nb,
                     }
                     pic_methods_info.append(pic_method_data)
+                    pics_methods_size.append(method.total_size())
+                    pics_methods_call_nb.append(method.call_number)
+                    pics_methods_call_depth.append(method.call_depth)
                 pic_data: PICData = {
                     "address": elt.address,
                     "full_size": elt.total_size(),
@@ -225,15 +238,24 @@ class Runner:
                     "methods_info": pic_methods_info,
                 }
                 pics_info.append(pic_data)
+                pics_case_nb.append(elt.case_number)
         jit_elements_data: JITElementsData = {
             "methods_info": methods_info,
             "pics_info": pics_info,
         }
+
         generation_data: GenerationData = {
             "generation_ok": self.generation_ok,
             "gigue_seed": seed,
             "nb_method": generator.method_count,
             "nb_pics": generator.pic_count,
+            "mean_method_size": mean(methods_size),
+            "mean_method_call_nb": mean(methods_call_nb),
+            "mean_method_call_depth": mean(methods_call_depth),
+            "pics_mean_case_nb": mean(pics_case_nb),
+            "pics_mean_method_size": mean(pics_methods_size),
+            "pics_mean_method_call_nb": mean(pics_methods_call_nb),
+            "pics_mean_method_call_depth": mean(pics_methods_call_depth),
         }
         return generation_data, jit_elements_data
 
@@ -331,16 +353,17 @@ class Runner:
                 src=Runner.BIN_DIR + Runner.ELF_FILE,
                 dst=f"{base_name}.elf",
             )
-            # Copy dump
-            shutil.copy(
-                src=Runner.BIN_DIR + Runner.DUMP_FILE,
-                dst=f"{base_name}.dump",
-            )
-            # Copy exec log
-            shutil.copy(
-                src=Runner.BIN_DIR + Runner.ROCKET_FILE,
-                dst=f"{base_name}.rocket",
-            )
+            # TODO: TOO BIG!!
+            # # Copy dump
+            # shutil.copy(
+            #     src=Runner.BIN_DIR + Runner.DUMP_FILE,
+            #     dst=f"{base_name}.dump",
+            # )
+            # # Copy exec log
+            # shutil.copy(
+            #     src=Runner.BIN_DIR + Runner.ROCKET_FILE,
+            #     dst=f"{base_name}.rocket",
+            # )
             # Cleanup
             subprocess.run(["make", "clean"], timeout=10, check=True)
             consolidation_ok = 1

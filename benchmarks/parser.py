@@ -120,6 +120,7 @@ class LogParser:
             for instr_class in executed_instrs_class
         }  # type: ignore
         tracing_info: TracingData = {
+            "instrs_nb": len(executed_instructions),
             "instrs_type": instrs_type,
             "instrs_class": instrs_class,
         }

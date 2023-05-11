@@ -7,6 +7,10 @@ class GigueData(TypedDict):
     pass
 
 
+# RUNNER DATA
+# \_____________
+
+
 class ConfigData(GigueData):
     nb_runs: int
     input_data: InputData
@@ -68,6 +72,15 @@ class GenerationData(GigueData):
     gigue_seed: int
     nb_method: int
     nb_pics: int
+    # Methods info
+    mean_method_size: float
+    mean_method_call_nb: float
+    mean_method_call_depth: float
+    # PICS Methods info
+    pics_mean_case_nb: float
+    pics_mean_method_size: float
+    pics_mean_method_call_nb: float
+    pics_mean_method_call_depth: float
 
 
 class JITElementsData(GigueData):
@@ -107,6 +120,7 @@ class EmulationData(GigueData):
 
 
 class TracingData(GigueData):
+    instrs_nb: int
     instrs_type: InstrTypeData
     instrs_class: InstrClassData
 
@@ -165,3 +179,25 @@ class RunData(GigueData):
 class FullData(GigueData):
     config_data: ConfigData
     run_data: List[RunData]
+
+
+# PLOTTING DATA
+# \_______________
+
+
+class CallApplicationClassData(GigueData):
+    name: str
+    isolation: str
+    method_densities: List[float]
+    call_densities: List[float]
+    nb_cycles: List[int]
+    cpis: List[float]
+
+
+class MemoryApplicationClassData(GigueData):
+    name: str
+    isolation: str
+    method_densities: List[float]
+    mem_densities: List[float]
+    nb_cycles: List[int]
+    cpis: List[float]

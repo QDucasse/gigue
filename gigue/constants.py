@@ -737,6 +737,7 @@ INSTRUCTIONS_INFO_ALIASES = {
     "snez": "sltu",
     "sltz": "slt",
     "sgtz": "slt",
+    "sext": "addiw",
     # Branches
     "bgt": "blt",
     "ble": "bge",

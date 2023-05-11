@@ -1,6 +1,6 @@
 from math import ceil
 from random import gauss
-from typing import Any, Generator, List
+from typing import Any, Generator, List, Union
 
 # List Helpers
 # \________________
@@ -14,6 +14,9 @@ def window(arr: List[Any], k: int) -> Generator:
     for i in range(len(arr) - k + 1):
         yield arr[i : i + k]
 
+
+def mean(list: Union[List[int], List[float]]):
+    return sum(list) / len(list)
 
 # Sign extension
 # \_____________
