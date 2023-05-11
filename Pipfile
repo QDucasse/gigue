@@ -13,6 +13,7 @@ mypy = "*"
 ruff = "*"
 black = "*"
 pytest-mock = "*"
+matplotlib = "*"
 
 [requires]
 python_version = "3.9"
