@@ -90,22 +90,46 @@ class RIMISInstruction(SInstruction):
 
 
 if __name__ == "__main__":
-    instructions = [
-        # Base loads/stores in a correct domain
-        IInstruction.lw(rd=30, rs1=5, imm=0),
-        SInstruction.sw(rs1=5, rs2=30, imm=0),
-        # Duplicated load/store in a correct domain
-        RIMIIInstruction.lw1(rd=31, rs1=6, imm=0),
-        RIMISInstruction.sw1(rs1=6, rs2=30, imm=0),
-        # Base load/store in an incorrect domain
-        IInstruction.lw(rd=30, rs1=6, imm=0),
-        SInstruction.sw(rs1=6, rs2=30, imm=0),
-        # Duplicated load/store in an incorrect domain
-        RIMIIInstruction.lw1(rd=31, rs1=5, imm=0),
-        RIMISInstruction.sw1(rs1=5, rs2=30, imm=0),
+    # instructions = [
+    #     # Base loads/stores in a correct domain
+    #     IInstruction.lw(rd=30, rs1=5, imm=0),
+    #     SInstruction.sw(rs1=5, rs2=30, imm=0),
+    #     # Duplicated load/store in a correct domain
+    #     RIMIIInstruction.lw1(rd=31, rs1=6, imm=0),
+    #     RIMISInstruction.sw1(rs1=6, rs2=30, imm=0),
+    #     # Base load/store in an incorrect domain
+    #     IInstruction.lw(rd=30, rs1=6, imm=0),
+    #     SInstruction.sw(rs1=6, rs2=30, imm=0),
+    #     # Duplicated load/store in an incorrect domain
+    #     RIMIIInstruction.lw1(rd=31, rs1=5, imm=0),
+    #     RIMISInstruction.sw1(rs1=5, rs2=30, imm=0),
+    # ]
+
+    # bytes = b"".join([instr.generate_bytes() for instr in instructions])
+
+    # with open("bin/rimi.bin", "bw") as file:
+    #   file.write(bytes)
+
+    instrs = [
+        RIMIIInstruction.lb1(0, 0, 0),
+        RIMIIInstruction.lbu1(0, 0, 0),
+        RIMIIInstruction.lh1(0, 0, 0),
+        RIMIIInstruction.lhu1(0, 0, 0),
+        RIMIIInstruction.lw1(0, 0, 0),
+        RIMIIInstruction.lwu1(0, 0, 0),
+        RIMIIInstruction.ld1(0, 0, 0),
+
+        RIMISInstruction.sb1(0, 0, 0),
+        RIMISInstruction.sh1(0, 0, 0),
+        RIMISInstruction.sw1(0, 0, 0),
+        RIMISInstruction.sd1(0, 0, 0),
+
+        RIMIIInstruction.ls(0, 0, 0),
+        RIMISInstruction.ss(0, 0, 0),
+
+        RIMIIInstruction.chdom(0, 0, 0),
+        RIMIIInstruction.retdom(),
     ]
 
-    bytes = b"".join([instr.generate_bytes() for instr in instructions])
-
-    with open("bin/rimi.bin", "bw") as file:
-        file.write(bytes)
+    for instr in instrs:
+        print(f"def {instr.name.upper(): <19} = BitPat(\"{instr.rocket_display(RIMI_INSTRUCTIONS_INFO)}\")")

@@ -23,6 +23,17 @@ class Instruction:
     def generate_bytes(self) -> bytes:
         return int_to_bytes32(self.generate())
 
+    def rocket_display(self, instr_dict=INSTRUCTIONS_INFO) -> str:
+        mask = format(instr_dict[self.name].cmp_mask, '#034b')
+        instr = format(self.generate(), '#032b')
+        rocket_bin = "b"
+        for bit in range(2, len(mask)):
+            if mask[bit] == "0":
+                rocket_bin += "?"
+            else:
+                rocket_bin += instr[bit]
+        return rocket_bin
+
     def generate(self) -> int:
         raise NotImplementedError("Please Implement this method")
 
