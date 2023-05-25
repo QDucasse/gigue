@@ -25,7 +25,7 @@ class Instruction:
 
     def rocket_display(self, instr_dict=INSTRUCTIONS_INFO) -> str:
         mask = format(instr_dict[self.name].cmp_mask, '#034b')
-        instr = format(self.generate(), '#032b')
+        instr = format(self.generate(), '#034b')
         rocket_bin = "b"
         for bit in range(2, len(mask)):
             if mask[bit] == "0":
