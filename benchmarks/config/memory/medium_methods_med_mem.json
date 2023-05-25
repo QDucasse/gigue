@@ -1,9 +1,9 @@
 {
     "nb_runs": 10,
+    "run_seeds": [],
     "input_data": {
         "uses_trampolines": 1,
         "isolation_solution": "none",
-        "seed": 0,
         "interpreter_start_address": 0, 
         "jit_start_address": 8192,
         "jit_elements_nb": 272,

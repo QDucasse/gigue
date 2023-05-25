@@ -13,6 +13,7 @@ class GigueData(TypedDict):
 
 class ConfigData(GigueData):
     nb_runs: int
+    run_seeds: List[int]
     input_data: InputData
 
 
@@ -20,7 +21,6 @@ class InputData(GigueData):
     # Global info
     uses_trampolines: int
     isolation_solution: str
-    seed: int
     # Addresses offset
     interpreter_start_address: int
     jit_start_address: int
@@ -120,6 +120,7 @@ class EmulationData(GigueData):
 
 
 class TracingData(GigueData):
+    tracing_ok: int
     instrs_nb: int
     instrs_type: InstrTypeData
     instrs_class: InstrClassData

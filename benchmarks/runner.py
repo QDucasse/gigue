@@ -23,6 +23,11 @@ from benchmarks.data import (
     PICData,
     RunData,
 )
+from benchmarks.exceptions import (
+    EnvironmentException,
+    IncorrectSeedsNumberException,
+    UnknownIsolationSolutionException,
+)
 from benchmarks.parser import LogParser
 from gigue.constants import INSTRUCTIONS_INFO, InstructionInfo
 from gigue.exceptions import BuilderException, GeneratorException, MethodException
@@ -39,10 +44,6 @@ from gigue.rimi.rimi_generator import (
 )
 
 logger = logging.getLogger("gigue")
-
-
-class RunnerEnvironmentException(Exception):
-    pass
 
 
 class Runner:
@@ -62,7 +63,7 @@ class Runner:
         # Check environment variables
         try:
             self.check_envs()
-        except RunnerEnvironmentException as err:
+        except EnvironmentException as err:
             logger.error(err)
             raise
         if config_file is None:
@@ -82,13 +83,13 @@ class Runner:
 
     def check_envs(self) -> None:
         if "RISCV" not in os.environ:
-            raise RunnerEnvironmentException(
+            raise EnvironmentException(
                 "RISCV environment variable is not set. Please define it "
                 "to point to your installed toolchain location "
                 "(i.e. export RISCV=path/to/your/toolchain)"
             )
         if "ROCKET" not in os.environ:
-            raise RunnerEnvironmentException(
+            raise EnvironmentException(
                 "ROCKET environment variable is not set. Please define it "
                 "to point to the rocket-chip repository "
                 "(i.e. export ROCKET=path/to/rocket/repo)"
@@ -120,11 +121,10 @@ class Runner:
             logger.error(err)
             raise
 
-    def generate_binary(self) -> Tuple[GenerationData, JITElementsData]:
+    def generate_binary(self, seed: int) -> Tuple[GenerationData, JITElementsData]:
         # Setup seed
         # \____________
-        if self.input_data["seed"] == 0:
-            seed = bytes_to_int(os.urandom(16))
+
         random.seed(seed)
 
         # Instanciate generator
@@ -148,7 +148,11 @@ class Runner:
             assert self.input_data["uses_trampolines"]
             self.gen_class = FIXERTrampolineGenerator
             self.instructions_info = FIXER_INSTRUCTIONS_INFO
-        # TODO: raise unknown config
+        else:
+            raise UnknownIsolationSolutionException(
+                "This isolation solution is unknown, the ones supported by Gigue are"
+                " 'none', 'rimmiss', 'rimifull' and 'fixer'."
+            )
         try:
             # Instanciate the generator
             generator: Generator = self.gen_class(
@@ -401,14 +405,24 @@ def main(argv: Optional[List[str]] = None) -> int:
     formatted_date: str = now.strftime("%Y-%m-%d_%H-%M-%S")
     base_dir_name: str = f"{Runner.RESULTS_DIR}{config_name}_{formatted_date}/"
     nb_runs: int = config_data["nb_runs"]
+    run_seeds: List[int] = config_data["run_seeds"]
+    if len(run_seeds) == 0:
+        run_seeds = [bytes_to_int(os.urandom(16)) for _ in range(nb_runs)]
+    if len(run_seeds) != nb_runs:
+        raise IncorrectSeedsNumberException(
+            "Number of specified seeds is incorrect. The config file should hold the"
+            " same number of seeds and runs, if no seed are specified, please use an"
+            " empty list '[]'."
+        )
     # Setup full data
     full_data: FullData = {"config_data": config_data, "run_data": []}
     # Launch the runs
     for run_number in range(nb_runs):
         # Generate binary
+        seed: int = run_seeds[run_number]
         generation_data: GenerationData
         jit_elements_data: JITElementsData
-        generation_data, jit_elements_data = runner.generate_binary()
+        generation_data, jit_elements_data = runner.generate_binary(seed)
         # Compile binary
         compilation_data: CompilationData = runner.compile_binary()
         # Execute binary

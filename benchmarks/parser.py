@@ -73,10 +73,15 @@ class LogParser:
     ) -> EmulationData:
         # Correctness flag
         emulation_ok: int = 0
+        tracing_ok: int = 0
         # Default values
         seed: int = 0
         start_cycle: int = 0
         end_cycle: int = 0
+        # Tracing data
+        executed_instructions: List[str] = []
+        instrs_class: InstrClassData = default_instr_class_data()
+        instrs_type: InstrTypeData = default_instr_type_data()
         try:
             # Extract info
             seed, start_cycle, end_cycle, executed_instructions = (
@@ -95,31 +100,34 @@ class LogParser:
             logger.error(err)
             emulation_ok = 0
 
-        # Instr type
-        executed_instrs_type = [
-            instructions_info[instr].instr_type for instr in executed_instructions
-        ]
-        # TODO: Cursed
-        instrs_type: InstrTypeData = default_instr_type_data()
-        instrs_type = {
-            instr_type: instrs_type.get(instr_type, 0) + executed_instrs_type.count(
-                instr_type
-            )
-            for instr_type in executed_instrs_type
-        }  # type: ignore
-        # Instr class
-        executed_instrs_class = [
-            instructions_info[instr].instr_class for instr in executed_instructions
-        ]
-        # TODO: Cursed
-        instrs_class: InstrClassData = default_instr_class_data()
-        instrs_class = {
-            instr_class: instrs_class.get(instr_class, 0) + executed_instrs_class.count(
-                instr_class
-            )
-            for instr_class in executed_instrs_class
-        }  # type: ignore
+        if emulation_ok == 1:
+            # Instr type
+            executed_instrs_type = [
+                instructions_info[instr].instr_type for instr in executed_instructions
+            ]
+            # TODO: Cursed
+            instrs_type = {
+                instr_type: instrs_type.get(instr_type, 0) + executed_instrs_type.count(
+                    instr_type
+                )
+                for instr_type in executed_instrs_type
+            }  # type: ignore
+            # Instr class
+            executed_instrs_class = [
+                instructions_info[instr].instr_class for instr in executed_instructions
+            ]
+            # TODO: Cursed
+            instrs_class = {
+                instr_class: instrs_class.get(instr_class, 0) + executed_instrs_class.count(
+                    instr_class
+                )
+                for instr_class in executed_instrs_class
+            }  # type: ignore
+            tracing_ok = 1
+
+        # If the emulation wasnt ok, simply pass the default values
         tracing_info: TracingData = {
+            "tracing_ok": tracing_ok,
             "instrs_nb": len(executed_instructions),
             "instrs_type": instrs_type,
             "instrs_class": instrs_class,
