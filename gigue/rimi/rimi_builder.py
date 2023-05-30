@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from gigue.instructions import Instruction
 
 from gigue.builder import InstructionBuilder
-from gigue.constants import CALL_TMP_REG, HIT_CASE_REG, RA, T2
+from gigue.constants import CALL_TMP_REG, HIT_CASE_REG, INSTRUCTION_WEIGHTS, RA, T2
 from gigue.exceptions import WrongOffsetException
 from gigue.helpers import align
 from gigue.instructions import BInstruction, IInstruction, UInstruction
@@ -162,6 +162,38 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
         imm: int = align(random.randint(0, min(data_size, 0x7FF)), alignment)
         return constr(rd=rd, rs1=rs1, imm=imm)
 
+    # TODO: Should be better than copy pasted with a changed class but eh
+    @staticmethod
+    def build_random_instruction(
+        registers: List[int],
+        max_offset: int,
+        data_reg: int,
+        data_size: int,
+        call_size: int = 3,
+        weights: List[int] = INSTRUCTION_WEIGHTS,
+    ) -> Instruction:
+        method_name: str = random.choices(
+            [
+                "build_random_r_instruction",
+                "build_random_i_instruction",
+                "build_random_u_instruction",
+                "build_random_j_instruction",
+                "build_random_b_instruction",
+                "build_random_s_instruction",
+                "build_random_l_instruction",
+            ],
+            weights,
+        )[0]
+        method: Callable = getattr(RIMIFullInstructionBuilder, method_name)
+        instruction: Instruction = method(
+            registers=registers,
+            max_offset=max_offset,
+            data_reg=data_reg,
+            data_size=data_size,
+            call_size=call_size,
+        )
+        return instruction
+
     # 2. Domain change routines in calls
     # \_________________________________
 
@@ -215,9 +247,9 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
             UInstruction.auipc(rd=T2, imm=0),
             # Compare the PC to the RA, if RA < PC need to change domain
             BInstruction.blt(rs1=RA, rs2=T2, imm=8),
-            # Calling and switching domain
-            IInstruction.jr(rs1=CALL_TMP_REG),
             # Calling without switching domain
+            IInstruction.jr(rs1=CALL_TMP_REG),
+            # Calling and switching domain
             RIMIIInstruction.chdom(rd=0, rs1=CALL_TMP_REG, imm=0),
         ]
 
@@ -234,8 +266,8 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
             UInstruction.auipc(rd=T2, imm=0),
             # Compare the PC to the RA, if RA < PC need to change domain
             BInstruction.blt(rs1=RA, rs2=T2, imm=8),
-            # Calling without switching domain
+            # Returning without switching domain
             IInstruction.ret(),
-            # Calling and switching domain
+            # Returning and switching domain
             RIMIIInstruction.retdom(),
         ]
