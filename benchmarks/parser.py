@@ -118,9 +118,9 @@ class LogParser:
             ]
             # TODO: Cursed
             instrs_class = {
-                instr_class: instrs_class.get(instr_class, 0) + executed_instrs_class.count(
-                    instr_class
-                )
+                instr_class: instrs_class.get(
+                    instr_class, 0
+                ) + executed_instrs_class.count(instr_class)
                 for instr_class in executed_instrs_class
             }  # type: ignore
             tracing_ok = 1
