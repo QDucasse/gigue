@@ -25,7 +25,7 @@ from tests.conftest import (
     Handler,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gigue")
 
 # Check for correct test data reg and shadow stack reg, config vs unicorn one
 # Note: Unicorn's 0 is the code for invalid reg so everything is shifted!

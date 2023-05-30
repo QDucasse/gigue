@@ -301,6 +301,7 @@ class Handler:
             instr_name = self.disasm.get_instruction_info(instr).name
             # Compare it to the one expected (if needed)
             if isinstance(user_data, str):
+                logger.debug(f"Expecting {user_data}")
                 assert instr_name == user_data
             # End of emulation if needed
             # end_emu = 0
