@@ -3,7 +3,7 @@ from unicorn import UcError
 from unicorn.riscv_const import UC_RISCV_REG_T1
 
 from gigue.constants import INSTRUCTIONS_INFO
-from gigue.helpers import to_signed, to_unsigned
+from gigue.helpers import reverse_endianness, to_signed, to_unsigned
 from gigue.instructions import (
     BInstruction,
     IInstruction,
@@ -331,15 +331,15 @@ def test_capstone_ebreak(cap_disasm_setup, uc_emul_setup):
 @pytest.mark.parametrize(
     "name, expected",
     [
-        ("lb", 0xFFFFFFFFFFFFFFFF),
-        ("lbu", 0xFF),
-        ("ld", 0xFFFFFFFFFFFFFFFF),
-        ("lh", 0xFFFFFFFFFFFFFFFF),
-        ("lhu", 0xFFFF),
-        ("lw", 0xFFFFFFFFFFFFFFFF),
-        ("lwu", 0xFFFFFFFF),
+        ("lb", 0x10),
+        ("lbu", 0x10),
+        ("ld", 0xFEDCBA9876543210),
+        ("lh", 0x3210),
+        ("lhu", 0x3210),
+        ("lw", 0x76543210),
+        ("lwu", 0x76543210),
     ],
-)
+)  # Note: Tests are performed using reversed endianness (easier to follow for me!)
 def test_unicorn_iinstr_loads(name, expected, cap_disasm_setup, uc_emul_setup):
     constr = getattr(IInstruction, name)
     instr = constr(rs1=TEST_DATA_REG, rd=6, imm=0)
@@ -351,7 +351,43 @@ def test_unicorn_iinstr_loads(name, expected, cap_disasm_setup, uc_emul_setup):
     uc_emul = uc_emul_setup
     uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_T1, 0x0)
-    uc_emul.mem_write(DATA_ADDRESS, b"\xff\xff\xff\xff\xff\xff\xff\xff")
+    uc_emul.mem_write(
+        DATA_ADDRESS, reverse_endianness(b"\xfe\xdc\xba\x98\x76\x54\x32\x10")
+    )
+    uc_emul.mem_write(ADDRESS, bytes)
+    uc_emul.emu_start(ADDRESS, ADDRESS + 4)
+    uc_emul.emu_stop()
+    assert uc_emul.reg_read(UC_RISCV_REG_T1) == expected
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        ("lb", 0xFFFFFFFFFFFFFFFF),
+        ("lbu", 0xFF),
+        ("ld", 0xFFFFFFFFFFFFFFFF),
+        ("lh", 0xFFFFFFFFFFFFFFFF),
+        ("lhu", 0xFFFF),
+        ("lw", 0xFFFFFFFFFFFFFFFF),
+        ("lwu", 0xFFFFFFFF),
+    ],
+)
+def test_unicorn_iinstr_loads_sign_extension(
+    name, expected, cap_disasm_setup, uc_emul_setup
+):
+    constr = getattr(IInstruction, name)
+    instr = constr(rs1=TEST_DATA_REG, rd=6, imm=0)
+    bytes = instr.generate_bytes()
+    # Disassembly
+    cap_disasm = cap_disasm_setup
+    next(cap_disasm.disasm(bytes, ADDRESS))
+    # Emulation
+    uc_emul = uc_emul_setup
+    uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS)
+    uc_emul.reg_write(UC_RISCV_REG_T1, 0x0)
+    uc_emul.mem_write(
+        DATA_ADDRESS, reverse_endianness(b"\xff\xff\xff\xff\xff\xff\xff\xff")
+    )
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, ADDRESS + 4)
     uc_emul.emu_stop()
@@ -536,12 +572,12 @@ def test_capstone_sinstr(name, imm, cap_disasm_setup):
 @pytest.mark.parametrize(
     "name, expected",
     [
-        ("sb", b"\xff\x00\x00\x00\x00\x00\x00\x00"),
-        ("sh", b"\xff\xff\x00\x00\x00\x00\x00\x00"),
-        ("sw", b"\xff\xff\xff\xff\x00\x00\x00\x00"),
-        ("sd", b"\xff\xff\xff\xff\xff\xff\xff\xff"),
+        ("sb", b"\x00\x00\x00\x00\x00\x00\x00\x10"),
+        ("sh", b"\x00\x00\x00\x00\x00\x00\x32\x10"),
+        ("sw", b"\x00\x00\x00\x00\x76\x54\x32\x10"),
+        ("sd", b"\xfe\xdc\xba\x98\x76\x54\x32\x10"),
     ],
-)
+)  # Note: Tests are performed using reversed endianness (easier to follow for me!)
 def test_unicorn_sinstr(name, expected, cap_disasm_setup, uc_emul_setup, handler_setup):
     constr = getattr(SInstruction, name)
     instr = constr(rs1=TEST_DATA_REG, rs2=6, imm=0)
@@ -558,12 +594,12 @@ def test_unicorn_sinstr(name, expected, cap_disasm_setup, uc_emul_setup, handler
     # Emulation
     uc_emul = uc_emul_setup
     uc_emul.reg_write(UC_DATA_REG, DATA_ADDRESS)
-    uc_emul.reg_write(UC_RISCV_REG_T1, 0xFFFFFFFFFFFFFFFF)
+    uc_emul.reg_write(UC_RISCV_REG_T1, 0xFEDCBA9876543210)
     uc_emul.mem_write(DATA_ADDRESS, b"\x00\x00\x00\x00\x00\x00\x00\x00")
     uc_emul.mem_write(ADDRESS, bytes)
     uc_emul.emu_start(ADDRESS, ADDRESS + 4)
     uc_emul.emu_stop()
-    assert uc_emul.mem_read(DATA_ADDRESS, 8) == expected
+    assert reverse_endianness(uc_emul.mem_read(DATA_ADDRESS, 8)) == expected
 
 
 @pytest.mark.parametrize("name", ["sb", "sd", "sh", "sw"])

@@ -68,8 +68,17 @@ def bytes_to_int(value: bytes) -> int:
     return int.from_bytes(value, "little")
 
 
+def reverse_endianness(value: bytes) -> bytes:
+    return int_to_bytes64(int.from_bytes(value, "big"))
+
+
 # Distributions
 # \____________
+
+
+# TODO: Discrete distribution (bernoulli?)
+# TODO: Extract expected mu/sigma
+# TODO: Users should rather use mean/std to define the range
 
 
 def gaussian_between(low_bound: int, up_bound: int) -> int:
@@ -85,4 +94,16 @@ def gaussian_between(low_bound: int, up_bound: int) -> int:
     mu: float = low_bound + 3 * sigma
     int_value: int = ceil(gauss(mu=mu, sigma=sigma))
     box_value: int = max(min(int_value, up_bound), low_bound)
+    # import math
+    # print(f"sigma {sigma}, mu {mu}, folded {sigma * math.sqrt(2/math.pi)}")
     return box_value
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    data = [abs(gaussian_between(-50, 50)) for _ in range(1000000)]
+    sample_mean = sum(data) / len(data)
+    print(sample_mean)
+    plt.hist(data, bins=100)
+    plt.show()
