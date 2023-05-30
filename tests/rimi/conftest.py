@@ -315,7 +315,7 @@ class RIMIHandler(Handler):
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     def handle_sh1(self, uc_emul, pc, instr):
-        logger.debug(">>> Handling sbu1")
+        logger.debug(">>> Handling sh1")
         self.check_store_access(uc_emul=uc_emul, instr=instr)
         new_instr = self.generate_new_sinstr(instr, SInstruction.sh)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
@@ -349,7 +349,8 @@ class RIMIHandler(Handler):
         self.check_domain_change(uc_emul=uc_emul, instr=instr)
         # Change domain (note: done here because the next lines resume the execution)
         self.current_domain = 0
-        new_instr = IInstruction.ret().generate_bytes()
+        new_instr = self.generate_new_iinstr(instr, IInstruction.jalr)
+        logger.debug(">>> Generated replacement ret")
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
     # Memory accesses checks

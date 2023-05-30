@@ -180,7 +180,7 @@ def test_unicorn_rimi_stores(
 
 
 def test_unicorn_rimi_ls(
-    rimi_handler_setup, cap_disasm_custom_setup, rimi_uc_emul_full_setup, log_trace
+    rimi_handler_setup, cap_disasm_custom_setup, rimi_uc_emul_full_setup
 ):
     instr = RIMIIInstruction.ls(rd=RA, rs1=RIMI_SSP_REG, imm=0)
     bytes = instr.generate_bytes()
@@ -205,7 +205,7 @@ def test_unicorn_rimi_ls(
 
 
 def test_unicorn_rimi_ss(
-    rimi_handler_setup, cap_disasm_custom_setup, rimi_uc_emul_full_setup, log_trace
+    rimi_handler_setup, cap_disasm_custom_setup, rimi_uc_emul_full_setup
 ):
     instr = RIMISInstruction.ss(rs1=RIMI_SSP_REG, rs2=RA, imm=0)
     bytes = instr.generate_bytes()

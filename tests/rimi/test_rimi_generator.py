@@ -17,7 +17,7 @@ from tests.conftest import (
 )
 from tests.rimi.conftest import TEST_RIMI_SSP_REG, start_resumable_emulation
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gigue")
 
 
 @pytest.mark.parametrize(
