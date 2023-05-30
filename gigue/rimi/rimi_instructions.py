@@ -90,6 +90,8 @@ class RIMISInstruction(SInstruction):
 
 
 if __name__ == "__main__":
+    from gigue.constants import INSTRUCTIONS_INFO
+
     # instructions = [
     #     # Base loads/stores in a correct domain
     #     IInstruction.lw(rd=30, rs1=5, imm=0),
@@ -118,18 +120,20 @@ if __name__ == "__main__":
         RIMIIInstruction.lw1(0, 0, 0),
         RIMIIInstruction.lwu1(0, 0, 0),
         RIMIIInstruction.ld1(0, 0, 0),
-
         RIMISInstruction.sb1(0, 0, 0),
         RIMISInstruction.sh1(0, 0, 0),
         RIMISInstruction.sw1(0, 0, 0),
         RIMISInstruction.sd1(0, 0, 0),
-
         RIMIIInstruction.ls(0, 0, 0),
         RIMISInstruction.ss(0, 0, 0),
-
         RIMIIInstruction.chdom(0, 0, 0),
         RIMIIInstruction.retdom(),
+        IInstruction.addi(0, 0, 0),
     ]
 
     for instr in instrs:
-        print(f"def {instr.name.upper(): <19} = BitPat(\"{instr.rocket_display(RIMI_INSTRUCTIONS_INFO)}\")")
+        print(
+            f"def {instr.name.upper(): <19}="
+            ' BitPat("'
+            f'{instr.rocket_display(RIMI_INSTRUCTIONS_INFO | INSTRUCTIONS_INFO)}")'
+        )
