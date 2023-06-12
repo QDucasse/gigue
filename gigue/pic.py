@@ -1,4 +1,5 @@
 import logging
+from math import ceil
 import random
 from typing import List
 
@@ -9,7 +10,7 @@ from gigue.exceptions import (
     CallNumberException,
     EmptySectionException,
 )
-from gigue.helpers import flatten_list, gaussian_between
+from gigue.helpers import flatten_list, gaussian_between, generate_trunc_norm
 from gigue.instructions import Instruction, JInstruction
 from gigue.method import Method
 
@@ -21,7 +22,9 @@ class PIC:
         self,
         address: int,
         case_number: int,
-        method_max_size: int,
+        method_size: int,
+        method_variation_mean: float,
+        method_variation_stdev: float,
         method_max_call_number: int,
         method_max_call_depth: int,
         builder: InstructionBuilder,
@@ -32,7 +35,9 @@ class PIC:
         self.case_number: int = case_number
         self.address: int = address
         self.call_size: int = call_size
-        self.method_max_size: int = method_max_size
+        self.method_size: int = method_size
+        self.method_variation_mean = method_variation_mean
+        self.method_variation_stdev = method_variation_stdev
         self.method_max_call_number: int = method_max_call_number
         self.method_max_call_depth: int = method_max_call_depth
         # hit_case_reg: register in which the case_nb that should be ran is loaded
@@ -79,6 +84,9 @@ class PIC:
             raise
         return total_size
 
+    def method_nb(self):
+        return self.case_number
+
     # Call-related methods
     # \____________________
 
@@ -115,7 +123,13 @@ class PIC:
         logger.debug(f"{self.log_prefix()} Adding case methods.")
         method_address: int = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
-            body_size: int = gaussian_between(3, self.method_max_size)
+            size_variation: float = generate_trunc_norm(
+                variance=self.method_variation_mean,
+                std_dev=self.method_variation_stdev,
+                lower_bound=0,
+                higher_bound=1.0,
+            )
+            body_size: int = ceil(self.method_size * (1 + size_variation))
             max_call_nb: int = min(
                 self.method_max_call_number,
                 Method.compute_max_call_number(body_size, self.call_size),
@@ -234,7 +248,13 @@ class PIC:
         logger.debug(f"{self.log_prefix()} Adding case methods.")
         method_address: int = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
-            body_size: int = gaussian_between(3, self.method_max_size)
+            size_variation: float = generate_trunc_norm(
+                variance=self.method_variation_mean,
+                std_dev=self.method_variation_stdev,
+                lower_bound=0,
+                higher_bound=1.0,
+            )
+            body_size: int = ceil(self.method_size * (1 + size_variation))
             max_call_nb: int = min(
                 self.method_max_call_number,
                 Method.compute_max_call_number(body_size, self.call_size),

@@ -14,16 +14,16 @@ from tests.fixer.conftest import TEST_FIXER_CMP_REG
 
 
 @pytest.mark.parametrize(
-    "jit_elements_nb, method_max_size, pics_ratio",
+    "jit_size, jit_nb_methods, pics_ratio",
     [
-        (5, 5, 0),
-        (20, 20, 0.2),
-        (100, 50, 0.5),
+        (50, 5, 0),
+        (200, 10, 0.2),
+        (5000, 50, 0.5),
     ],
 )
 def test_execute_trampoline_generated_binaries(
-    jit_elements_nb,
-    method_max_size,
+    jit_size,
+    jit_nb_methods,
     pics_ratio,
     cap_disasm_custom_setup,
     fixer_handler_setup,
@@ -32,11 +32,12 @@ def test_execute_trampoline_generated_binaries(
     generator = FIXERTrampolineGenerator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb,
-        method_max_size=method_max_size,
+        jit_size=jit_size,
+        jit_nb_methods=jit_nb_methods,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
         max_call_depth=5,
         max_call_nb=5,
-        pics_method_max_size=method_max_size,
         pics_max_cases=2,
         pics_ratio=pics_ratio,
         data_reg=TEST_DATA_REG,

@@ -42,19 +42,39 @@ class Parser(argparse.ArgumentParser):
     def add_parse_arguments(self):
         # Seed
         self.add_argument(
-            "-S",
+            "-s",
             "--seed",
             type=int,
             default=bytes_to_int(os.urandom(16)),
-            help="Start address of the interpretation loop",
+            help="Seed for the generation",
+        )
+
+        # Addresses
+        # TODO: Should remove this one
+        self.add_argument(
+            "-a",
+            "--intaddr",
+            type=int,
+            default=0x0,
+            help="Base address of the interpretation loop (the whole binary)",
         )
         self.add_argument(
-            "-T",
+            "-j",
+            "--jitaddr",
+            type=int,
+            default=0x2000,
+            help="Offset address of the JIT code",
+        )
+
+        # General
+        self.add_argument(
+            "-t",
             "--uses_trampolines",
             action="store_true",
             help="Uses trampoline for calls/returns",
         )
         self.add_argument(
+            "-i",
             "--isolation",
             type=str,
             default="none",
@@ -63,29 +83,34 @@ class Parser(argparse.ArgumentParser):
                 " rimifull)"
             ),
         )
-        # Addresses
+        # Method info
         self.add_argument(
-            "-I",
-            "--intaddr",
+            "-js",
+            "--jitsize",
             type=int,
-            default=0x0,
-            help="Start address of the interpretation loop",
+            default=1000,
+            help="Size of the JIT binary in terms of instructions"
         )
         self.add_argument(
-            "-J",
-            "--jitaddr",
-            type=int,
-            default=0x2000,  # 0x1000
-            help="Start address of the JIT code",
-        )
-
-        # General
-        self.add_argument(
-            "-N",
-            "--nbelt",
+            "-n",
+            "--nbmeth",
             type=int,
             default=100,
-            help="Number of JIT code elements (methods/pics)",
+            help="Number of JIT code methods",
+        )
+        self.add_argument(
+            "-vm",
+            "--varmeth",
+            type=int,
+            default=0.2,
+            help="Mean variation of method length variation",
+        )
+        self.add_argument(
+            "-vs",
+            "--stdevmeth",
+            type=int,
+            default=0.1,
+            help="Mean standard deviation of method length variation",
         )
         self.add_argument(
             "--regs",
@@ -114,13 +139,6 @@ class Parser(argparse.ArgumentParser):
         )
         # Method info
         self.add_argument(
-            "-M",
-            "--metmaxsize",
-            type=int,
-            default=50,
-            help="Maximum size of a method (in nb of instructions)",
-        )
-        self.add_argument(
             "--maxcallnb",
             type=int,
             default=5,
@@ -135,9 +153,6 @@ class Parser(argparse.ArgumentParser):
         # PICs info
         self.add_argument(
             "-R", "--picratio", type=float, default=0.2, help="PIC to method ratio"
-        )
-        self.add_argument(
-            "-P", "--picmetmaxsize", type=int, default=25, help="PIC methods max size"
         )
         self.add_argument(
             "--picmaxcases", type=int, default=5, help="PIC max number of cases"
@@ -212,19 +227,20 @@ def main(argv=None):
             jit_start_address=args.jitaddr,
             interpreter_start_address=args.intaddr,
             # General
+            jit_size=args.jitsize,
+            jit_nb_methods=args.nbmeth,
+            method_variation_mean=args.varmeth,
+            method_variation_stdev=args.stdevmeth,
             registers=args.regs,
-            jit_elements_nb=args.nbelt,
             # Data
             data_reg=args.datareg,
             data_generation_strategy=args.datagen,
             data_size=args.datasize,
             # Methods
-            method_max_size=args.metmaxsize,
             max_call_depth=args.maxcalldepth,
             max_call_nb=args.maxcallnb,
             # PICs
             pics_ratio=args.picratio,
-            pics_method_max_size=args.picmetmaxsize,
             pics_max_cases=args.picmaxcases,
             pics_cmp_reg=args.piccmpreg,
             pics_hit_case_reg=args.pichitcasereg,

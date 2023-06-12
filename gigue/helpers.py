@@ -1,5 +1,5 @@
 from math import ceil
-from random import gauss
+import random
 from typing import Any, Generator, List, Union
 
 # List Helpers
@@ -92,7 +92,7 @@ def gaussian_between(low_bound: int, up_bound: int) -> int:
     #     raise Exception
     sigma: float = (up_bound - low_bound) / 6
     mu: float = low_bound + 3 * sigma
-    int_value: int = ceil(gauss(mu=mu, sigma=sigma))
+    int_value: int = ceil(random.gauss(mu=mu, sigma=sigma))
     box_value: int = max(min(int_value, up_bound), low_bound)
     # import math
     # print(f"sigma {sigma}, mu {mu}, folded {sigma * math.sqrt(2/math.pi)}")
@@ -134,19 +134,22 @@ def generate_poisson(lmbda):
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    import random
     import math
 
+    # Poisson distribution
     lambda_value = 2  # Lambda parameter of the Poisson distribution
-    data = [generate_poisson(lambda_value) for _ in range(1000000)]
+    data = [generate_poisson(lambda_value) for _ in range(100000)]
+    plt.hist(data, bins=100)
+    plt.show()
 
+    # Truncated normal distribution
     variance = 0.25
     std_dev = 0.2
     lower_bound = 0
     higher_bound = 1.0
     data = [
         generate_trunc_norm(variance, std_dev, lower_bound, higher_bound)
-        for _ in range(1000000)
+        for _ in range(100000)
     ]
     # sample_mean = sum(data) / len(data)
     # print(sample_mean)

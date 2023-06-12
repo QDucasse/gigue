@@ -27,12 +27,14 @@ def default_builder_setup():
 
 
 @pytest.mark.parametrize("case_nb", range(1, 10))
-@pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
-def test_switch_size(default_builder_setup, case_nb, method_max_size):
+@pytest.mark.parametrize("method_size", [20, 50, 100, 200])
+def test_switch_size(default_builder_setup, case_nb, method_size):
     pic = PIC(
         case_number=case_nb,
         address=ADDRESS,
-        method_max_size=method_max_size,
+        method_size=method_size,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
         method_max_call_number=5,
         method_max_call_depth=5,
         builder=default_builder_setup,
@@ -49,12 +51,14 @@ def test_switch_size(default_builder_setup, case_nb, method_max_size):
 
 
 @pytest.mark.parametrize("case_nb", range(1, 10))
-@pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
-def test_total_size(default_builder_setup, case_nb, method_max_size):
+@pytest.mark.parametrize("method_size", [20, 50, 100, 200])
+def test_total_size(default_builder_setup, case_nb, method_size):
     pic = PIC(
         case_number=case_nb,
         address=ADDRESS,
-        method_max_size=method_max_size,
+        method_size=method_size,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
         method_max_call_number=5,
         method_max_call_depth=5,
         builder=default_builder_setup,
@@ -77,12 +81,16 @@ def test_total_size(default_builder_setup, case_nb, method_max_size):
 
 
 @pytest.mark.parametrize("case_nb", range(1, 10))
-@pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
-def test_method_adding(default_builder_setup, case_nb, method_max_size):
+@pytest.mark.parametrize("method_size", [20, 50, 100, 200])
+def test_method_adding(default_builder_setup, case_nb, method_size):
+    method_variation_mean = 0.2
+    method_variation_stdev = 0.1
     pic = PIC(
         case_number=case_nb,
         address=ADDRESS,
-        method_max_size=method_max_size,
+        method_size=method_size,
+        method_variation_mean=method_variation_mean,
+        method_variation_stdev=method_variation_stdev,
         method_max_call_number=5,
         method_max_call_depth=5,
         builder=default_builder_setup,
@@ -95,18 +103,25 @@ def test_method_adding(default_builder_setup, case_nb, method_max_size):
     )
     assert len(pic.methods) == case_nb
     for method in pic.methods:
-        assert method.body_size <= method_max_size
+        max_deviation = method_variation_mean + 4 * method_variation_stdev
+        assert (
+            method_size * (1 - max_deviation)
+            <= method.body_size
+            <= method_size * (1 + max_deviation)
+        )
 
 
 @pytest.mark.parametrize("case_nb", range(1, 10))
-@pytest.mark.parametrize("method_max_size", [5, 20, 50, 100, 200])
+@pytest.mark.parametrize("method_size", [5, 20, 50, 100, 200])
 def test_switch_instructions_adding(
-    default_builder_setup, case_nb, method_max_size, disasm_setup, cap_disasm_setup
+    default_builder_setup, case_nb, method_size, disasm_setup, cap_disasm_setup
 ):
     pic = PIC(
         case_number=case_nb,
         address=ADDRESS,
-        method_max_size=method_max_size,
+        method_size=method_size,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
         method_max_call_number=5,
         method_max_call_depth=5,
         builder=default_builder_setup,
@@ -144,11 +159,11 @@ def test_switch_instructions_adding(
 
 @pytest.mark.parametrize("case_nb", range(1, 5))
 @pytest.mark.parametrize("hit_case", range(1, 5))
-@pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
+@pytest.mark.parametrize("method_size", [20, 50, 100, 200])
 def test_disassembly_execution(
     default_builder_setup,
     case_nb,
-    method_max_size,
+    method_size,
     hit_case,
     cap_disasm_setup,
     uc_emul_full_setup,
@@ -157,7 +172,9 @@ def test_disassembly_execution(
     pic = PIC(
         case_number=case_nb,
         address=ADDRESS,
-        method_max_size=method_max_size,
+        method_size=method_size,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
         method_max_call_number=5,
         method_max_call_depth=5,
         hit_case_reg=6,
@@ -190,11 +207,11 @@ def test_disassembly_execution(
 
 @pytest.mark.parametrize("case_nb", range(1, 5))
 @pytest.mark.parametrize("hit_case", range(1, 5))
-@pytest.mark.parametrize("method_max_size", [20, 50, 100, 200])
+@pytest.mark.parametrize("method_size", [20, 50, 100, 200])
 def test_trampoline_disassembly_execution(
     default_builder_setup,
     case_nb,
-    method_max_size,
+    method_size,
     hit_case,
     cap_disasm_setup,
     uc_emul_full_setup,
@@ -216,7 +233,9 @@ def test_trampoline_disassembly_execution(
     pic = PIC(
         case_number=case_nb,
         address=CODE_ADDRESS,
-        method_max_size=method_max_size,
+        method_size=method_size,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
         method_max_call_number=5,
         method_max_call_depth=5,
         hit_case_reg=6,

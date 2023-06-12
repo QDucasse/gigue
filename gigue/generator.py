@@ -1,4 +1,5 @@
 import logging
+from math import ceil
 import random
 from collections import defaultdict
 from typing import Callable, Dict, List, Optional, Union
@@ -22,7 +23,7 @@ from gigue.exceptions import (
     RecursiveCallException,
     WrongAddressException,
 )
-from gigue.helpers import align, flatten_list, gaussian_between
+from gigue.helpers import align, flatten_list, gaussian_between, generate_trunc_norm
 from gigue.instructions import Instruction
 from gigue.method import Method
 from gigue.pic import PIC
@@ -38,22 +39,32 @@ class Generator:
 
     def __init__(
         self,
+        # Addresses
         interpreter_start_address: int,
         jit_start_address: int,
-        jit_elements_nb: int,
+        # Method sizing
+        jit_size: int,
+        jit_nb_methods: int,
+        method_variation_mean: float,
+        method_variation_stdev: float,
+        # Call info
         max_call_depth: int,
         max_call_nb: int,
-        method_max_size: int,
+        # PICs info
         pics_ratio: float,
-        pics_method_max_size: int,
         pics_max_cases: int,
+        # Data info
         data_size: int = DATA_SIZE,
         data_generation_strategy: str = "random",
+        # PICs registers
         pics_cmp_reg: int = CMP_REG,
         pics_hit_case_reg: int = HIT_CASE_REG,
+        # Usable registers
         registers: List[int] = CALLER_SAVED_REG,
         data_reg: int = DATA_REG,
+        # Instruction weights
         weights: List[int] = INSTRUCTION_WEIGHTS,
+        # File naming
         output_bin_file: str = BIN_DIR + "out.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
     ):
@@ -82,20 +93,25 @@ class Generator:
         self.interpreter_prologue_size: int = 0
         self.interpreter_epilogue_size: int = 0
 
-        # Global JIT code parameters
-        self.jit_elements_nb: int = jit_elements_nb  # Methods + PICs
+        # Method sizing
+        self.jit_size: int = jit_size
+        self.jit_nb_methods: int = jit_nb_methods
+        # TODO: Raise exception if mean size too small
+        self.jit_method_size: int = jit_size // jit_nb_methods
+        self.method_variation_mean: float = method_variation_mean
+        self.method_variation_stdev: float = method_variation_stdev
+        # Call info
         self.max_call_depth: int = max_call_depth
         self.max_call_nb: int = max_call_nb
         self.call_size: int = 3
-        # Methods parameters
-        self.method_max_size: int = method_max_size
-        self.method_count: int = 0
         # PICs parameters
         self.pics_ratio: float = pics_ratio
         self.pics_max_cases: int = pics_max_cases
-        self.pics_method_max_size: int = pics_method_max_size
         self.pics_hit_case_reg: int = pics_hit_case_reg
         self.pics_cmp_reg: int = pics_cmp_reg
+
+        # Element count
+        self.method_count: int = 0
         self.pic_count: int = 0
 
         # Generation
@@ -103,7 +119,7 @@ class Generator:
         self.builder: InstructionBuilder = InstructionBuilder()
         self.jit_elements: List[Union[Method, PIC]] = []
         self.jit_instructions: List[Instruction] = []
-        self.call_depth_dict: Dict[int, List[Union[Method, PIC]]] = defaultdict(list)
+        self.call_depth_dict: Dict[int, List[Method]] = defaultdict(list)
         self.interpreter_instructions: List[Instruction] = []
 
         # MC/Bytes/Binary generation
@@ -133,8 +149,14 @@ class Generator:
     #  JIT element generation
     # \______________________
 
-    def add_method(self, address: int) -> Method:
-        body_size: int = gaussian_between(self.call_size, self.method_max_size)
+    def add_method(self, address: int, *args, **kwargs) -> Method:
+        size_variation: float = generate_trunc_norm(
+            variance=self.method_variation_mean,
+            std_dev=self.method_variation_stdev,
+            lower_bound=0,
+            higher_bound=1.0,
+        )
+        body_size: int = ceil(self.jit_method_size * (1 + size_variation))
         # To force the creation of leaf functions,
         # the gaussian distribution is centered
         # around 0 and the absolute value is used!
@@ -169,7 +191,13 @@ class Generator:
         return method
 
     def add_leaf_method(self, address: int) -> Method:
-        body_size: int = gaussian_between(3, self.method_max_size)
+        size_variation: float = generate_trunc_norm(
+            variance=self.method_variation_mean,
+            std_dev=self.method_variation_stdev,
+            lower_bound=0,
+            higher_bound=1.0,
+        )
+        body_size: int = ceil(self.jit_method_size * (1 + size_variation))
         try:
             method: Method = Method(
                 address=address,
@@ -191,12 +219,14 @@ class Generator:
         self.method_count += 1
         return method
 
-    def add_pic(self, address: int) -> PIC:
-        cases_nb: int = random.randint(2, self.pics_max_cases)
+    def add_pic(self, address: int, remaining_methods: int) -> PIC:
+        cases_nb: int = random.randint(1, min(self.pics_max_cases, remaining_methods))
         pic: PIC = PIC(
             address=address,
             case_number=cases_nb,
-            method_max_size=self.pics_method_max_size,
+            method_size=self.jit_method_size,
+            method_variation_mean=self.method_variation_mean,
+            method_variation_stdev=self.method_variation_stdev,
             method_max_call_number=self.max_call_nb,
             method_max_call_depth=self.max_call_depth,
             hit_case_reg=self.pics_hit_case_reg,
@@ -223,7 +253,7 @@ class Generator:
         if not start_address:
             start_address = self.jit_start_address
         current_address: int = start_address
-        current_element_count: int = 0
+        current_method_count: int = 0
         # Add a first leaf method
         leaf_method: Method = self.add_leaf_method(current_address)
         leaf_method.fill_with_instructions(
@@ -234,17 +264,19 @@ class Generator:
         )
         try:
             current_address += leaf_method.total_size() * 4
-            current_element_count += 1
+            current_method_count += 1
         except EmptySectionException as err:
             logger.exception(err)
             raise
         # Add other methods
-        while current_element_count < self.jit_elements_nb:
+        while current_method_count < self.jit_nb_methods:
             code_type: str = random.choices(
                 ["method", "pic"], [1 - self.pics_ratio, self.pics_ratio]
             )[0]
             adder_function: Callable = getattr(Generator, "add_" + code_type)
-            current_element: Union[PIC, Method] = adder_function(self, current_address)
+            current_element: Union[PIC, Method] = adder_function(
+                self, current_address, self.jit_nb_methods - current_method_count
+            )
             current_element.fill_with_instructions(
                 registers=self.registers,
                 data_reg=self.data_reg,
@@ -253,7 +285,7 @@ class Generator:
             )
             try:
                 current_address += current_element.total_size() * 4
-                current_element_count += 1
+                current_method_count += current_element.method_nb()
             except EmptySectionException as err:
                 logger.exception(err)
                 raise
@@ -445,12 +477,13 @@ class TrampolineGenerator(Generator):
         self,
         interpreter_start_address: int,
         jit_start_address: int,
-        jit_elements_nb: int,
+        jit_size: int,
+        jit_nb_methods: int,
+        method_variation_mean: float,
+        method_variation_stdev: float,
         max_call_depth: int,
         max_call_nb: int,
-        method_max_size: int,
         pics_ratio: float,
-        pics_method_max_size: int,
         pics_max_cases: int,
         data_size: int = DATA_SIZE,
         data_generation_strategy: str = "random",
@@ -467,12 +500,13 @@ class TrampolineGenerator(Generator):
         super().__init__(
             interpreter_start_address=interpreter_start_address,
             jit_start_address=jit_start_address,
-            jit_elements_nb=jit_elements_nb,
+            jit_size=jit_size,
+            jit_nb_methods=jit_nb_methods,
+            method_variation_mean=method_variation_mean,
+            method_variation_stdev=method_variation_stdev,
             max_call_depth=max_call_depth,
             max_call_nb=max_call_nb,
-            method_max_size=method_max_size,
             pics_ratio=pics_ratio,
-            pics_method_max_size=pics_method_max_size,
             pics_max_cases=pics_max_cases,
             data_size=data_size,
             data_generation_strategy=data_generation_strategy,
@@ -529,7 +563,7 @@ class TrampolineGenerator(Generator):
                 logger.exception(err)
                 raise
         # Add elements
-        current_element_count: int = 0
+        current_method_count: int = 0
         # Add a first leaf method
         leaf_method: Method = self.add_leaf_method(current_address)
         leaf_method.fill_with_trampoline_instructions(
@@ -543,17 +577,19 @@ class TrampolineGenerator(Generator):
         )
         try:
             current_address += leaf_method.total_size() * 4
-            current_element_count += 1
+            current_method_count += 1
         except EmptySectionException as err:
             logger.exception(err)
             raise
         # Add other methods
-        while current_element_count < self.jit_elements_nb:
+        while current_method_count < self.jit_nb_methods:
             code_type: str = random.choices(
                 ["method", "pic"], [1 - self.pics_ratio, self.pics_ratio]
             )[0]
             adder_function: Callable = getattr(Generator, "add_" + code_type)
-            current_element: Union[PIC, Method] = adder_function(self, current_address)
+            current_element: Union[PIC, Method] = adder_function(
+                self, current_address, self.jit_nb_methods - current_method_count
+            )
             current_element.fill_with_trampoline_instructions(
                 registers=self.registers,
                 data_reg=self.data_reg,
@@ -565,7 +601,7 @@ class TrampolineGenerator(Generator):
             )
             try:
                 current_address += current_element.total_size() * 4
-                current_element_count += 1
+                current_method_count += current_element.method_nb()
             except EmptySectionException as err:
                 logger.exception(err)
                 raise

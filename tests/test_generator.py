@@ -1,3 +1,4 @@
+from typing import Union
 import pytest
 
 from gigue.exceptions import WrongAddressException
@@ -24,11 +25,12 @@ def test_not_implemented():
         Generator(
             jit_start_address=0,
             interpreter_start_address=INTERPRETER_START_ADDRESS,
-            jit_elements_nb=10,
-            method_max_size=10,
+            jit_size=500,
+            jit_nb_methods=10,
+            method_variation_mean=0.2,
+            method_variation_stdev=0.1,
             max_call_depth=2,
             max_call_nb=2,
-            pics_method_max_size=10,
             pics_max_cases=2,
             pics_ratio=0.5,
         )
@@ -39,15 +41,15 @@ def test_not_implemented():
 # =================================
 
 
-@pytest.mark.parametrize("jit_elements_nb", [10, 100])
-@pytest.mark.parametrize("method_max_size", [5, 20, 100])
+@pytest.mark.parametrize("jit_size", [100, 200, 500])
+@pytest.mark.parametrize("jit_nb_methods", [10, 100])
 @pytest.mark.parametrize("pics_ratio", [0, 0.5])
 @pytest.mark.parametrize("max_call_depth", [2, 5, 10])
 @pytest.mark.parametrize("max_call_nb", [2, 5, 10])
 @pytest.mark.parametrize("pics_max_cases", [2, 5, 10])
 def test_fill_jit_code(
-    jit_elements_nb,
-    method_max_size,
+    jit_size,
+    jit_nb_methods,
     pics_ratio,
     max_call_depth,
     max_call_nb,
@@ -56,18 +58,18 @@ def test_fill_jit_code(
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb,
-        method_max_size=method_max_size,
+        jit_size=jit_size,
+        jit_nb_methods=jit_nb_methods,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
         max_call_depth=max_call_depth,
         max_call_nb=max_call_nb,
-        pics_method_max_size=method_max_size,
         pics_max_cases=pics_max_cases,
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
     generator.patch_jit_calls()
-    assert len(generator.jit_elements) == jit_elements_nb
-    assert generator.pic_count + generator.method_count == jit_elements_nb
+    assert sum([elt.method_nb() for elt in generator.jit_elements]) == jit_nb_methods
     # Check call numbers and number of cases per PIC
     for elt in generator.jit_elements:
         if isinstance(elt, PIC):
@@ -82,18 +84,19 @@ def test_fill_jit_code(
             assert 0 <= method.call_depth <= generator.max_call_depth
 
 
-@pytest.mark.parametrize("jit_elements_nb", [5, 20, 100])
-@pytest.mark.parametrize("method_max_size", [5, 20, 100])
+@pytest.mark.parametrize("jit_size", [100, 200, 500])
+@pytest.mark.parametrize("jit_nb_methods", [10, 100])
 @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
-def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
+def test_fill_interpretation_loop(jit_size, jit_nb_methods, pics_ratio):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb,
-        method_max_size=method_max_size,
+        jit_size=jit_size,
+        jit_nb_methods=jit_nb_methods,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
         max_call_depth=5,
         max_call_nb=5,
-        pics_method_max_size=30,
         pics_max_cases=5,
         pics_ratio=pics_ratio,
     )
@@ -132,15 +135,15 @@ def test_fill_interpretation_loop(jit_elements_nb, method_max_size, pics_ratio):
 
 
 # TODO: Smoke test, add real testing hihi
-@pytest.mark.parametrize("jit_elements_nb", [20, 100])
-@pytest.mark.parametrize("method_max_size", [20, 100])
+@pytest.mark.parametrize("jit_size", [100, 200, 500])
+@pytest.mark.parametrize("jit_nb_methods", [10, 100])
 @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
 @pytest.mark.parametrize("max_call_depth", [2, 5, 10])
 @pytest.mark.parametrize("max_call_nb", [2, 5, 10])
 @pytest.mark.parametrize("pics_max_cases", [2, 5, 10])
 def test_patch_calls(
-    jit_elements_nb,
-    method_max_size,
+    jit_size,
+    jit_nb_methods,
     pics_ratio,
     max_call_depth,
     max_call_nb,
@@ -149,11 +152,12 @@ def test_patch_calls(
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb,
-        method_max_size=method_max_size,
+        jit_size=jit_size,
+        jit_nb_methods=jit_nb_methods,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
         max_call_depth=max_call_depth,
         max_call_nb=max_call_nb,
-        pics_method_max_size=method_max_size,
         pics_max_cases=pics_max_cases,
         pics_ratio=pics_ratio,
     )
@@ -167,20 +171,19 @@ def test_patch_calls(
 # =================================
 
 
-@pytest.mark.parametrize("jit_elements_nb", [5, 20, 100])
-@pytest.mark.parametrize("method_max_size", [5, 20, 100])
+@pytest.mark.parametrize("jit_size", [100, 200, 500])
+@pytest.mark.parametrize("jit_nb_methods", [10, 100])
 @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
-def test_generate_interpreter_machine_code(
-    jit_elements_nb, method_max_size, pics_ratio
-):
+def test_generate_interpreter_machine_code(jit_size, jit_nb_methods, pics_ratio):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb,
-        method_max_size=method_max_size,
+        jit_size=jit_size,
+        jit_nb_methods=jit_nb_methods,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
         max_call_depth=5,
         max_call_nb=5,
-        pics_method_max_size=30,
         pics_max_cases=5,
         pics_ratio=pics_ratio,
     )
@@ -223,18 +226,19 @@ def test_generate_interpreter_machine_code(
     #         method_count += 1
 
 
-@pytest.mark.parametrize("jit_elements_nb", [5, 20, 100])
-@pytest.mark.parametrize("method_max_size", [5, 20, 100])
+@pytest.mark.parametrize("jit_size", [100, 200, 500])
+@pytest.mark.parametrize("jit_nb_methods", [10, 100])
 @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
-def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
+def test_generate_bytes(jit_size, jit_nb_methods, pics_ratio):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb,
-        method_max_size=method_max_size,
+        jit_size=jit_size,
+        jit_nb_methods=jit_nb_methods,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
         max_call_depth=5,
         max_call_nb=5,
-        pics_method_max_size=30,
         pics_max_cases=5,
         pics_ratio=pics_ratio,
     )
@@ -255,16 +259,16 @@ def test_generate_bytes(jit_elements_nb, method_max_size, pics_ratio):
 
 
 @pytest.mark.parametrize(
-    "jit_elements_nb, method_max_size, pics_ratio",
+    "jit_size, jit_nb_methods, pics_ratio",
     [
-        (5, 5, 0),
-        (20, 20, 0.2),
-        (100, 50, 0.5),
+        (50, 5, 0),
+        (200, 10, 0.2),
+        (5000, 50, 0.5),
     ],
 )
 def test_execute_generated_binaries(
-    jit_elements_nb,
-    method_max_size,
+    jit_size,
+    jit_nb_methods,
     pics_ratio,
     cap_disasm_setup,
     handler_setup,
@@ -273,11 +277,12 @@ def test_execute_generated_binaries(
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb,
-        method_max_size=method_max_size,
+        jit_size=jit_size,
+        jit_nb_methods=jit_nb_methods,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
         max_call_depth=5,
         max_call_nb=5,
-        pics_method_max_size=method_max_size,
         pics_max_cases=2,
         pics_ratio=pics_ratio,
         data_reg=TEST_DATA_REG,
@@ -320,17 +325,19 @@ def test_execute_generated_binaries(
 
 
 @pytest.mark.parametrize(
-    "jit_elements_nb, method_max_size, pics_ratio",
+    "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev",
     [
-        (5, 5, 0),
-        (20, 20, 0.2),
-        (100, 50, 0.5),
+        (50, 5, 0, 0.1, 0.1),
+        (200, 10, 0.2, 0.2, 0.1),
+        (5000, 50, 0.5, 0.3, 0.2),
     ],
 )
 def test_execute_trampoline_generated_binaries(
-    jit_elements_nb,
-    method_max_size,
+    jit_size,
+    jit_nb_methods,
     pics_ratio,
+    meth_var_mean,
+    meth_var_stdev,
     cap_disasm_setup,
     handler_setup,
     uc_emul_full_setup,
@@ -338,11 +345,12 @@ def test_execute_trampoline_generated_binaries(
     generator = TrampolineGenerator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_elements_nb=jit_elements_nb,
-        method_max_size=method_max_size,
+        jit_size=jit_size,
+        jit_nb_methods=jit_nb_methods,
+        method_variation_mean=meth_var_mean,
+        method_variation_stdev=meth_var_stdev,
         max_call_depth=5,
         max_call_nb=5,
-        pics_method_max_size=method_max_size,
         pics_max_cases=2,
         pics_ratio=pics_ratio,
         data_reg=TEST_DATA_REG,
