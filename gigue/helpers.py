@@ -99,11 +99,56 @@ def gaussian_between(low_bound: int, up_bound: int) -> int:
     return box_value
 
 
+def generate_trunc_norm(
+    variance: float, std_dev: float, lower_bound: float, higher_bound: float
+):
+    # Truncation of the normal distribution should use a new sample and
+    # not box the value directly!
+    x = random.gauss(variance, std_dev)
+    while not lower_bound <= x <= higher_bound:
+        x = random.gauss(variance, std_dev)
+    return x
+
+
+def generate_poisson(lmbda):
+    # Poisson generator based upon the inversion by sequential search
+    # based on Devroye "Discrete univariate distributions"
+    # init:
+    #     Let x ← 0, p ← e−λ, s ← p.
+    #     Generate uniform random number u in [0,1].
+    # while u > s do:
+    #     x ← x + 1.
+    #     p ← p × λ / x.
+    #     s ← s + p.
+    # return x.
+    x = 0
+    p = math.exp(-lmbda)
+    s = p
+    u = random.random()
+    while u > s:
+        x = x + 1
+        p *= lmbda / x
+        s = s + p
+    return x
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+    import random
+    import math
 
-    data = [abs(gaussian_between(-50, 50)) for _ in range(1000000)]
-    sample_mean = sum(data) / len(data)
-    print(sample_mean)
+    lambda_value = 2  # Lambda parameter of the Poisson distribution
+    data = [generate_poisson(lambda_value) for _ in range(1000000)]
+
+    variance = 0.25
+    std_dev = 0.2
+    lower_bound = 0
+    higher_bound = 1.0
+    data = [
+        generate_trunc_norm(variance, std_dev, lower_bound, higher_bound)
+        for _ in range(1000000)
+    ]
+    # sample_mean = sum(data) / len(data)
+    # print(sample_mean)
     plt.hist(data, bins=100)
     plt.show()
