@@ -43,6 +43,7 @@ class Plotter:
     # \________________________________________
 
     def extract_run_method_density(self, run_data: RunData, pics_ratio: float):
+        # TODO: Clarify metric - what does it mean?
         mean_method_size: float = run_data["generation_data"]["mean_method_size"]
         pics_mean_method_size: float = run_data["generation_data"][
             "pics_mean_method_size"
@@ -61,6 +62,7 @@ class Plotter:
     # \____________________________________________________________
 
     def extract_run_call_density(self, run_data: RunData, pics_ratio: float):
+        # TODO: Clarify metric - what does it mean?
         mean_method_call_nb: float = run_data["generation_data"]["mean_method_call_nb"]
         mean_method_call_depth: float = run_data["generation_data"][
             "mean_method_call_depth"
@@ -148,7 +150,7 @@ class Plotter:
                     # Extract cycle nb
                     nb_cycles: List[int] = self.extract_cycles(full_data)
                     # Extract CPI
-                    cpis: List[float] = self.extract_cycles(full_data)
+                    cpis: List[float] = self.extract_cpis(full_data)
                     call_application_class_data: CallApplicationClassData = {
                         "name": str(call_app_path),
                         "isolation": isolation_type,
@@ -247,7 +249,7 @@ class Plotter:
         for app_data in application_classes_data:
             ax.bar(mean(app_data["call_densities"]), mean(app_data["nb_cycles"]))
 
-        # ax.legend([app_data["name"] for app_data in application_classes_data])
+        ax.legend([app_data["name"] for app_data in application_classes_data])
         ax.set_xlabel("Number of cycles")
         ax.set_ylabel("Call density")
         ax.set_title("Number of cycles with varying call density")
@@ -289,7 +291,7 @@ class Plotter:
         for app_data in application_classes_data:
             ax.bar(mean(app_data["mem_densities"]), mean(app_data["cpis"]))
 
-        # ax.legend([app_data["name"] for app_data in application_classes_data])
+        ax.legend([app_data["name"] for app_data in application_classes_data])
         ax.set_xlabel("CPI")
         ax.set_ylabel("Memory instruction density")
         ax.set_title("CPIs with varying memory instruction density")
@@ -298,12 +300,12 @@ class Plotter:
 if __name__ == "__main__":
     _, axs = plt.subplots(3, 2)
     plotter = Plotter()
-    call_application_classes: List[CallApplicationClassData] = (
-        plotter.process_call_application_classes(["no_isolation"])
-    )
-    mem_application_classes: List[MemoryApplicationClassData] = (
-        plotter.process_mem_application_classes(["no_isolation"])
-    )
+    call_application_classes: List[
+        CallApplicationClassData
+    ] = plotter.process_call_application_classes(["no_isolation"])
+    mem_application_classes: List[
+        MemoryApplicationClassData
+    ] = plotter.process_mem_application_classes(["no_isolation"])
     plotter.plot_call_application_classes(axs[0, 0], call_application_classes)
     plotter.plot_mem_application_classes(axs[0, 1], mem_application_classes)
     plotter.plot_call_nb_cycles(axs[1, 0], call_application_classes)
