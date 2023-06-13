@@ -1,7 +1,7 @@
 import logging
-from math import ceil, trunc
 import random
 from collections import defaultdict
+from math import ceil, trunc
 from typing import Callable, Dict, List, Optional, Union
 
 from gigue.builder import InstructionBuilder
@@ -26,7 +26,6 @@ from gigue.exceptions import (
 from gigue.helpers import (
     align,
     flatten_list,
-    gaussian_between,
     generate_poisson,
     generate_trunc_norm,
 )

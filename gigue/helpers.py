@@ -76,29 +76,6 @@ def reverse_endianness(value: bytes) -> bytes:
 # \____________
 
 
-# TODO: Discrete distribution (bernoulli?)
-# TODO: Extract expected mu/sigma
-# TODO: Users should rather use mean/std to define the range
-
-
-def gaussian_between(low_bound: int, up_bound: int) -> int:
-    """
-    We select
-        mu + 3 * sigma = low
-        mu - 3 * sigma = up
-    This way there should be 0.1% values above and 0.1% below!
-    """
-    # if low_bound <= up_bound:
-    #     raise Exception
-    sigma: float = (up_bound - low_bound) / 6
-    mu: float = low_bound + 3 * sigma
-    int_value: int = math.ceil(random.gauss(mu=mu, sigma=sigma))
-    box_value: int = max(min(int_value, up_bound), low_bound)
-    # import math
-    # print(f"sigma {sigma}, mu {mu}, folded {sigma * math.sqrt(2/math.pi)}")
-    return box_value
-
-
 def generate_trunc_norm(
     variance: float, std_dev: float, lower_bound: float, higher_bound: float
 ):

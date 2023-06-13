@@ -1,5 +1,5 @@
 from math import ceil, trunc
-from typing import Union
+
 import pytest
 
 from gigue.exceptions import WrongAddressException

@@ -1,6 +1,6 @@
 import logging
-from math import ceil, trunc
 import random
+from math import ceil, trunc
 from typing import List
 
 from gigue.builder import InstructionBuilder
@@ -12,7 +12,6 @@ from gigue.exceptions import (
 )
 from gigue.helpers import (
     flatten_list,
-    gaussian_between,
     generate_poisson,
     generate_trunc_norm,
 )
