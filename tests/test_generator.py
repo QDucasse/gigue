@@ -159,7 +159,7 @@ def test_fill_interpretation_loop(jit_size, jit_nb_methods, pics_ratio):
     generator.fill_interpretation_loop()
     assert (
         len(generator.interpreter_instructions)
-        == 2 * generator.method_count
+        == 2 * (len(generator.jit_elements) - generator.pic_count)
         + 3 * generator.pic_count
         + Generator.INT_PROLOGUE_SIZE
         + Generator.INT_EPILOGUE_SIZE
@@ -253,7 +253,7 @@ def test_generate_interpreter_machine_code(jit_size, jit_nb_methods, pics_ratio)
     generator.generate_interpreter_machine_code()
     assert (
         len(generator.interpreter_instructions)
-        == 2 * generator.method_count
+        == 2 * (len(generator.jit_elements) - generator.pic_count)
         + 3 * generator.pic_count
         + Generator.INT_PROLOGUE_SIZE
         + Generator.INT_EPILOGUE_SIZE
