@@ -161,7 +161,7 @@ class Parser(argparse.ArgumentParser):
         )
         # PICs info
         self.add_argument(
-            "-R", "--picratio", type=float, default=0.2, help="PIC to method ratio"
+            "-r", "--picratio", type=float, default=0.2, help="PIC to method ratio"
         )
         self.add_argument(
             "--picmeancase", type=int, default=2, help="PIC mean number of cases"

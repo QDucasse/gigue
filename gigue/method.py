@@ -78,6 +78,9 @@ class Method:
             raise EmptySectionException("Prologue or epilogue has not been set.")
         return self.body_size + self.prologue_size + self.epilogue_size
 
+    def call_occupation(self):
+        return self.call_number * self.call_size / self.body_size
+
     def method_nb(self):
         return 1
 

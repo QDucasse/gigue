@@ -171,17 +171,17 @@ class PIC:
                 )
                 self.methods.append(case_method)
                 method_address += case_method.total_size() * 4
-                logger.debug(
-                    f"{self.log_prefix()} {case_method.log_prefix()} Case method added"
-                    f" with size ({body_size}), call nb ({call_nb} => call occupation"
-                    f" {call_occupation}) and call depth ({call_depth})"
-                )
             except CallNumberException as err:
                 logger.exception(err)
                 raise
             except EmptySectionException as err:
                 logger.exception(err)
                 raise
+            logger.debug(
+                f"{self.log_prefix()} {case_method.log_prefix()} Case method added"
+                f" with size ({body_size}), call nb ({call_nb} => call occupation"
+                f" {call_occupation}) and call depth ({call_depth})"
+            )
         logger.debug(f"{self.log_prefix()} Case methods added.")
 
     def add_switch_instructions(self) -> None:
@@ -315,6 +315,15 @@ class PIC:
             except EmptySectionException as err:
                 logger.exception(err)
                 raise
+            logger.debug(
+                f"{self.log_prefix()} {case_method.log_prefix()} Case method added"
+                f" with size ({body_size}), call nb ({call_nb} => call occupation"
+                f" {call_occupation}) and call depth ({call_depth})"
+            )
+            logger.debug(
+                f"{self.log_prefix()} {case_method.log_prefix()} Effective call"
+                f" occupation: {case_method.call_occupation()}"
+            )
         logger.debug(f"{self.log_prefix()} Case methods added.")
 
     # Generation

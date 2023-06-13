@@ -192,7 +192,7 @@ class Generator:
         max_call_nb: int = body_size // self.call_size
         call_nb: int = trunc(call_occupation * max_call_nb)
         # call depth follows a Poisson distribution with lambda = mean
-        call_depth: int = generate_poisson(self.call_depth_mean)
+        call_depth: int = generate_poisson(self.call_depth_mean) if call_nb > 0 else 0
         try:
             method: Method = Method(
                 address=address,
@@ -206,6 +206,10 @@ class Generator:
                 f"{self.log_jit_prefix()} {method.log_prefix()} Method added with size"
                 f" ({body_size}), call nb ({call_nb} => call occupation"
                 f" {call_occupation}) and call depth ({call_depth})"
+            )
+            logger.debug(
+                f"{self.log_jit_prefix()} {method.log_prefix()} Effective call"
+                f" occupation: {method.call_occupation()}"
             )
         except CallNumberException as err:
             logger.exception(err)
