@@ -47,7 +47,7 @@ def test_execute_trampoline_generated_binaries(
         call_occupation_mean=call_occupation_mean,
         call_occupation_stdev=call_occupation_stdev,
         call_depth_mean=call_depth_mean,
-        pics_max_cases=2,
+        pics_mean_case_nb=1,
         pics_ratio=pics_ratio,
         data_reg=TEST_DATA_REG,
         data_size=TEST_DATA_SIZE,

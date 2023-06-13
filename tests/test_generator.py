@@ -34,7 +34,7 @@ def test_not_implemented():
             call_occupation_mean=0.2,
             call_occupation_stdev=0.1,
             call_depth_mean=2,
-            pics_max_cases=2,
+            pics_mean_case_nb=2,
             pics_ratio=0.5,
         )
 
@@ -81,7 +81,7 @@ def check_method_bounds(
 @pytest.mark.parametrize(
     "call_occupation_mean, call_occupation_stdev", [(0.2, 0.1), (0.5, 0.2)]
 )
-@pytest.mark.parametrize("pics_max_cases", [2, 5])
+@pytest.mark.parametrize("pics_mean_case_nb", [1, 3])
 def test_fill_jit_code(
     jit_size,
     jit_nb_methods,
@@ -89,7 +89,7 @@ def test_fill_jit_code(
     call_occupation_mean,
     call_occupation_stdev,
     call_depth_mean,
-    pics_max_cases,
+    pics_mean_case_nb,
 ):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
@@ -101,7 +101,7 @@ def test_fill_jit_code(
         call_occupation_mean=call_occupation_mean,
         call_occupation_stdev=call_occupation_stdev,
         call_depth_mean=call_depth_mean,
-        pics_max_cases=pics_max_cases,
+        pics_mean_case_nb=pics_mean_case_nb,
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
@@ -110,7 +110,10 @@ def test_fill_jit_code(
     # Check call numbers and number of cases per PIC
     for elt in generator.jit_elements:
         if isinstance(elt, PIC):
-            assert elt.case_number <= generator.pics_max_cases
+            assert (
+                elt.case_number
+                <= poisson_chernoff_bound(generator.pics_mean_case_nb, 0.0001) + 1
+            )
             for method in elt.methods:
                 check_method_bounds(
                     method=method,
@@ -148,7 +151,7 @@ def test_fill_interpretation_loop(jit_size, jit_nb_methods, pics_ratio):
         call_occupation_mean=0.2,
         call_occupation_stdev=0.1,
         call_depth_mean=2,
-        pics_max_cases=5,
+        pics_mean_case_nb=2,
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
@@ -193,7 +196,7 @@ def test_fill_interpretation_loop(jit_size, jit_nb_methods, pics_ratio):
 @pytest.mark.parametrize(
     "call_occupation_mean, call_occupation_stdev", [(0.2, 0.1), (0.4, 0.2)]
 )
-@pytest.mark.parametrize("pics_max_cases", [2, 5, 10])
+@pytest.mark.parametrize("pics_mean_case_nb", [1, 2, 4])
 def test_patch_calls(
     jit_size,
     jit_nb_methods,
@@ -201,7 +204,7 @@ def test_patch_calls(
     call_depth_mean,
     call_occupation_mean,
     call_occupation_stdev,
-    pics_max_cases,
+    pics_mean_case_nb,
 ):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
@@ -213,7 +216,7 @@ def test_patch_calls(
         call_occupation_mean=call_occupation_mean,
         call_occupation_stdev=call_occupation_stdev,
         call_depth_mean=call_depth_mean,
-        pics_max_cases=pics_max_cases,
+        pics_mean_case_nb=pics_mean_case_nb,
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
@@ -240,7 +243,7 @@ def test_generate_interpreter_machine_code(jit_size, jit_nb_methods, pics_ratio)
         call_occupation_mean=0.2,
         call_occupation_stdev=0.1,
         call_depth_mean=2,
-        pics_max_cases=5,
+        pics_mean_case_nb=2,
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
@@ -296,7 +299,7 @@ def test_generate_bytes(jit_size, jit_nb_methods, pics_ratio):
         call_occupation_mean=0.2,
         call_occupation_stdev=0.1,
         call_depth_mean=2,
-        pics_max_cases=5,
+        pics_mean_case_nb=2,
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
@@ -349,7 +352,7 @@ def test_execute_generated_binaries(
         call_occupation_mean=call_occupation_mean,
         call_occupation_stdev=call_occupation_stdev,
         call_depth_mean=call_depth_mean,
-        pics_max_cases=2,
+        pics_mean_case_nb=1,
         pics_ratio=pics_ratio,
         data_reg=TEST_DATA_REG,
         data_size=TEST_DATA_SIZE,
@@ -424,7 +427,7 @@ def test_execute_trampoline_generated_binaries(
         call_occupation_mean=call_occupation_mean,
         call_occupation_stdev=call_occupation_stdev,
         call_depth_mean=call_depth_mean,
-        pics_max_cases=2,
+        pics_mean_case_nb=1,
         pics_ratio=pics_ratio,
         data_reg=TEST_DATA_REG,
         data_size=TEST_DATA_SIZE,

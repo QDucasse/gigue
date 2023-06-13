@@ -164,7 +164,7 @@ class Parser(argparse.ArgumentParser):
             "-R", "--picratio", type=float, default=0.2, help="PIC to method ratio"
         )
         self.add_argument(
-            "--picmaxcases", type=int, default=5, help="PIC max number of cases"
+            "--picmeancase", type=int, default=2, help="PIC mean number of cases"
         )
         self.add_argument(
             "--piccmpreg",
@@ -250,7 +250,7 @@ def main(argv=None):
             data_size=args.datasize,
             # PICs
             pics_ratio=args.picratio,
-            pics_max_cases=args.picmaxcases,
+            pics_mean_case_nb=args.picmeancase,
             pics_cmp_reg=args.piccmpreg,
             pics_hit_case_reg=args.pichitcasereg,
             # Files

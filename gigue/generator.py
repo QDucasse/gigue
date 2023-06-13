@@ -58,7 +58,7 @@ class Generator:
         call_occupation_stdev: float,
         # PICs info
         pics_ratio: float,
-        pics_max_cases: int,
+        pics_mean_case_nb: int,
         # Data info
         data_size: int = DATA_SIZE,
         data_generation_strategy: str = "random",
@@ -113,7 +113,7 @@ class Generator:
         self.call_size: int = 3
         # PICs parameters
         self.pics_ratio: float = pics_ratio
-        self.pics_max_cases: int = pics_max_cases
+        self.pics_mean_case_nb: int = pics_mean_case_nb
         self.pics_hit_case_reg: int = pics_hit_case_reg
         self.pics_cmp_reg: int = pics_cmp_reg
 
@@ -248,7 +248,9 @@ class Generator:
         return method
 
     def add_pic(self, address: int, remaining_methods: int) -> PIC:
-        cases_nb: int = random.randint(1, min(self.pics_max_cases, remaining_methods))
+        cases_nb: int = min(
+            generate_poisson(self.pics_mean_case_nb) + 1, remaining_methods
+        )
         pic: PIC = PIC(
             address=address,
             case_number=cases_nb,
@@ -299,9 +301,8 @@ class Generator:
             raise
         # Add other methods
         while current_method_count < self.jit_nb_methods:
-            weighted_pics_ratio = self.pics_ratio / self.pics_max_cases
             code_type: str = random.choices(
-                ["method", "pic"], [1 - weighted_pics_ratio, weighted_pics_ratio]
+                ["method", "pic"], [1 - self.pics_ratio, self.pics_ratio]
             )[0]
             adder_function: Callable = getattr(Generator, "add_" + code_type)
             current_element: Union[PIC, Method] = adder_function(
@@ -515,7 +516,7 @@ class TrampolineGenerator(Generator):
         call_occupation_mean: float,
         call_occupation_stdev: float,
         pics_ratio: float,
-        pics_max_cases: int,
+        pics_mean_case_nb: int,
         data_size: int = DATA_SIZE,
         data_generation_strategy: str = "random",
         pics_cmp_reg: int = CMP_REG,
@@ -539,7 +540,7 @@ class TrampolineGenerator(Generator):
             call_occupation_mean=call_occupation_mean,
             call_occupation_stdev=call_occupation_stdev,
             pics_ratio=pics_ratio,
-            pics_max_cases=pics_max_cases,
+            pics_mean_case_nb=pics_mean_case_nb,
             data_size=data_size,
             data_generation_strategy=data_generation_strategy,
             pics_cmp_reg=pics_cmp_reg,

@@ -7,11 +7,10 @@ from unicorn.riscv_const import (
     UC_RISCV_REG_SP,
     UC_RISCV_REG_T3,
 )
-from unicorn.unicorn_const import UC_HOOK_MEM_VALID
 
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.disassembler import Disassembler
-from gigue.helpers import bytes_to_int, int_to_bytes32
+from gigue.helpers import int_to_bytes32
 from gigue.instructions import IInstruction, SInstruction
 from gigue.rimi.rimi_constants import RIMI_INSTRUCTIONS_INFO, RIMI_SSP_REG
 from tests.conftest import (
