@@ -156,27 +156,30 @@ class Runner:
         try:
             # Instanciate the generator
             generator: Generator = self.gen_class(
-                # Addresses
+                # Global info
+                registers=self.input_data["registers"],
+                weights=self.input_data["weights"],
+                # Addresses offset
                 jit_start_address=self.input_data["jit_start_address"],
                 interpreter_start_address=self.input_data["interpreter_start_address"],
-                # General
-                registers=self.input_data["registers"],
-                jit_elements_nb=self.input_data["jit_elements_nb"],
-                weights=self.input_data["weights"],
-                # Data
+                # Method info
+                jit_size=self.input_data["jit_size"],
+                jit_nb_methods=self.input_data["jit_nb_methods"],
+                method_variation_mean=self.input_data["method_variation_mean"],
+                method_variation_stdev=self.input_data["method_variation_stdev"],
+                # Call info
+                call_depth_mean=self.input_data["call_depth_mean"],
+                call_occupation_mean=self.input_data["call_occupation_mean"],
+                call_occupation_stdev=self.input_data["call_occupation_stdev"],
+                # PICs
+                pics_ratio=self.input_data["pics_ratio"],
+                pics_mean_case_nb=self.input_data["pics_mean_case_nb"],
+                pics_cmp_reg=self.input_data["pics_cmp_reg"],
+                pics_hit_case_reg=self.input_data["pics_hit_case_reg"],
+                # Data info
                 data_reg=self.input_data["data_reg"],
                 data_generation_strategy=self.input_data["data_generation_strategy"],
                 data_size=self.input_data["data_size"],
-                # Methods
-                method_max_size=self.input_data["method_max_size"],
-                max_call_depth=self.input_data["max_call_depth"],
-                max_call_nb=self.input_data["max_call_nb"],
-                # PICs
-                pics_ratio=self.input_data["pics_ratio"],
-                pics_method_max_size=self.input_data["pics_method_max_size"],
-                pics_max_cases=self.input_data["pics_max_cases"],
-                pics_cmp_reg=self.input_data["pics_cmp_reg"],
-                pics_hit_case_reg=self.input_data["pics_hit_case_reg"],
             )
             # Generation complete!
             self.generation_ok = 1
@@ -197,12 +200,9 @@ class Runner:
         methods_info: List[MethodData] = []
         pics_info: List[PICData] = []
         methods_size: List[int] = []
-        methods_call_nb: List[int] = []
+        methods_call_occupation: List[int] = []
         methods_call_depth: List[int] = []
         pics_case_nb: List[int] = []
-        pics_methods_size: List[int] = []
-        pics_methods_call_nb: List[int] = []
-        pics_methods_call_depth: List[int] = []
         for elt in generator.jit_elements:
             if isinstance(elt, Method):
                 method_data: MethodData = {
@@ -215,8 +215,9 @@ class Runner:
                 }
                 methods_info.append(method_data)
                 methods_size.append(elt.total_size())
-                methods_call_nb.append(elt.call_number)
-                methods_call_depth.append(elt.call_depth)
+                methods_call_occupation.append(elt.call_occupation())
+                if elt.call_number != 0:
+                    methods_call_depth.append(elt.call_depth)
             elif isinstance(elt, PIC):
                 pic_methods_info: List[MethodData] = []
                 for method in elt.methods:
@@ -228,17 +229,15 @@ class Runner:
                         "used_s_regs": method.used_s_regs,
                         "local_vars_nb": method.local_vars_nb,
                     }
+                    methods_size.append(method.total_size())
+                    methods_call_occupation.append(method.call_occupation())
+                    methods_call_depth.append(method.call_depth)
+                    # TODO: Should attribute an ID and use it rather than this
                     pic_methods_info.append(pic_method_data)
-                    pics_methods_size.append(method.total_size())
-                    pics_methods_call_nb.append(method.call_number)
-                    pics_methods_call_depth.append(method.call_depth)
                 pic_data: PICData = {
                     "address": elt.address,
                     "full_size": elt.total_size(),
                     "case_number": elt.case_number,
-                    "method_max_size": elt.method_max_size,
-                    "method_max_call_number": elt.method_max_call_number,
-                    "method_max_call_depth": elt.method_max_call_depth,
                     "methods_info": pic_methods_info,
                 }
                 pics_info.append(pic_data)
@@ -251,15 +250,12 @@ class Runner:
         generation_data: GenerationData = {
             "generation_ok": self.generation_ok,
             "gigue_seed": seed,
-            "nb_method": generator.method_count,
+            "nb_methods": generator.method_count,
             "nb_pics": generator.pic_count,
             "mean_method_size": mean(methods_size),
-            "mean_method_call_nb": mean(methods_call_nb),
+            "mean_method_call_occupation": mean(methods_call_occupation),
             "mean_method_call_depth": mean(methods_call_depth),
             "pics_mean_case_nb": mean(pics_case_nb),
-            "pics_mean_method_size": mean(pics_methods_size),
-            "pics_mean_method_call_nb": mean(pics_methods_call_nb),
-            "pics_mean_method_call_depth": mean(pics_methods_call_depth),
         }
         return generation_data, jit_elements_data
 
@@ -368,8 +364,9 @@ class Runner:
             #     src=Runner.BIN_DIR + Runner.ROCKET_FILE,
             #     dst=f"{base_name}.rocket",
             # )
+            # TODO: Cleanup is performed when loading the config
             # Cleanup
-            subprocess.run(["make", "clean"], timeout=10, check=True)
+            # subprocess.run(["make", "clean"], timeout=10, check=True)
             consolidation_ok = 1
         except (
             FileNotFoundError,
@@ -451,6 +448,8 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 
 if __name__ == "__main__":
+    # TODO: Poubellent?
+
     with open(sys.argv[1], "r") as config:
         config_data: ConfigData = json.load(config)
 

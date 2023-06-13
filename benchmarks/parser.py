@@ -110,8 +110,9 @@ class LogParser:
             ]
             # TODO: Cursed
             instrs_type = {
-                instr_type: instrs_type.get(instr_type, 0)
-                + executed_instrs_type.count(instr_type)
+                instr_type: instrs_type.get(instr_type, 0) + executed_instrs_type.count(
+                    instr_type
+                )
                 for instr_type in executed_instrs_type
             }  # type: ignore
             # Instr class
@@ -120,8 +121,9 @@ class LogParser:
             ]
             # TODO: Cursed
             instrs_class = {
-                instr_class: instrs_class.get(instr_class, 0)
-                + executed_instrs_class.count(instr_class)
+                instr_class: instrs_class.get(
+                    instr_class, 0
+                ) + executed_instrs_class.count(instr_class)
                 for instr_class in executed_instrs_class
             }  # type: ignore
             tracing_ok = 1
@@ -254,6 +256,7 @@ class LogParser:
 
 
 if __name__ == "__main__":
+    # Utility to parse the current dumps
     from gigue.constants import INSTRUCTIONS_INFO
 
     parser = LogParser()

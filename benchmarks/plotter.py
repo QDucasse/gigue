@@ -32,55 +32,34 @@ class Plotter:
     def extract_from_full_data(self, full_data: FullData, extraction_method: Callable):
         extracted_class_info: List[float] = []
         nb_runs: int = full_data["config_data"]["nb_runs"]
-        pics_ratio: float = full_data["config_data"]["input_data"]["pics_ratio"]
         for i in range(nb_runs):
             run_data = full_data["run_data"][i]
-            extracted_app_info = extraction_method(run_data, pics_ratio)
+            extracted_app_info = extraction_method(run_data)
             extracted_class_info.append(extracted_app_info)
         return extracted_class_info
 
-    # Method density (aka number of methods)
-    # \________________________________________
+    # Metric 1: Number of methods (for a fixed bin size)
+    # \___________________________________________________
 
-    def extract_run_method_density(self, run_data: RunData, pics_ratio: float):
-        # TODO: Clarify metric - what does it mean?
-        mean_method_size: float = run_data["generation_data"]["mean_method_size"]
-        pics_mean_method_size: float = run_data["generation_data"][
-            "pics_mean_method_size"
-        ]
-        method_density = (
-            1 - -pics_ratio
-        ) * mean_method_size + pics_ratio * pics_mean_method_size
-        return method_density
+    def extract_run_nb_methods(self, run_data: RunData):
+        nb_method: int = run_data["generation_data"]["nb_methods"]
+        return nb_method
 
-    def extract_method_densities(self, full_data: FullData):
+    def extract_nb_methods(self, full_data: FullData):
         return self.extract_from_full_data(
-            full_data=full_data, extraction_method=self.extract_run_method_density
+            full_data=full_data, extraction_method=self.extract_run_nb_methods
         )
 
-    # Call presence (aka how filled are the methods with calls)
-    # \____________________________________________________________
+    # Metric 2: Call Occupation (% of body size dedicated to calls)
+    # \_______________________________________________________________
 
-    def extract_run_call_density(self, run_data: RunData, pics_ratio: float):
-        # TODO: Clarify metric - what does it mean?
-        mean_method_call_nb: float = run_data["generation_data"]["mean_method_call_nb"]
-        mean_method_call_depth: float = run_data["generation_data"][
-            "mean_method_call_depth"
+    def extract_run_call_density(self, run_data: RunData):
+        call_occupation: float = run_data["generation_data"][
+            "mean_method_call_occupation"
         ]
-        pics_mean_method_call_nb: float = run_data["generation_data"][
-            "pics_mean_method_call_nb"
-        ]
-        pics_mean_method_call_depth: float = run_data["generation_data"][
-            "pics_mean_method_call_depth"
-        ]
-        call_density = (
-            (1 - -pics_ratio) * mean_method_call_nb * mean_method_call_depth
-            + pics_ratio * pics_mean_method_call_nb * pics_mean_method_call_depth
-        )
-        # TODO: Should divide by the method size?
-        return call_density
+        return call_occupation
 
-    def extract_call_densities(self, full_data: FullData):
+    def extract_call_occupations(self, full_data: FullData):
         return self.extract_from_full_data(
             full_data=full_data, extraction_method=self.extract_run_call_density
         )
@@ -88,7 +67,7 @@ class Plotter:
     # Mem accesses presence (aka how filled are the methods with memory accesses)
     # \______________________________________________________________________________
 
-    def extract_mem_density(self, run_data: RunData, *args, **kwargs):
+    def extract_mem_density(self, run_data: RunData):
         tracing_data: TracingData = run_data["execution_data"]["emulation_data"][
             "tracing_data"
         ]
@@ -105,7 +84,7 @@ class Plotter:
     # Extract Cycles
     # \________________
 
-    def extract_cycle(self, run_data: RunData, *args, **kwargs):
+    def extract_cycle(self, run_data: RunData):
         cycles_nb: int = run_data["execution_data"]["emulation_data"]["nb_cycles"]
         return cycles_nb
 
@@ -141,12 +120,12 @@ class Plotter:
             for call_app_path in os.listdir(call_apps_path):
                 with open(f"{call_apps_path}/{call_app_path}/data.json", "r") as data:
                     full_data: FullData = json.load(data)
-                    # Extract method density
-                    method_densities: List[float] = self.extract_method_densities(
+                    # Extract method nb
+                    nb_methods: List[int] = self.extract_nb_methods(full_data)
+                    # Extract call density
+                    call_occupations: List[float] = self.extract_call_occupations(
                         full_data
                     )
-                    # Extract call density
-                    call_densities: List[float] = self.extract_call_densities(full_data)
                     # Extract cycle nb
                     nb_cycles: List[int] = self.extract_cycles(full_data)
                     # Extract CPI
@@ -154,8 +133,8 @@ class Plotter:
                     call_application_class_data: CallApplicationClassData = {
                         "name": str(call_app_path),
                         "isolation": isolation_type,
-                        "method_densities": method_densities,
-                        "call_densities": call_densities,
+                        "nb_methods": nb_methods,
+                        "call_occupations": call_occupations,
                         "nb_cycles": nb_cycles,
                         "cpis": cpis,
                     }
@@ -181,10 +160,8 @@ class Plotter:
             for mem_app_path in os.listdir(mem_apps_path):
                 with open(f"{mem_apps_path}/{mem_app_path}/data.json", "r") as data:
                     full_data: FullData = json.load(data)
-                    # Extract method density
-                    method_densities: List[float] = self.extract_method_densities(
-                        full_data
-                    )
+                    # Extract method nb
+                    nb_methods: List[int] = self.extract_nb_methods(full_data)
                     # Extract mem density
                     mem_densities: List[float] = self.extract_mem_densities(full_data)
                     # Extract cycle nb
@@ -194,7 +171,7 @@ class Plotter:
                     mem_application_class_data: MemoryApplicationClassData = {
                         "name": str(mem_app_path),
                         "isolation": isolation_type,
-                        "method_densities": method_densities,
+                        "nb_methods": nb_methods,
                         "mem_densities": mem_densities,
                         "nb_cycles": nb_cycles,
                         "cpis": cpis,
@@ -300,12 +277,12 @@ class Plotter:
 if __name__ == "__main__":
     _, axs = plt.subplots(3, 2)
     plotter = Plotter()
-    call_application_classes: List[
-        CallApplicationClassData
-    ] = plotter.process_call_application_classes(["no_isolation"])
-    mem_application_classes: List[
-        MemoryApplicationClassData
-    ] = plotter.process_mem_application_classes(["no_isolation"])
+    call_application_classes: List[CallApplicationClassData] = (
+        plotter.process_call_application_classes(["no_isolation"])
+    )
+    mem_application_classes: List[MemoryApplicationClassData] = (
+        plotter.process_mem_application_classes(["no_isolation"])
+    )
     plotter.plot_call_application_classes(axs[0, 0], call_application_classes)
     plotter.plot_mem_application_classes(axs[0, 1], mem_application_classes)
     plotter.plot_call_nb_cycles(axs[1, 0], call_application_classes)

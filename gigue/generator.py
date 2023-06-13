@@ -277,6 +277,7 @@ class Generator:
         for method in pic.methods:
             self.call_depth_dict[method.call_depth].append(method)
         self.pic_count += 1
+        self.method_count += pic.method_nb()
         return pic
 
     #  JIT filling and patching

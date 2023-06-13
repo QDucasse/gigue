@@ -21,27 +21,29 @@ class InputData(GigueData):
     # Global info
     uses_trampolines: int
     isolation_solution: str
+    registers: List[int]
+    weights: List[int]
     # Addresses offset
     interpreter_start_address: int
     jit_start_address: int
-    # General
-    jit_elements_nb: int
-    registers: List[int]
-    weights: List[int]
+    # Method info
+    jit_size: int
+    jit_nb_methods: int
+    method_variation_mean: float
+    method_variation_stdev: float
+    # Call info
+    call_depth_mean: int
+    call_occupation_mean: float
+    call_occupation_stdev: float
+    # PICs
+    pics_ratio: float
+    pics_mean_case_nb: int
+    pics_cmp_reg: int
+    pics_hit_case_reg: int
     # Data info
     data_reg: int
     data_size: int
     data_generation_strategy: str
-    # Methods
-    method_max_size: int
-    max_call_depth: int
-    max_call_nb: int
-    # PICs
-    pics_ratio: float
-    pics_method_max_size: int
-    pics_max_cases: int
-    pics_cmp_reg: int
-    pics_hit_case_reg: int
     # Execution info
     rocket_config: str
     rocket_max_cycles: int
@@ -60,9 +62,6 @@ class PICData(GigueData):
     address: int
     full_size: int
     case_number: int
-    method_max_size: int
-    method_max_call_number: int
-    method_max_call_depth: int
     methods_info: List[MethodData]
 
 
@@ -70,17 +69,15 @@ class GenerationData(GigueData):
     generation_ok: int
     # Stats on the generation
     gigue_seed: int
-    nb_method: int
+    nb_methods: int
     nb_pics: int
     # Methods info
     mean_method_size: float
-    mean_method_call_nb: float
+    mean_method_call_occupation: float
+    # stdev_method_call_occupation: float?
     mean_method_call_depth: float
     # PICS Methods info
     pics_mean_case_nb: float
-    pics_mean_method_size: float
-    pics_mean_method_call_nb: float
-    pics_mean_method_call_depth: float
 
 
 class JITElementsData(GigueData):
@@ -186,19 +183,25 @@ class FullData(GigueData):
 # \_______________
 
 
+# TODO:
+#  - Change method densities to a simple method mean size
+#  - Change call densities to call occupation
 class CallApplicationClassData(GigueData):
     name: str
     isolation: str
-    method_densities: List[float]
-    call_densities: List[float]
+    nb_methods: List[int]
+    call_occupations: List[float]
     nb_cycles: List[int]
     cpis: List[float]
 
 
+# TODO:
+#  - Change method densities to a simple method mean size
+#  - Change mem densities to mem isntr occupation
 class MemoryApplicationClassData(GigueData):
     name: str
     isolation: str
-    method_densities: List[float]
+    nb_methods: List[int]
     mem_densities: List[float]
     nb_cycles: List[int]
     cpis: List[float]
