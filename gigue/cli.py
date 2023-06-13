@@ -50,7 +50,7 @@ class Parser(argparse.ArgumentParser):
         )
 
         # Addresses
-        # TODO: Should remove this one
+        # TODO: Should remove this one?
         self.add_argument(
             "-a",
             "--intaddr",
@@ -89,7 +89,7 @@ class Parser(argparse.ArgumentParser):
             "--jitsize",
             type=int,
             default=1000,
-            help="Size of the JIT binary in terms of instructions"
+            help="Size of the JIT binary in terms of instructions",
         )
         self.add_argument(
             "-n",
@@ -118,6 +118,28 @@ class Parser(argparse.ArgumentParser):
             default=CALLER_SAVED_REG,
             help="Registers that can be used freely by the generated code",
         )
+        # Call info
+        self.add_argument(
+            "-cm",
+            "--callmean",
+            type=float,
+            default=0.2,
+            help="Mean call occupation",
+        )
+        self.add_argument(
+            "-cs",
+            "--callstdev",
+            type=float,
+            default=0.1,
+            help="Standard deviation of call occupation",
+        )
+        self.add_argument(
+            "-cdm",
+            "--calldepthmean",
+            type=int,
+            default=2,
+            help="Mean call depth (lambda parameter for a Poisson distribution)",
+        )
         # Data info
         self.add_argument(
             "--datareg",
@@ -136,19 +158,6 @@ class Parser(argparse.ArgumentParser):
             type=str,
             default="random",
             help="Data generation strategy",
-        )
-        # Method info
-        self.add_argument(
-            "--maxcallnb",
-            type=int,
-            default=5,
-            help="Maximum calls in a method (< msize/3 - 1)",
-        )
-        self.add_argument(
-            "--maxcalldepth",
-            type=int,
-            default=5,
-            help="Maximum call depth of a method (i.e. nested calls)",
         )
         # PICs info
         self.add_argument(
@@ -231,14 +240,14 @@ def main(argv=None):
             jit_nb_methods=args.nbmeth,
             method_variation_mean=args.varmeth,
             method_variation_stdev=args.stdevmeth,
+            call_depth_mean=args.calldepthmean,
+            call_occupation_mean=args.callmean,
+            call_occupation_stdev=args.callstdev,
             registers=args.regs,
             # Data
             data_reg=args.datareg,
             data_generation_strategy=args.datagen,
             data_size=args.datasize,
-            # Methods
-            max_call_depth=args.maxcalldepth,
-            max_call_nb=args.maxcallnb,
             # PICs
             pics_ratio=args.picratio,
             pics_max_cases=args.picmaxcases,

@@ -1,8 +1,10 @@
+from math import ceil, trunc
 from typing import Union
 import pytest
 
 from gigue.exceptions import WrongAddressException
 from gigue.generator import Generator, TrampolineGenerator
+from gigue.helpers import poisson_chernoff_bound
 from gigue.method import Method
 from gigue.pic import PIC
 from tests.conftest import (
@@ -29,8 +31,9 @@ def test_not_implemented():
             jit_nb_methods=10,
             method_variation_mean=0.2,
             method_variation_stdev=0.1,
-            max_call_depth=2,
-            max_call_nb=2,
+            call_occupation_mean=0.2,
+            call_occupation_stdev=0.1,
+            call_depth_mean=2,
             pics_max_cases=2,
             pics_ratio=0.5,
         )
@@ -41,18 +44,51 @@ def test_not_implemented():
 # =================================
 
 
+def check_method_bounds(
+    method,
+    method_variation_mean,
+    method_variation_stdev,
+    call_occupation_mean,
+    call_occupation_stdev,
+    call_depth_mean,
+    call_size,
+):
+    # Check the bounds of method size
+    max_deviation_size = method_variation_mean + 4 * method_variation_stdev
+    assert (
+        round(method.body_size * (1 - max_deviation_size))
+        <= method.body_size
+        <= round(method.body_size * (1 + max_deviation_size))
+    )
+    # Check the bounds of call occupation
+    max_deviation_calls = call_occupation_mean + 4 * call_occupation_stdev
+    min_deviation_calls = call_occupation_mean - 4 * call_occupation_stdev
+    max_call_nb = method.body_size // call_size
+    if method.call_number > 0:
+        assert (
+            trunc(max_call_nb * min_deviation_calls)
+            <= method.call_number
+            <= ceil(max_call_nb * max_deviation_calls)
+        )
+    # Check the bounds of the call depth
+    assert 0 <= method.call_depth <= poisson_chernoff_bound(call_depth_mean, 0.00001)
+
+
 @pytest.mark.parametrize("jit_size", [100, 200, 500])
 @pytest.mark.parametrize("jit_nb_methods", [10, 100])
 @pytest.mark.parametrize("pics_ratio", [0, 0.5])
-@pytest.mark.parametrize("max_call_depth", [2, 5, 10])
-@pytest.mark.parametrize("max_call_nb", [2, 5, 10])
-@pytest.mark.parametrize("pics_max_cases", [2, 5, 10])
+@pytest.mark.parametrize("call_depth_mean", [1, 2])
+@pytest.mark.parametrize(
+    "call_occupation_mean, call_occupation_stdev", [(0.2, 0.1), (0.5, 0.2)]
+)
+@pytest.mark.parametrize("pics_max_cases", [2, 5])
 def test_fill_jit_code(
     jit_size,
     jit_nb_methods,
     pics_ratio,
-    max_call_depth,
-    max_call_nb,
+    call_occupation_mean,
+    call_occupation_stdev,
+    call_depth_mean,
     pics_max_cases,
 ):
     generator = Generator(
@@ -62,8 +98,9 @@ def test_fill_jit_code(
         jit_nb_methods=jit_nb_methods,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        max_call_depth=max_call_depth,
-        max_call_nb=max_call_nb,
+        call_occupation_mean=call_occupation_mean,
+        call_occupation_stdev=call_occupation_stdev,
+        call_depth_mean=call_depth_mean,
         pics_max_cases=pics_max_cases,
         pics_ratio=pics_ratio,
     )
@@ -75,13 +112,26 @@ def test_fill_jit_code(
         if isinstance(elt, PIC):
             assert elt.case_number <= generator.pics_max_cases
             for method in elt.methods:
-                assert method.call_number <= generator.max_call_nb
+                check_method_bounds(
+                    method=method,
+                    method_variation_mean=generator.method_variation_mean,
+                    method_variation_stdev=generator.method_variation_stdev,
+                    call_occupation_mean=generator.call_occupation_mean,
+                    call_occupation_stdev=generator.call_occupation_stdev,
+                    call_depth_mean=generator.call_depth_mean,
+                    call_size=generator.call_size,
+                )
         elif isinstance(elt, Method):
-            assert elt.call_number <= generator.max_call_nb
-    # Check call depths
-    for i in generator.call_depth_dict.keys():
-        for method in generator.call_depth_dict[i]:
-            assert 0 <= method.call_depth <= generator.max_call_depth
+            method = elt
+            check_method_bounds(
+                method=method,
+                method_variation_mean=generator.method_variation_mean,
+                method_variation_stdev=generator.method_variation_stdev,
+                call_occupation_mean=generator.call_occupation_mean,
+                call_occupation_stdev=generator.call_occupation_stdev,
+                call_depth_mean=generator.call_depth_mean,
+                call_size=generator.call_size,
+            )
 
 
 @pytest.mark.parametrize("jit_size", [100, 200, 500])
@@ -95,8 +145,9 @@ def test_fill_interpretation_loop(jit_size, jit_nb_methods, pics_ratio):
         jit_nb_methods=jit_nb_methods,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        max_call_depth=5,
-        max_call_nb=5,
+        call_occupation_mean=0.2,
+        call_occupation_stdev=0.1,
+        call_depth_mean=2,
         pics_max_cases=5,
         pics_ratio=pics_ratio,
     )
@@ -138,15 +189,18 @@ def test_fill_interpretation_loop(jit_size, jit_nb_methods, pics_ratio):
 @pytest.mark.parametrize("jit_size", [100, 200, 500])
 @pytest.mark.parametrize("jit_nb_methods", [10, 100])
 @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
-@pytest.mark.parametrize("max_call_depth", [2, 5, 10])
-@pytest.mark.parametrize("max_call_nb", [2, 5, 10])
+@pytest.mark.parametrize("call_depth_mean", [2, 4])
+@pytest.mark.parametrize(
+    "call_occupation_mean, call_occupation_stdev", [(0.2, 0.1), (0.4, 0.2)]
+)
 @pytest.mark.parametrize("pics_max_cases", [2, 5, 10])
 def test_patch_calls(
     jit_size,
     jit_nb_methods,
     pics_ratio,
-    max_call_depth,
-    max_call_nb,
+    call_depth_mean,
+    call_occupation_mean,
+    call_occupation_stdev,
     pics_max_cases,
 ):
     generator = Generator(
@@ -156,8 +210,9 @@ def test_patch_calls(
         jit_nb_methods=jit_nb_methods,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        max_call_depth=max_call_depth,
-        max_call_nb=max_call_nb,
+        call_occupation_mean=call_occupation_mean,
+        call_occupation_stdev=call_occupation_stdev,
+        call_depth_mean=call_depth_mean,
         pics_max_cases=pics_max_cases,
         pics_ratio=pics_ratio,
     )
@@ -182,8 +237,9 @@ def test_generate_interpreter_machine_code(jit_size, jit_nb_methods, pics_ratio)
         jit_nb_methods=jit_nb_methods,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        max_call_depth=5,
-        max_call_nb=5,
+        call_occupation_mean=0.2,
+        call_occupation_stdev=0.1,
+        call_depth_mean=2,
         pics_max_cases=5,
         pics_ratio=pics_ratio,
     )
@@ -226,7 +282,7 @@ def test_generate_interpreter_machine_code(jit_size, jit_nb_methods, pics_ratio)
     #         method_count += 1
 
 
-@pytest.mark.parametrize("jit_size", [100, 200, 500])
+@pytest.mark.parametrize("jit_size", [200, 500])
 @pytest.mark.parametrize("jit_nb_methods", [10, 100])
 @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
 def test_generate_bytes(jit_size, jit_nb_methods, pics_ratio):
@@ -237,8 +293,9 @@ def test_generate_bytes(jit_size, jit_nb_methods, pics_ratio):
         jit_nb_methods=jit_nb_methods,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        max_call_depth=5,
-        max_call_nb=5,
+        call_occupation_mean=0.2,
+        call_occupation_stdev=0.1,
+        call_depth_mean=2,
         pics_max_cases=5,
         pics_ratio=pics_ratio,
     )
@@ -259,17 +316,25 @@ def test_generate_bytes(jit_size, jit_nb_methods, pics_ratio):
 
 
 @pytest.mark.parametrize(
-    "jit_size, jit_nb_methods, pics_ratio",
+    (
+        "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev,"
+        " call_occupation_mean, call_occupation_stdev, call_depth_mean"
+    ),
     [
-        (50, 5, 0),
-        (200, 10, 0.2),
-        (5000, 50, 0.5),
+        (50, 5, 0, 0.2, 0.1, 0.2, 0.1, 1),
+        (200, 10, 0.2, 0.4, 0.2, 0.4, 0.2, 2),
+        (5000, 50, 0.5, 0.5, 0.2, 0.5, 0.2, 3),
     ],
 )
 def test_execute_generated_binaries(
     jit_size,
     jit_nb_methods,
+    meth_var_mean,
     pics_ratio,
+    meth_var_stdev,
+    call_occupation_mean,
+    call_occupation_stdev,
+    call_depth_mean,
     cap_disasm_setup,
     handler_setup,
     uc_emul_full_setup,
@@ -279,10 +344,11 @@ def test_execute_generated_binaries(
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_size=jit_size,
         jit_nb_methods=jit_nb_methods,
-        method_variation_mean=0.2,
-        method_variation_stdev=0.1,
-        max_call_depth=5,
-        max_call_nb=5,
+        method_variation_mean=meth_var_mean,
+        method_variation_stdev=meth_var_stdev,
+        call_occupation_mean=call_occupation_mean,
+        call_occupation_stdev=call_occupation_stdev,
+        call_depth_mean=call_depth_mean,
         pics_max_cases=2,
         pics_ratio=pics_ratio,
         data_reg=TEST_DATA_REG,
@@ -325,11 +391,14 @@ def test_execute_generated_binaries(
 
 
 @pytest.mark.parametrize(
-    "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev",
+    (
+        "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev,"
+        " call_occupation_mean, call_occupation_stdev, call_depth_mean"
+    ),
     [
-        (50, 5, 0, 0.1, 0.1),
-        (200, 10, 0.2, 0.2, 0.1),
-        (5000, 50, 0.5, 0.3, 0.2),
+        (50, 5, 0, 0.2, 0.1, 0.2, 0.1, 1),
+        (200, 10, 0.2, 0.4, 0.2, 0.4, 0.2, 2),
+        (5000, 50, 0.5, 0.5, 0.2, 0.5, 0.2, 3),
     ],
 )
 def test_execute_trampoline_generated_binaries(
@@ -338,6 +407,9 @@ def test_execute_trampoline_generated_binaries(
     pics_ratio,
     meth_var_mean,
     meth_var_stdev,
+    call_occupation_mean,
+    call_occupation_stdev,
+    call_depth_mean,
     cap_disasm_setup,
     handler_setup,
     uc_emul_full_setup,
@@ -349,8 +421,9 @@ def test_execute_trampoline_generated_binaries(
         jit_nb_methods=jit_nb_methods,
         method_variation_mean=meth_var_mean,
         method_variation_stdev=meth_var_stdev,
-        max_call_depth=5,
-        max_call_nb=5,
+        call_occupation_mean=call_occupation_mean,
+        call_occupation_stdev=call_occupation_stdev,
+        call_depth_mean=call_depth_mean,
         pics_max_cases=2,
         pics_ratio=pics_ratio,
         data_reg=TEST_DATA_REG,

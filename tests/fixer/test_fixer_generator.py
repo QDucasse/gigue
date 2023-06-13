@@ -14,17 +14,25 @@ from tests.fixer.conftest import TEST_FIXER_CMP_REG
 
 
 @pytest.mark.parametrize(
-    "jit_size, jit_nb_methods, pics_ratio",
+    (
+        "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev,"
+        " call_occupation_mean, call_occupation_stdev, call_depth_mean"
+    ),
     [
-        (50, 5, 0),
-        (200, 10, 0.2),
-        (5000, 50, 0.5),
+        (50, 5, 0, 0.2, 0.1, 0.2, 0.1, 1),
+        (200, 10, 0.2, 0.4, 0.2, 0.4, 0.2, 2),
+        (5000, 50, 0.5, 0.5, 0.2, 0.5, 0.2, 3),
     ],
 )
 def test_execute_trampoline_generated_binaries(
     jit_size,
     jit_nb_methods,
     pics_ratio,
+    meth_var_mean,
+    meth_var_stdev,
+    call_occupation_mean,
+    call_occupation_stdev,
+    call_depth_mean,
     cap_disasm_custom_setup,
     fixer_handler_setup,
     uc_emul_full_setup,
@@ -34,10 +42,11 @@ def test_execute_trampoline_generated_binaries(
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_size=jit_size,
         jit_nb_methods=jit_nb_methods,
-        method_variation_mean=0.2,
-        method_variation_stdev=0.1,
-        max_call_depth=5,
-        max_call_nb=5,
+        method_variation_mean=meth_var_mean,
+        method_variation_stdev=meth_var_stdev,
+        call_occupation_mean=call_occupation_mean,
+        call_occupation_stdev=call_occupation_stdev,
+        call_depth_mean=call_depth_mean,
         pics_max_cases=2,
         pics_ratio=pics_ratio,
         data_reg=TEST_DATA_REG,

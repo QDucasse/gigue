@@ -1,5 +1,5 @@
 import logging
-from math import ceil
+from math import ceil, trunc
 import random
 from typing import List
 
@@ -10,7 +10,12 @@ from gigue.exceptions import (
     CallNumberException,
     EmptySectionException,
 )
-from gigue.helpers import flatten_list, gaussian_between, generate_trunc_norm
+from gigue.helpers import (
+    flatten_list,
+    gaussian_between,
+    generate_poisson,
+    generate_trunc_norm,
+)
 from gigue.instructions import Instruction, JInstruction
 from gigue.method import Method
 
@@ -25,8 +30,9 @@ class PIC:
         method_size: int,
         method_variation_mean: float,
         method_variation_stdev: float,
-        method_max_call_number: int,
-        method_max_call_depth: int,
+        method_call_occupation_mean: float,
+        method_call_occupation_stdev: float,
+        method_call_depth_mean: int,
         builder: InstructionBuilder,
         call_size: int = 3,
         hit_case_reg: int = HIT_CASE_REG,
@@ -38,8 +44,9 @@ class PIC:
         self.method_size: int = method_size
         self.method_variation_mean = method_variation_mean
         self.method_variation_stdev = method_variation_stdev
-        self.method_max_call_number: int = method_max_call_number
-        self.method_max_call_depth: int = method_max_call_depth
+        self.method_call_occupation_mean: float = method_call_occupation_mean
+        self.method_call_occupation_stdev: float = method_call_occupation_stdev
+        self.method_call_depth_mean: int = method_call_depth_mean
         # hit_case_reg: register in which the case_nb that should be ran is loaded
         # cmp_reg: register in which the running case nb is stored before comparison
         # Comparison and current registers
@@ -123,23 +130,32 @@ class PIC:
         logger.debug(f"{self.log_prefix()} Adding case methods.")
         method_address: int = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
+            # TODO: Probably should refactor with generator's add_method
+            # body size = method size (bin size / nb of methods) * (1 +- size variation)
+            # note: the +- is defined as a one ot of two chance
             size_variation: float = generate_trunc_norm(
                 variance=self.method_variation_mean,
                 std_dev=self.method_variation_stdev,
                 lower_bound=0,
                 higher_bound=1.0,
             )
-            body_size: int = ceil(self.method_size * (1 + size_variation))
-            max_call_nb: int = min(
-                self.method_max_call_number,
-                Method.compute_max_call_number(body_size, self.call_size),
+            variation_sign: int = 1 if random.random() > 0.5 else -1
+            body_size: int = ceil(
+                self.method_size * (1 + variation_sign * size_variation)
             )
-            call_nb: int = abs(gaussian_between(-max_call_nb, max_call_nb))
-            call_depth: int = abs(
-                gaussian_between(
-                    -self.method_max_call_depth, self.method_max_call_depth
-                )
+            # call number is derived from call occupation:
+            # max call nb = body size / call size
+            # call nb = call occupation * max call nb
+            call_occupation: float = generate_trunc_norm(
+                variance=self.method_call_occupation_mean,
+                std_dev=self.method_call_occupation_stdev,
+                lower_bound=0,
+                higher_bound=1.0,
             )
+            max_call_nb: int = body_size // self.call_size
+            call_nb: int = trunc(call_occupation * max_call_nb)
+            # call depth follows a Poisson distribution with lambda = mean
+            call_depth: int = generate_poisson(self.method_call_depth_mean)
             try:
                 case_method: Method = Method(
                     address=method_address,
@@ -156,6 +172,11 @@ class PIC:
                 )
                 self.methods.append(case_method)
                 method_address += case_method.total_size() * 4
+                logger.debug(
+                    f"{self.log_prefix()} {case_method.log_prefix()} Case method added"
+                    f" with size ({body_size}), call nb ({call_nb} => call occupation"
+                    f" {call_occupation}) and call depth ({call_depth})"
+                )
             except CallNumberException as err:
                 logger.exception(err)
                 raise
@@ -248,6 +269,9 @@ class PIC:
         logger.debug(f"{self.log_prefix()} Adding case methods.")
         method_address: int = self.address + self.get_switch_size() * 4
         for _ in range(self.case_number):
+            # TODO: Probably should refactor with generator's add_method
+            # body size = method size (bin size / nb of methods) * (1 +- size variation)
+            # note: the +- is defined as a one ot of two chance
             size_variation: float = generate_trunc_norm(
                 variance=self.method_variation_mean,
                 std_dev=self.method_variation_stdev,
@@ -255,16 +279,19 @@ class PIC:
                 higher_bound=1.0,
             )
             body_size: int = ceil(self.method_size * (1 + size_variation))
-            max_call_nb: int = min(
-                self.method_max_call_number,
-                Method.compute_max_call_number(body_size, self.call_size),
+            # call number is derived from call occupation:
+            # max call nb = body size / call size
+            # call nb = call occupation * max call nb
+            call_occupation: float = generate_trunc_norm(
+                variance=self.method_call_occupation_mean,
+                std_dev=self.method_call_occupation_stdev,
+                lower_bound=0,
+                higher_bound=1.0,
             )
-            call_nb: int = abs(gaussian_between(-max_call_nb, max_call_nb))
-            call_depth: int = abs(
-                gaussian_between(
-                    -self.method_max_call_depth, self.method_max_call_depth
-                )
-            )
+            max_call_nb: int = body_size // self.call_size
+            call_nb: int = trunc(call_occupation * max_call_nb)
+            # call depth follows a Poisson distribution with lambda = mean
+            call_depth: int = generate_poisson(self.method_call_depth_mean)
             try:
                 case_method: Method = Method(
                     address=method_address,

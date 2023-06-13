@@ -1,5 +1,5 @@
 import logging
-from math import ceil
+from math import ceil, trunc
 import random
 from collections import defaultdict
 from typing import Callable, Dict, List, Optional, Union
@@ -23,7 +23,13 @@ from gigue.exceptions import (
     RecursiveCallException,
     WrongAddressException,
 )
-from gigue.helpers import align, flatten_list, gaussian_between, generate_trunc_norm
+from gigue.helpers import (
+    align,
+    flatten_list,
+    gaussian_between,
+    generate_poisson,
+    generate_trunc_norm,
+)
 from gigue.instructions import Instruction
 from gigue.method import Method
 from gigue.pic import PIC
@@ -48,8 +54,9 @@ class Generator:
         method_variation_mean: float,
         method_variation_stdev: float,
         # Call info
-        max_call_depth: int,
-        max_call_nb: int,
+        call_depth_mean: int,
+        call_occupation_mean: float,
+        call_occupation_stdev: float,
         # PICs info
         pics_ratio: float,
         pics_max_cases: int,
@@ -101,8 +108,9 @@ class Generator:
         self.method_variation_mean: float = method_variation_mean
         self.method_variation_stdev: float = method_variation_stdev
         # Call info
-        self.max_call_depth: int = max_call_depth
-        self.max_call_nb: int = max_call_nb
+        self.call_depth_mean: int = call_depth_mean
+        self.call_occupation_mean: float = call_occupation_mean
+        self.call_occupation_stdev: float = call_occupation_stdev
         self.call_size: int = 3
         # PICs parameters
         self.pics_ratio: float = pics_ratio
@@ -140,6 +148,17 @@ class Generator:
         self.data_generation_strategy: str = data_generation_strategy
         self.data_bin_file: str = output_data_bin_file
 
+        logger.debug("👨‍🌾 Generator Instanciated:")
+        logger.debug(
+            f" - method variation: mean {method_variation_mean} / std"
+            f" {method_variation_stdev}"
+        )
+        logger.debug(
+            f" - call variation: mean {call_occupation_mean} / std"
+            f" {call_occupation_stdev}"
+        )
+        logger.debug(f" - call depth: mean/lambda {call_depth_mean}")
+
     def log_jit_prefix(self) -> str:
         return "🧺"
 
@@ -150,25 +169,31 @@ class Generator:
     # \______________________
 
     def add_method(self, address: int, *args, **kwargs) -> Method:
+        # body size = jit method size (bin size / nb of methods) * (1 +- size variation)
+        # note: the +- is defined as a one ot of two chance
         size_variation: float = generate_trunc_norm(
             variance=self.method_variation_mean,
             std_dev=self.method_variation_stdev,
             lower_bound=0,
             higher_bound=1.0,
         )
-        body_size: int = ceil(self.jit_method_size * (1 + size_variation))
-        # To force the creation of leaf functions,
-        # the gaussian distribution is centered
-        # around 0 and the absolute value is used!
-        max_call_nb: int = min(
-            self.max_call_nb, Method.compute_max_call_number(body_size, self.call_size)
+        variation_sign: int = 1 if random.random() > 0.5 else -1
+        body_size: int = ceil(
+            self.jit_method_size * (1 + variation_sign * size_variation)
         )
-        call_nb: int = abs(gaussian_between(-max_call_nb, max_call_nb))
-        call_depth: int = (
-            0
-            if call_nb == 0
-            else abs(gaussian_between(-self.max_call_depth, self.max_call_depth))
+        # call number is derived from call occupation:
+        # max call nb = body size / call size
+        # call nb = call occupation * max call nb
+        call_occupation: float = generate_trunc_norm(
+            variance=self.call_occupation_mean,
+            std_dev=self.call_occupation_stdev,
+            lower_bound=0,
+            higher_bound=1.0,
         )
+        max_call_nb: int = body_size // self.call_size
+        call_nb: int = trunc(call_occupation * max_call_nb)
+        # call depth follows a Poisson distribution with lambda = mean
+        call_depth: int = generate_poisson(self.call_depth_mean)
         try:
             method: Method = Method(
                 address=address,
@@ -180,7 +205,8 @@ class Generator:
             )
             logger.debug(
                 f"{self.log_jit_prefix()} {method.log_prefix()} Method added with size"
-                f" ({body_size}), call nb ({call_nb}) and call depth ({call_depth})"
+                f" ({body_size}), call nb ({call_nb} => call occupation"
+                f" {call_occupation}) and call depth ({call_depth})"
             )
         except CallNumberException as err:
             logger.exception(err)
@@ -197,7 +223,10 @@ class Generator:
             lower_bound=0,
             higher_bound=1.0,
         )
-        body_size: int = ceil(self.jit_method_size * (1 + size_variation))
+        variation_sign: int = 1 if random.random() > 0.5 else -1
+        body_size: int = ceil(
+            self.jit_method_size * (1 + variation_sign * size_variation)
+        )
         try:
             method: Method = Method(
                 address=address,
@@ -227,8 +256,9 @@ class Generator:
             method_size=self.jit_method_size,
             method_variation_mean=self.method_variation_mean,
             method_variation_stdev=self.method_variation_stdev,
-            method_max_call_number=self.max_call_nb,
-            method_max_call_depth=self.max_call_depth,
+            method_call_occupation_mean=self.call_occupation_mean,
+            method_call_occupation_stdev=self.call_occupation_stdev,
+            method_call_depth_mean=self.call_depth_mean,
             hit_case_reg=self.pics_hit_case_reg,
             cmp_reg=self.pics_cmp_reg,
             call_size=self.call_size,
@@ -270,8 +300,9 @@ class Generator:
             raise
         # Add other methods
         while current_method_count < self.jit_nb_methods:
+            weighted_pics_ratio = self.pics_ratio / self.pics_max_cases
             code_type: str = random.choices(
-                ["method", "pic"], [1 - self.pics_ratio, self.pics_ratio]
+                ["method", "pic"], [1 - weighted_pics_ratio, weighted_pics_ratio]
             )[0]
             adder_function: Callable = getattr(Generator, "add_" + code_type)
             current_element: Union[PIC, Method] = adder_function(
@@ -481,8 +512,9 @@ class TrampolineGenerator(Generator):
         jit_nb_methods: int,
         method_variation_mean: float,
         method_variation_stdev: float,
-        max_call_depth: int,
-        max_call_nb: int,
+        call_depth_mean: int,
+        call_occupation_mean: float,
+        call_occupation_stdev: float,
         pics_ratio: float,
         pics_max_cases: int,
         data_size: int = DATA_SIZE,
@@ -504,8 +536,9 @@ class TrampolineGenerator(Generator):
             jit_nb_methods=jit_nb_methods,
             method_variation_mean=method_variation_mean,
             method_variation_stdev=method_variation_stdev,
-            max_call_depth=max_call_depth,
-            max_call_nb=max_call_nb,
+            call_depth_mean=call_depth_mean,
+            call_occupation_mean=call_occupation_mean,
+            call_occupation_stdev=call_occupation_stdev,
             pics_ratio=pics_ratio,
             pics_max_cases=pics_max_cases,
             data_size=data_size,

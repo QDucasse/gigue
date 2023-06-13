@@ -35,8 +35,9 @@ def test_switch_size(default_builder_setup, case_nb, method_size):
         method_size=method_size,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        method_max_call_number=5,
-        method_max_call_depth=5,
+        method_call_occupation_mean=0.2,
+        method_call_occupation_stdev=0.1,
+        method_call_depth_mean=2,
         builder=default_builder_setup,
     )
     pic.fill_with_instructions(
@@ -59,8 +60,9 @@ def test_total_size(default_builder_setup, case_nb, method_size):
         method_size=method_size,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        method_max_call_number=5,
-        method_max_call_depth=5,
+        method_call_occupation_mean=0.2,
+        method_call_occupation_stdev=0.1,
+        method_call_depth_mean=2,
         builder=default_builder_setup,
     )
     pic.fill_with_instructions(
@@ -91,8 +93,9 @@ def test_method_adding(default_builder_setup, case_nb, method_size):
         method_size=method_size,
         method_variation_mean=method_variation_mean,
         method_variation_stdev=method_variation_stdev,
-        method_max_call_number=5,
-        method_max_call_depth=5,
+        method_call_occupation_mean=0.2,
+        method_call_occupation_stdev=0.1,
+        method_call_depth_mean=2,
         builder=default_builder_setup,
     )
     pic.add_case_methods(
@@ -122,8 +125,9 @@ def test_switch_instructions_adding(
         method_size=method_size,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        method_max_call_number=5,
-        method_max_call_depth=5,
+        method_call_occupation_mean=0.2,
+        method_call_occupation_stdev=0.1,
+        method_call_depth_mean=2,
         builder=default_builder_setup,
     )
     pic.add_case_methods(
@@ -175,8 +179,9 @@ def test_disassembly_execution(
         method_size=method_size,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        method_max_call_number=5,
-        method_max_call_depth=5,
+        method_call_occupation_mean=0.2,
+        method_call_occupation_stdev=0.1,
+        method_call_depth_mean=2,
         hit_case_reg=6,
         cmp_reg=5,
         builder=default_builder_setup,
@@ -236,8 +241,9 @@ def test_trampoline_disassembly_execution(
         method_size=method_size,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        method_max_call_number=5,
-        method_max_call_depth=5,
+        method_call_occupation_mean=0.2,
+        method_call_occupation_stdev=0.1,
+        method_call_depth_mean=2,
         hit_case_reg=6,
         cmp_reg=5,
         builder=default_builder_setup,

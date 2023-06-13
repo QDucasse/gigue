@@ -364,7 +364,6 @@ class RIMIHandler(Handler):
         pc = uc_emul.reg_read(UC_RISCV_REG_PC)
         instr = bytes_to_int(uc_emul.mem_read(pc, 4))
         instr_name = self.disasm.get_instruction_info(instr).name
-        print(f">>> Catching {instr_name}")
 
     def hook_mem_access(self, uc_emul):
         uc_emul.hook_add(UC_HOOK_MEM_VALID, self.check_mem_access, user_data=None)

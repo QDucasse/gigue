@@ -58,8 +58,9 @@ def callees_pic_setup(default_builder_setup):
         method_size=10,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        method_max_call_number=0,
-        method_max_call_depth=0,
+        method_call_occupation_mean=0.2,
+        method_call_occupation_stdev=0.1,
+        method_call_depth_mean=0,
         builder=default_builder,
     )
     callee2 = PIC(
@@ -68,8 +69,9 @@ def callees_pic_setup(default_builder_setup):
         method_size=10,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        method_max_call_number=0,
-        method_max_call_depth=0,
+        method_call_occupation_mean=0.2,
+        method_call_occupation_stdev=0.1,
+        method_call_depth_mean=0,
         builder=default_builder,
     )
     callee3 = PIC(
@@ -78,8 +80,9 @@ def callees_pic_setup(default_builder_setup):
         method_size=10,
         method_variation_mean=0.2,
         method_variation_stdev=0.1,
-        method_max_call_number=0,
-        method_max_call_depth=0,
+        method_call_occupation_mean=0.2,
+        method_call_occupation_stdev=0.1,
+        method_call_depth_mean=0,
         builder=default_builder,
     )
     return [callee1, callee2, callee3]

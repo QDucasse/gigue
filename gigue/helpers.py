@@ -1,4 +1,4 @@
-from math import ceil
+import math
 import random
 from typing import Any, Generator, List, Union
 
@@ -92,7 +92,7 @@ def gaussian_between(low_bound: int, up_bound: int) -> int:
     #     raise Exception
     sigma: float = (up_bound - low_bound) / 6
     mu: float = low_bound + 3 * sigma
-    int_value: int = ceil(random.gauss(mu=mu, sigma=sigma))
+    int_value: int = math.ceil(random.gauss(mu=mu, sigma=sigma))
     box_value: int = max(min(int_value, up_bound), low_bound)
     # import math
     # print(f"sigma {sigma}, mu {mu}, folded {sigma * math.sqrt(2/math.pi)}")
@@ -132,13 +132,29 @@ def generate_poisson(lmbda):
     return x
 
 
+def poisson_chernoff_bound(lmbda, alpha):
+    # lambda is the poisson parameter and alpha the confidence level
+    # ensuring that any generated value following poisson(lambda) is
+    # bounded by k with a confidence level of (1 - alpha)
+    k = 1
+    while True:
+        bound = min(
+            math.exp(-lmbda) * math.pow(lmbda, k) / math.factorial(k),
+            math.exp(-lmbda) * math.pow((math.exp(1) * lmbda / k), k),
+        )
+        if bound <= alpha:
+            return k
+        k += 1
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    import math
 
     # Poisson distribution
     lambda_value = 2  # Lambda parameter of the Poisson distribution
     data = [generate_poisson(lambda_value) for _ in range(100000)]
+    print(max(data))
+    print(poisson_chernoff_bound(lambda_value, 0.00001))
     plt.hist(data, bins=100)
     plt.show()
 
