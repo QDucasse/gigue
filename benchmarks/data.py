@@ -45,6 +45,11 @@ class InputData(GigueData):
     data_size: int
     data_generation_strategy: str
     # Execution info
+    rocket_input_data: RocketInputData
+
+
+class RocketInputData(GigueData):
+    # Execution info
     rocket_config: str
     rocket_max_cycles: int
 

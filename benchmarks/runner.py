@@ -6,7 +6,7 @@ import random
 import shutil
 import subprocess
 import sys
-from typing import List, Mapping, Optional, Tuple, Type
+from typing import List, Mapping, Tuple, Type
 
 from benchmarks.data import (
     CompilationData,
@@ -15,17 +15,16 @@ from benchmarks.data import (
     DumpData,
     EmulationData,
     ExecutionData,
-    FullData,
     GenerationData,
     GigueData,
+    InputData,
     JITElementsData,
     MethodData,
     PICData,
-    RunData,
+    RocketInputData,
 )
 from benchmarks.exceptions import (
     EnvironmentException,
-    IncorrectSeedsNumberException,
     UnknownIsolationSolutionException,
 )
 from benchmarks.parser import LogParser
@@ -34,7 +33,7 @@ from gigue.exceptions import BuilderException, GeneratorException, MethodExcepti
 from gigue.fixer.fixer_constants import FIXER_INSTRUCTIONS_INFO
 from gigue.fixer.fixer_generator import FIXERTrampolineGenerator
 from gigue.generator import Generator, TrampolineGenerator
-from gigue.helpers import bytes_to_int, mean
+from gigue.helpers import mean
 from gigue.method import Method
 from gigue.pic import PIC
 from gigue.rimi.rimi_constants import RIMI_INSTRUCTIONS_INFO
@@ -58,7 +57,7 @@ class Runner:
     ROCKET_FILE: str = "out.rocket"
     GIGUE_LOG_FILE: str = "gigue.log"
 
-    def __init__(self, config_file: Optional[str]):
+    def __init__(self):
         self.parser: LogParser = LogParser()
         # Check environment variables
         try:
@@ -66,15 +65,11 @@ class Runner:
         except EnvironmentException as err:
             logger.error(err)
             raise
-        if config_file is None:
-            config_file = Runner.CONFIG_DIR + "default.json"
-        self.config_data: ConfigData = self.load_config(config_file=config_file)
+        # Create missing directories
         if not os.path.exists(Runner.BIN_DIR):
             os.mkdir(Runner.BIN_DIR)
         if not os.path.exists(Runner.RESULTS_DIR):
             os.mkdir(Runner.RESULTS_DIR)
-        self.input_data = self.config_data["input_data"]
-        self.gen_class: Type[Generator] = Generator
         self.instructions_info: Mapping[str, InstructionInfo] = {}
         self.generation_ok: int = 0
         self.compilation_ok: int = 0
@@ -121,7 +116,9 @@ class Runner:
             logger.error(err)
             raise
 
-    def generate_binary(self, seed: int) -> Tuple[GenerationData, JITElementsData]:
+    def generate_binary(
+        self, seed: int, input_data: InputData
+    ) -> Tuple[GenerationData, JITElementsData]:
         # Setup seed
         # \____________
 
@@ -129,24 +126,27 @@ class Runner:
 
         # Instanciate generator
         # \______________________
-        if self.input_data["isolation_solution"] == "none":
-            if self.input_data["uses_trampolines"]:
-                self.gen_class = TrampolineGenerator
+
+        gen_class: Type[Generator]
+
+        if input_data["isolation_solution"] == "none":
+            if input_data["uses_trampolines"]:
+                gen_class = TrampolineGenerator
                 self.instructions_info = INSTRUCTIONS_INFO
             else:
-                self.gen_class = Generator
+                gen_class = Generator
                 self.instructions_info = INSTRUCTIONS_INFO
-        elif self.input_data["isolation_solution"] == "rimiss":
-            assert self.input_data["uses_trampolines"]
-            self.gen_class = RIMIShadowStackTrampolineGenerator
+        elif input_data["isolation_solution"] == "rimiss":
+            assert input_data["uses_trampolines"]
+            gen_class = RIMIShadowStackTrampolineGenerator
             self.instructions_info = RIMI_INSTRUCTIONS_INFO
-        elif self.input_data["isolation_solution"] == "rimifull":
-            assert self.input_data["uses_trampolines"]
-            self.gen_class = RIMIFullTrampolineGenerator
+        elif input_data["isolation_solution"] == "rimifull":
+            assert input_data["uses_trampolines"]
+            gen_class = RIMIFullTrampolineGenerator
             self.instructions_info = RIMI_INSTRUCTIONS_INFO
-        elif self.input_data["isolation_solution"] == "fixer":
-            assert self.input_data["uses_trampolines"]
-            self.gen_class = FIXERTrampolineGenerator
+        elif input_data["isolation_solution"] == "fixer":
+            assert input_data["uses_trampolines"]
+            gen_class = FIXERTrampolineGenerator
             self.instructions_info = FIXER_INSTRUCTIONS_INFO
         else:
             raise UnknownIsolationSolutionException(
@@ -155,31 +155,31 @@ class Runner:
             )
         try:
             # Instanciate the generator
-            generator: Generator = self.gen_class(
+            generator: Generator = gen_class(
                 # Global info
-                registers=self.input_data["registers"],
-                weights=self.input_data["weights"],
+                registers=input_data["registers"],
+                weights=input_data["weights"],
                 # Addresses offset
-                jit_start_address=self.input_data["jit_start_address"],
-                interpreter_start_address=self.input_data["interpreter_start_address"],
+                jit_start_address=input_data["jit_start_address"],
+                interpreter_start_address=input_data["interpreter_start_address"],
                 # Method info
-                jit_size=self.input_data["jit_size"],
-                jit_nb_methods=self.input_data["jit_nb_methods"],
-                method_variation_mean=self.input_data["method_variation_mean"],
-                method_variation_stdev=self.input_data["method_variation_stdev"],
+                jit_size=input_data["jit_size"],
+                jit_nb_methods=input_data["jit_nb_methods"],
+                method_variation_mean=input_data["method_variation_mean"],
+                method_variation_stdev=input_data["method_variation_stdev"],
                 # Call info
-                call_depth_mean=self.input_data["call_depth_mean"],
-                call_occupation_mean=self.input_data["call_occupation_mean"],
-                call_occupation_stdev=self.input_data["call_occupation_stdev"],
+                call_depth_mean=input_data["call_depth_mean"],
+                call_occupation_mean=input_data["call_occupation_mean"],
+                call_occupation_stdev=input_data["call_occupation_stdev"],
                 # PICs
-                pics_ratio=self.input_data["pics_ratio"],
-                pics_mean_case_nb=self.input_data["pics_mean_case_nb"],
-                pics_cmp_reg=self.input_data["pics_cmp_reg"],
-                pics_hit_case_reg=self.input_data["pics_hit_case_reg"],
+                pics_ratio=input_data["pics_ratio"],
+                pics_mean_case_nb=input_data["pics_mean_case_nb"],
+                pics_cmp_reg=input_data["pics_cmp_reg"],
+                pics_hit_case_reg=input_data["pics_hit_case_reg"],
                 # Data info
-                data_reg=self.input_data["data_reg"],
-                data_generation_strategy=self.input_data["data_generation_strategy"],
-                data_size=self.input_data["data_size"],
+                data_reg=input_data["data_reg"],
+                data_generation_strategy=input_data["data_generation_strategy"],
+                data_size=input_data["data_size"],
             )
             # Generation complete!
             self.generation_ok = 1
@@ -281,10 +281,12 @@ class Runner:
         }
         return compilation_data
 
-    def execute_binary(self, start_address: int, ret_address: int) -> ExecutionData:
+    def execute_binary(
+        self, start_address: int, ret_address: int, rocket_input_data: RocketInputData
+    ) -> ExecutionData:
         # Execute on top of rocket
-        rocket_config = self.input_data["rocket_config"]
-        rocket_max_cycles = self.input_data["rocket_max_cycles"]
+        rocket_config = rocket_input_data["rocket_config"]
+        rocket_max_cycles = rocket_input_data["rocket_max_cycles"]
         try:
             subprocess.run(
                 [
@@ -326,6 +328,7 @@ class Runner:
         config_name: str,
         run_number: int,
         jit_elements_data: JITElementsData,
+        config_data: ConfigData,
     ) -> ConsolidationData:
         try:
             # Create results directory
@@ -339,6 +342,9 @@ class Runner:
             base_name: str = (
                 f"{run_dir_name}{config_name}_{formatted_date}-{run_number}"
             )
+            # Dump the config data
+            with open(f"{base_name}.config.json", "w") as outfile:
+                json.dump(config_data, outfile, indent=2, separators=(",", ": "))
             # Store JIT elements data
             self.store_gigue_data(
                 gigue_data=jit_elements_data, data_file=f"{base_name}.json"
@@ -380,122 +386,3 @@ class Runner:
             "run_path": run_dir_name,
         }
         return consolidation_data
-
-
-def main(argv: Optional[List[str]] = None) -> int:
-    if argv is None:
-        argv = sys.argv[1:]
-
-    if len(argv) != 1:
-        raise OSError(
-            "Wrong usage: python -m benchmarks <config_name> (should be in the config"
-            " directory)"
-        )
-    config_file: str = f"{Runner.CONFIG_DIR}{argv[0]}.json"
-    runner: Runner = Runner(config_file)
-    # TODO: Setup logger to debug
-    # Load the config
-    config_data: ConfigData = runner.load_config(config_file=config_file)
-    config_name: str = config_file.split("/")[-1].split(".")[0]  # for consolidation
-    # Format result directory name
-    now: datetime.datetime = datetime.datetime.now()
-    formatted_date: str = now.strftime("%Y-%m-%d_%H-%M-%S")
-    base_dir_name: str = f"{Runner.RESULTS_DIR}{config_name}_{formatted_date}/"
-    nb_runs: int = config_data["nb_runs"]
-    run_seeds: List[int] = config_data["run_seeds"]
-    if len(run_seeds) == 0:
-        run_seeds = [bytes_to_int(os.urandom(16)) for _ in range(nb_runs)]
-    if len(run_seeds) != nb_runs:
-        raise IncorrectSeedsNumberException(
-            "Number of specified seeds is incorrect. The config file should hold the"
-            " same number of seeds and runs, if no seed are specified, please use an"
-            " empty list '[]'."
-        )
-    # Setup full data
-    full_data: FullData = {"config_data": config_data, "run_data": []}
-    # Launch the runs
-    for run_number in range(nb_runs):
-        # Generate binary
-        seed: int = run_seeds[run_number]
-        generation_data: GenerationData
-        jit_elements_data: JITElementsData
-        generation_data, jit_elements_data = runner.generate_binary(seed)
-        # Compile binary
-        compilation_data: CompilationData = runner.compile_binary()
-        # Execute binary
-        execution_data: ExecutionData = runner.execute_binary(
-            start_address=compilation_data["dump_data"]["start_address"],
-            ret_address=compilation_data["dump_data"]["ret_address"],
-        )
-        # Consolidate logs
-        consolidation_data: ConsolidationData = runner.consolidate_logs(
-            base_dir_name=base_dir_name,
-            config_name=config_name,
-            run_number=run_number,
-            jit_elements_data=jit_elements_data,
-        )
-        # Agglomerate data
-        run_data: RunData = {
-            "run_number": run_number,
-            "generation_data": generation_data,
-            "compilation_data": compilation_data,
-            "execution_data": execution_data,
-            "consolidation_data": consolidation_data,
-        }
-        full_data["run_data"].append(run_data)
-    runner.store_gigue_data(gigue_data=full_data, data_file=f"{base_dir_name}data.json")
-    return 0
-
-
-if __name__ == "__main__":
-    # TODO: Poubellent?
-
-    with open(sys.argv[1], "r") as config:
-        config_data: ConfigData = json.load(config)
-
-    def max_jit_bin_size(
-        nb_elts,
-        pics_ratio,
-        method_max_size,
-        pics_max_cases,
-        pics_method_max_size,
-        prologue_size,
-        epilogue_size,
-    ):
-        return (
-            int(
-                nb_elts
-                * (1 - pics_ratio)
-                * (method_max_size + prologue_size + epilogue_size)
-                + nb_elts
-                * pics_ratio
-                * pics_max_cases
-                * (pics_method_max_size + prologue_size + epilogue_size)
-            )
-            * 4
-        )
-
-    nb_elts = config_data["input_data"]["jit_elements_nb"]
-    pics_ratio = config_data["input_data"]["pics_ratio"]
-    method_max_size = config_data["input_data"]["method_max_size"]
-    pics_max_cases = config_data["input_data"]["pics_max_cases"]
-    pics_method_max_size = config_data["input_data"]["pics_method_max_size"]
-    jit_start_address = config_data["input_data"]["jit_start_address"]
-    # Methods: elts * methods ratio * method size (body + epilogue + prologue)
-    # PICs: elts * pics ratio * nb case * pic method size (body + epilogue + prologue)
-    max_bin_size = (
-        max_jit_bin_size(
-            nb_elts=nb_elts,
-            pics_ratio=pics_ratio,
-            method_max_size=method_max_size,
-            pics_max_cases=pics_max_cases,
-            pics_method_max_size=pics_method_max_size,
-            prologue_size=10,
-            epilogue_size=10,
-        )
-        + jit_start_address
-    )
-    print(
-        f"Max binary size: {max_bin_size} bytes, or {max_bin_size / 1024} kB, or"
-        f" {max_bin_size / (1024*1024)} mB"
-    )
