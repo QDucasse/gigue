@@ -408,6 +408,16 @@ class Generator:
         self.interpreter_prologue_size = len(prologue_instructions)
         self.interpreter_epilogue_size = len(epilogue_instructions)
         self.interpreter_instructions += epilogue_instructions
+        if (
+            self.interpreter_start_address + len(self.interpreter_instructions * 4)
+            > self.jit_start_address
+        ):
+            raise WrongAddressException(
+                "Interpretation loop overwrites JIT binary! Interpreter end address"
+                f" ({hex(self.interpreter_start_address)} +"
+                f" {hex(len(self.interpreter_instructions) * 4)}) should be lower than"
+                f" JIT start address ({hex(self.jit_start_address)})"
+            )
         logger.debug("Phase 3: Interpretation loop filled!")
 
     def build_element_call(self, element: Union[Method, PIC], current_address: int):
