@@ -1,51 +1,48 @@
-#!/bin/sh
-echo "Runnning benchmarks for small methods"
-echo " \__  Handling low calls"
-python -m benchmarks calls/small_methods_low_calls
-echo " \__  Handling med calls"
-python -m benchmarks calls/small_methods_med_calls
-echo " \__  Handling high calls"
-python -m benchmarks calls/small_methods_high_calls
+#!/usr/bin/env bash
 
-echo "Runnning benchmarks for med methods"
-echo " \__  Handling low calls"
-python -m benchmarks calls/medium_methods_low_calls
-echo " \__  Handling med calls"
-python -m benchmarks calls/medium_methods_med_calls
-echo " \__  Handling high calls"
-python -m benchmarks calls/medium_methods_high_calls
+set -Eeuo pipefail
+trap cleanup SIGINT SIGTERM ERR EXIT
 
-echo "Runnning benchmarks for large methods"
-echo " \__  Handling low calls"
-python -m benchmarks calls/large_methods_low_calls
-echo " \__  Handling med calls"
-python -m benchmarks calls/large_methods_med_calls
-echo " \__  Handling high calls"
-python -m benchmarks calls/large_methods_high_calls
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
+cleanup() {
+  trap - SIGINT SIGTERM ERR EXIT
+}
 
+setup_colors() {
+  if [[ -t 2 ]] && [[ -z "${NO_COLOR-}" ]] && [[ "${TERM-}" != "dumb" ]]; then
+    NOFORMAT='\033[0m' RED='\033[0;31m' GREEN='\033[0;32m' ORANGE='\033[0;33m' BLUE='\033[0;34m' PURPLE='\033[0;35m' CYAN='\033[0;36m' YELLOW='\033[1;33m'
+  else
+    NOFORMAT='' RED='' GREEN='' ORANGE='' BLUE='' PURPLE='' CYAN='' YELLOW=''
+  fi
+}
 
+die() {
+  local msg=$1
+  local code=${2-1} # default exit status 1
+  msg "$msg"
+  exit "$code"
+}
 
-echo "Runnning benchmarks for small methods"
-echo " \__  Handling low mem access"
-python -m benchmarks memory/small_methods_low_mem
-echo " \__  Handling med mem access"
-python -m benchmarks memory/small_methods_med_mem
-echo " \__  Handling high calls"
-python -m benchmarks memory/small_methods_high_mem
+msg() {
+  echo >&2 -e "${1-}"
+}
 
-echo "Runnning benchmarks for med methods"
-echo " \__  Handling low mem access"
-python -m benchmarks memory/medium_methods_low_mem
-echo " \__  Handling med mem access"
-python -m benchmarks memory/medium_methods_med_mem
-echo " \__  Handling high mem access"
-python -m benchmarks memory/medium_methods_high_mem
+setup_colors
 
-echo "Runnning benchmarks for large methods"
-echo " \__  Handling low mem access"
-python -m benchmarks memory/large_methods_low_mem
-echo " \__  Handling med mem access"
-python -m benchmarks memory/large_methods_med_mem
-echo " \__  Handling high mem access"
-python -m benchmarks memory/large_methods_high_mem
+values="low medium high"
+
+msg "Starting benchmarks!" 
+for meth_val in $values; do
+    for call_val in $values; do
+        msg "${GREEN}$meth_val methods${NOFORMAT} / ${ORANGE} $call_val call occupation${NOFORMAT}" 
+        python -m benchmarks param -n $meth_val -c $call_val -r 10
+    done
+done
+
+for meth_val in $values; do
+    for mem_val in $values; do
+        msg "${GREEN}$meth_val methods${NOFORMAT} / ${ORANGE} $mem_val memory access${NOFORMAT}" 
+        python -m benchmarks param -n $meth_val -m $mem_val -r 10
+    done
+done

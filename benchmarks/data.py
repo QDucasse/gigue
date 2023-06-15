@@ -188,11 +188,10 @@ class FullData(GigueData):
 # \_______________
 
 
-# TODO:
-#  - Change method densities to a simple method mean size
-#  - Change call densities to call occupation
 class CallApplicationClassData(GigueData):
     name: str
+    nb_methods_qualif: str
+    call_occupations_qualif: str
     isolation: str
     nb_methods: List[int]
     call_occupations: List[float]
@@ -200,13 +199,12 @@ class CallApplicationClassData(GigueData):
     cpis: List[float]
 
 
-# TODO:
-#  - Change method densities to a simple method mean size
-#  - Change mem densities to mem isntr occupation
 class MemoryApplicationClassData(GigueData):
     name: str
+    nb_methods_qualif: str
+    mem_accesses_qualif: str
     isolation: str
     nb_methods: List[int]
-    mem_densities: List[float]
+    mem_accesses: List[float]
     nb_cycles: List[int]
     cpis: List[float]

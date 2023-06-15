@@ -5,7 +5,6 @@ import os
 import random
 import shutil
 import subprocess
-import sys
 from typing import List, Mapping, Tuple, Type
 
 from benchmarks.data import (
@@ -22,6 +21,8 @@ from benchmarks.data import (
     MethodData,
     PICData,
     RocketInputData,
+    default_instr_class_data,
+    default_instr_type_data,
 )
 from benchmarks.exceptions import (
     EnvironmentException,
@@ -92,7 +93,12 @@ class Runner:
 
     def load_config(self, config_file: str) -> ConfigData:
         try:
-            subprocess.run(["make", "cleanall"], timeout=10, check=True)
+            subprocess.run(
+                ["make", "cleanall"],
+                timeout=10,
+                check=True,
+                stdout=subprocess.DEVNULL,
+            )
         except (
             FileNotFoundError,
             subprocess.CalledProcessError,
@@ -123,6 +129,25 @@ class Runner:
         # \____________
 
         random.seed(seed)
+
+        # Error structures
+        # \_________________
+
+        jit_elements_data: JITElementsData = {
+            "methods_info": [],
+            "pics_info": [],
+        }
+
+        generation_data: GenerationData = {
+            "generation_ok": 0,
+            "gigue_seed": seed,
+            "nb_methods": 0,
+            "nb_pics": 0,
+            "mean_method_size": 0,
+            "mean_method_call_occupation": 0,
+            "mean_method_call_depth": 0,
+            "pics_mean_case_nb": 0,
+        }
 
         # Instanciate generator
         # \______________________
@@ -182,18 +207,20 @@ class Runner:
                 data_size=input_data["data_size"],
             )
             # Generation complete!
-            self.generation_ok = 1
         except GeneratorException as err:
             logger.exception(err)
             # Exit run
             self.generation_ok = 0
+            return generation_data, jit_elements_data
         try:
             # Generate the binary
             generator.main()
-        except (MethodException, BuilderException) as err:
+            self.generation_ok = 1
+        except (MethodException, BuilderException, GeneratorException) as err:
             logger.exception(err)
             # Exit run
             self.generation_ok = 0
+            return generation_data, jit_elements_data
 
         # Fill the generation data
         # \_________________________
@@ -242,12 +269,12 @@ class Runner:
                 }
                 pics_info.append(pic_data)
                 pics_case_nb.append(elt.case_number)
-        jit_elements_data: JITElementsData = {
+        jit_elements_data = {
             "methods_info": methods_info,
             "pics_info": pics_info,
         }
 
-        generation_data: GenerationData = {
+        generation_data = {
             "generation_ok": self.generation_ok,
             "gigue_seed": seed,
             "nb_methods": generator.method_count,
@@ -260,9 +287,26 @@ class Runner:
         return generation_data, jit_elements_data
 
     def compile_binary(self) -> CompilationData:
+        # Error structures
+        dump_data: DumpData = {
+            "dump_ok": 0,
+            "start_address": 0,
+            "ret_address": 0,
+            "end_address": 0,
+            "bin_size": 0,
+        }
+        compilation_data: CompilationData = {
+            "compilation_ok": 0,
+            "dump_data": dump_data,
+        }
         # Compile binary
         try:
-            subprocess.run(["make", "dump"], timeout=10, check=True)
+            subprocess.run(
+                ["make", "dump"],
+                timeout=10,
+                check=True,
+                stdout=subprocess.DEVNULL,
+            )
             # Compilation complete!
             self.compilation_ok = 1
         except (
@@ -273,9 +317,10 @@ class Runner:
             logger.error(err)
             # Exit run
             self.compilation_ok = 0
+            return compilation_data
         # Parse dump
-        dump_data: DumpData = self.parser.parse_dump(Runner.BIN_DIR + Runner.DUMP_FILE)
-        compilation_data: CompilationData = {
+        dump_data = self.parser.parse_dump(Runner.BIN_DIR + Runner.DUMP_FILE)
+        compilation_data = {
             "compilation_ok": self.compilation_ok,
             "dump_data": dump_data,
         }
@@ -284,6 +329,24 @@ class Runner:
     def execute_binary(
         self, start_address: int, ret_address: int, rocket_input_data: RocketInputData
     ) -> ExecutionData:
+        # Error structures
+        emulation_data: EmulationData = {
+            "emulation_ok": 0,
+            "verilator_seed": 0,
+            "start_cycle": 0,
+            "end_cycle": 0,
+            "nb_cycles": 0,
+            "tracing_data": {
+                "tracing_ok": 0,
+                "instrs_nb": 0,
+                "instrs_type": default_instr_type_data(),
+                "instrs_class": default_instr_class_data(),
+            },
+        }
+        execution_data: ExecutionData = {
+            "execution_ok": 0,
+            "emulation_data": emulation_data,
+        }
         # Execute on top of rocket
         rocket_config = rocket_input_data["rocket_config"]
         rocket_max_cycles = rocket_input_data["rocket_max_cycles"]
@@ -295,28 +358,30 @@ class Runner:
                     f"ROCKET_CYCLES={rocket_max_cycles}",
                     f"ROCKET_CONFIG={rocket_config}",
                 ],
-                timeout=300,
+                timeout=500,
                 check=True,
+                stdout=subprocess.DEVNULL,
             )
             # Execution complete!
             self.execution_ok = 1
         except (
             FileNotFoundError,
             subprocess.CalledProcessError,
+            subprocess.TimeoutExpired,
         ) as err:
             logger.error(err)
             self.execution_ok = 0
-        except subprocess.TimeoutExpired as war:
-            logger.warning(war)
-            self.execution_ok = 1
+            # Exit run
+            return execution_data
+
         # Parse execution logs
-        emulation_data: EmulationData = self.parser.parse_rocket_log(
+        emulation_data = self.parser.parse_rocket_log(
             log_file=Runner.BIN_DIR + Runner.ROCKET_FILE,
             start_address=start_address,
             ret_address=ret_address,
             instructions_info=self.instructions_info,
         )
-        execution_data: ExecutionData = {
+        execution_data = {
             "execution_ok": self.execution_ok,
             "emulation_data": emulation_data,
         }

@@ -18,6 +18,7 @@ Why does this file exist, and why not put this in __main__?
 
 import argparse
 import datetime
+import logging
 import os
 import sys
 from typing import List, Optional
@@ -36,12 +37,15 @@ from benchmarks.exceptions import IncorrectSeedsNumberException
 from benchmarks.runner import Runner
 from gigue.helpers import bytes_to_int
 
+logger = logging.getLogger("benchmarks")
+logger.setLevel(logging.INFO)
+
 nb_methods = {
     "low": {
-        "jit_nb_methods": 5,
+        "jit_nb_methods": 50,
     },
     "medium": {
-        "jit_nb_methods": 50,
+        "jit_nb_methods": 100,
     },
     "high": {
         "jit_nb_methods": 500,
@@ -174,11 +178,13 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # Check if the config subcommand is activated
     if args.command == "config":
+        logger.info("Loading config...")
         config_file: str = args.config
         config_data = runner.load_config(config_file=config_file)
         config_name = config_file.split("/")[-1].split(".")[0]
 
     elif args.command == "param":
+        logger.info("Loading config...")
         # 1. Load the base config file
         base_config_file: str = f"{Runner.CONFIG_DIR}base_config.json"
         config_data = runner.load_config(config_file=base_config_file)
@@ -235,22 +241,36 @@ def main(argv: Optional[List[str]] = None) -> int:
     # 5. Launch the runs
     full_data: FullData = {"config_data": config_data, "run_data": []}
     for run_number in range(nb_runs):
+        logger.info(f"Run {run_number + 1} out of {nb_runs}")
         # 5.1 Generate binary
         seed: int = run_seeds[run_number]
         generation_data: GenerationData
         jit_elements_data: JITElementsData
+        logger.info("Generating binary...")
         generation_data, jit_elements_data = runner.generate_binary(
             seed, config_data["input_data"]
         )
+        if not runner.generation_ok:
+            logger.warning("Generation failed, skipping to next run...")
+            continue
         # 5.2 Compile binary
+        logger.info("Compiling binary...")
         compilation_data: CompilationData = runner.compile_binary()
+        if not runner.compilation_ok:
+            logger.warning("Compilation failed, skipping to next run...")
+            continue
         # 5.3 Execute binary
+        logger.info("Executing binary...")
         execution_data: ExecutionData = runner.execute_binary(
             start_address=compilation_data["dump_data"]["start_address"],
             ret_address=compilation_data["dump_data"]["ret_address"],
             rocket_input_data=config_data["input_data"]["rocket_input_data"],
         )
+        if not runner.execution_ok:
+            logger.warning("Execution failed, skipping to next run...")
+            continue
         # 5.4 Consolidate logs
+        logger.info("Consolidating logs and agglomerating data...")
         consolidation_data: ConsolidationData = runner.consolidate_logs(
             base_dir_name=base_dir_name,
             config_name=config_name,
@@ -267,7 +287,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             "consolidation_data": consolidation_data,
         }
         full_data["run_data"].append(run_data)
-
-    # 6. Store data
-    runner.store_gigue_data(gigue_data=full_data, data_file=f"{base_dir_name}data.json")
+        # 6. Store data
+        runner.store_gigue_data(
+            gigue_data=full_data, data_file=f"{base_dir_name}data.json"
+        )
     return 0
