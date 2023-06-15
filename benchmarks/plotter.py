@@ -67,18 +67,18 @@ class Plotter:
     # Mem accesses presence (aka how filled are the methods with memory accesses)
     # \______________________________________________________________________________
 
-    def extract_mem_density(self, run_data: RunData):
+    def extract_mem_access(self, run_data: RunData):
         tracing_data: TracingData = run_data["execution_data"]["emulation_data"][
             "tracing_data"
         ]
         instrs_nb: int = tracing_data["instrs_nb"]
         mem_instrs_nb: int = tracing_data["instrs_class"]["memory"]
-        mem_density: float = mem_instrs_nb / instrs_nb * 100
-        return mem_density
+        mem_access: float = mem_instrs_nb / instrs_nb * 100
+        return mem_access
 
-    def extract_mem_densities(self, full_data: FullData):
+    def extract_mem_accesses(self, full_data: FullData):
         return self.extract_from_full_data(
-            full_data=full_data, extraction_method=self.extract_mem_density
+            full_data=full_data, extraction_method=self.extract_mem_access
         )
 
     # Extract Cycles
@@ -96,7 +96,7 @@ class Plotter:
     # Extract Cycles per instruction
     # \__________________________________
 
-    def extract_cycle_per_instruction(self, run_data: RunData, *args, **kwargs):
+    def extract_cycle_per_instruction(self, run_data: RunData):
         emulation_data: EmulationData = run_data["execution_data"]["emulation_data"]
         instrs_nb: int = emulation_data["tracing_data"]["instrs_nb"]
         cycles_nb: int = emulation_data["nb_cycles"]
@@ -121,7 +121,9 @@ class Plotter:
                 with open(f"{call_apps_path}/{call_app_path}/data.json", "r") as data:
                     full_data: FullData = json.load(data)
                     # Extract method nb
-                    nb_methods: List[int] = self.extract_nb_methods(full_data)
+                    nb_methods: List[int] = self.extract_run_nb_methods(
+                        full_data["run_data"][0]
+                    )
                     # Extract call density
                     call_occupations: List[float] = self.extract_call_occupations(
                         full_data
@@ -130,8 +132,14 @@ class Plotter:
                     nb_cycles: List[int] = self.extract_cycles(full_data)
                     # Extract CPI
                     cpis: List[float] = self.extract_cpis(full_data)
+                    # Extract qualifiers
+                    splitted = str(call_app_path).split("_")
+                    nb_methods_qualif = splitted[0]
+                    call_occupations_qualif = splitted[3]
                     call_application_class_data: CallApplicationClassData = {
                         "name": str(call_app_path),
+                        "nb_methods_qualif": nb_methods_qualif,
+                        "call_occupations_qualif": call_occupations_qualif,
                         "isolation": isolation_type,
                         "nb_methods": nb_methods,
                         "call_occupations": call_occupations,
@@ -163,16 +171,22 @@ class Plotter:
                     # Extract method nb
                     nb_methods: List[int] = self.extract_nb_methods(full_data)
                     # Extract mem density
-                    mem_densities: List[float] = self.extract_mem_densities(full_data)
+                    mem_accesses: List[float] = self.extract_mem_accesses(full_data)
                     # Extract cycle nb
                     nb_cycles: List[int] = self.extract_cycles(full_data)
                     # Extract CPI
                     cpis: List[float] = self.extract_cpis(full_data)
+                    # Extract qualifiers
+                    splitted = str(mem_app_path).split("_")
+                    nb_methods_qualif = splitted[0]
+                    mem_accesses_qualif = splitted[3]
                     mem_application_class_data: MemoryApplicationClassData = {
                         "name": str(mem_app_path),
+                        "nb_methods_qualif": nb_methods_qualif,
+                        "mem_accesses_qualif": mem_accesses_qualif,
                         "isolation": isolation_type,
                         "nb_methods": nb_methods,
-                        "mem_densities": mem_densities,
+                        "mem_accesses": mem_accesses,
                         "nb_cycles": nb_cycles,
                         "cpis": cpis,
                     }
@@ -192,13 +206,23 @@ class Plotter:
     def plot_call_application_classes(
         self, ax, application_classes_data: List[CallApplicationClassData]
     ):
+        plot_colors = {
+            "low": 0.2,
+            "medium": 0.5,
+            "high": 0.9,
+        }
         for app_data in application_classes_data:
-            ax.scatter(app_data["method_densities"], app_data["call_densities"])
+            ax.scatter(
+                [app_data["nb_methods"]] * len(app_data["call_occupations"]),
+                app_data["call_occupations"],
+                color="blue",
+                alpha=plot_colors[app_data["call_occupations_qualif"]],
+            )
 
         # ax.legend([app_data["name"] for app_data in application_classes_data])
-        ax.set_xlabel("Method density")
-        ax.set_ylabel("Call density")
-        ax.set_title("Application classes with varying method size and call density")
+        ax.set_xlabel("Method number")
+        ax.set_ylabel("Call occupation (%)")
+        ax.set_title("Call occupation application classes")
 
     # Plot Memory Application Classes
     # \__________________________________
@@ -206,87 +230,154 @@ class Plotter:
     def plot_mem_application_classes(
         self, ax: Axes, application_classes_data: List[MemoryApplicationClassData]
     ):
+        plot_colors = {
+            "low": (0.2),
+            "medium": (0.5),
+            "high": (0.9),
+        }
         for app_data in application_classes_data:
-            ax.scatter(app_data["method_densities"], app_data["mem_densities"])
+            ax.scatter(
+                app_data["nb_methods"],
+                app_data["mem_accesses"],
+                color="green",
+                alpha=plot_colors[app_data["mem_accesses_qualif"]],
+            )
 
         # ax.legend([app_data["name"] for app_data in application_classes_data])
-        ax.set_xlabel("Method density")
-        ax.set_ylabel("Memory instruction density")
-        ax.set_title(
-            "Application classes with varying method size and memory instruction"
-            " density"
-        )
+        ax.set_xlabel("Method number")
+        ax.set_ylabel("Memory accesses (%)")
+        ax.set_title("Memory accesses application classes")
 
     # Plot Call Cycles
     # \___________________
 
     def plot_call_nb_cycles(
-        self, ax, application_classes_data: List[CallApplicationClassData]
+        self,
+        ax,
+        application_classes_data: List[CallApplicationClassData],
+        nb_methods: str,
     ):
+        call_occupations = {"low": 0, "medium": 0, "high": 0}
         for app_data in application_classes_data:
-            ax.bar(mean(app_data["call_densities"]), mean(app_data["nb_cycles"]))
+            if nb_methods == app_data["nb_methods_qualif"]:
+                call_occupations[app_data["call_occupations_qualif"]] = mean(
+                    app_data["nb_cycles"]
+                )
 
-        ax.legend([app_data["name"] for app_data in application_classes_data])
-        ax.set_xlabel("Number of cycles")
-        ax.set_ylabel("Call density")
-        ax.set_title("Number of cycles with varying call density")
+        ax.bar(
+            call_occupations.keys(), call_occupations.values(), color="blue", alpha=0.5
+        )
+
+        # ax.legend([app_data["name"] for app_data in application_classes_data])
+        ax.set_xlabel("Call occupation")
+        ax.set_ylabel("Number of cycles")
+        # ax.set_title("Number of cycles with varying call occupation")
 
     # Plot Memory Cycles
     # \___________________
 
     def plot_mem_nb_cycles(
-        self, ax, application_classes_data: List[MemoryApplicationClassData]
+        self,
+        ax,
+        application_classes_data: List[MemoryApplicationClassData],
+        nb_methods: str,
     ):
+        mem_accesses = {"low": 0, "medium": 0, "high": 0}
         for app_data in application_classes_data:
-            ax.bar(mean(app_data["mem_densities"]), mean(app_data["nb_cycles"]))
+            if nb_methods == app_data["nb_methods_qualif"]:
+                mem_accesses[app_data["mem_accesses_qualif"]] = mean(
+                    app_data["nb_cycles"]
+                )
 
+        ax.bar(mem_accesses.keys(), mem_accesses.values(), color="green", alpha=0.5)
         # ax.legend([app_data["name"] for app_data in application_classes_data])
-        ax.set_xlabel("Number of cycles")
-        ax.set_ylabel("Memory instruction density")
-        ax.set_title("Number of cycles with varying memory instruction density")
+        ax.set_xlabel("Memory instruction density")
+        ax.set_ylabel("Number of cycles")
+        # ax.set_title("Number of cycles with varying memory instruction density")
 
     # Plot Call CPIs
     # \___________________
 
     def plot_call_cpis(
-        self, ax, application_classes_data: List[CallApplicationClassData]
+        self,
+        ax,
+        application_classes_data: List[CallApplicationClassData],
+        nb_methods: str,
     ):
+        call_occupations = {"low": 0, "medium": 0, "high": 0}
         for app_data in application_classes_data:
-            ax.bar(mean(app_data["call_densities"]), mean(app_data["cpis"]))
+            if nb_methods == app_data["nb_methods_qualif"]:
+                call_occupations[app_data["call_occupations_qualif"]] = mean(
+                    app_data["cpis"]
+                )
 
+        ax.bar(
+            call_occupations.keys(), call_occupations.values(), color="red", alpha=0.5
+        )
         # ax.legend([app_data["name"] for app_data in application_classes_data])
-        ax.set_xlabel("CPI")
-        ax.set_ylabel("Call density")
-        ax.set_title("CPIs with varying call density")
+        ax.set_xlabel("Call Occupation")
+        ax.set_ylabel("CPI")
+        # ax.set_title("CPIs with varying call density")
 
     # Plot Memory Cycles
     # \___________________
 
     def plot_mem_cpis(
-        self, ax, application_classes_data: List[MemoryApplicationClassData]
+        self,
+        ax,
+        application_classes_data: List[MemoryApplicationClassData],
+        nb_methods: str,
     ):
+        mem_accesses = {"low": 0, "medium": 0, "high": 0}
         for app_data in application_classes_data:
-            ax.bar(mean(app_data["mem_densities"]), mean(app_data["cpis"]))
+            if nb_methods == app_data["nb_methods_qualif"]:
+                mem_accesses[app_data["mem_accesses_qualif"]] = mean(app_data["cpis"])
 
-        ax.legend([app_data["name"] for app_data in application_classes_data])
-        ax.set_xlabel("CPI")
-        ax.set_ylabel("Memory instruction density")
-        ax.set_title("CPIs with varying memory instruction density")
+        ax.bar(mem_accesses.keys(), mem_accesses.values(), color="red", alpha=0.5)
+        # ax.legend([app_data["name"] for app_data in application_classes_data])
+        ax.set_xlabel("Memory accesses")
+        ax.set_ylabel("CPI")
+        # ax.set_title("CPIs with varying memory instruction density")
 
 
 if __name__ == "__main__":
-    _, axs = plt.subplots(3, 2)
+    fig_app, axs_app = plt.subplots(1, 2)
     plotter = Plotter()
-    call_application_classes: List[CallApplicationClassData] = (
-        plotter.process_call_application_classes(["no_isolation"])
-    )
-    mem_application_classes: List[MemoryApplicationClassData] = (
-        plotter.process_mem_application_classes(["no_isolation"])
-    )
-    plotter.plot_call_application_classes(axs[0, 0], call_application_classes)
-    plotter.plot_mem_application_classes(axs[0, 1], mem_application_classes)
-    plotter.plot_call_nb_cycles(axs[1, 0], call_application_classes)
-    plotter.plot_mem_nb_cycles(axs[1, 1], mem_application_classes)
-    plotter.plot_call_cpis(axs[2, 0], call_application_classes)
-    plotter.plot_mem_cpis(axs[2, 1], mem_application_classes)
+    call_application_classes: List[
+        CallApplicationClassData
+    ] = plotter.process_call_application_classes(["no_isolation"], True)
+    mem_application_classes: List[
+        MemoryApplicationClassData
+    ] = plotter.process_mem_application_classes(["no_isolation"], True)
+    plotter.plot_call_application_classes(axs_app[0], call_application_classes)
+    plotter.plot_mem_application_classes(axs_app[1], mem_application_classes)
+    plt.show()
+
+    fig_calls, axs_calls = plt.subplots(2, 3)
+    plotter.plot_call_nb_cycles(axs_calls[0, 0], call_application_classes, "low")
+    plotter.plot_call_nb_cycles(axs_calls[0, 1], call_application_classes, "medium")
+    plotter.plot_call_nb_cycles(axs_calls[0, 2], call_application_classes, "high")
+
+    plotter.plot_call_cpis(axs_calls[1, 0], call_application_classes, "low")
+    plotter.plot_call_cpis(axs_calls[1, 1], call_application_classes, "medium")
+    plotter.plot_call_cpis(axs_calls[1, 2], call_application_classes, "high")
+
+    fig_calls.tight_layout()
+    for ax, col in zip(axs_calls[0], ["50 methods", "100 methods", "500 methods"]):
+        ax.set_title(col)
+    plt.xticks(["low", "medium", "high"])
+    plt.show()
+
+    fig_mem, axs_mem = plt.subplots(2, 3)
+    plotter.plot_mem_nb_cycles(axs_mem[0, 0], mem_application_classes, "low")
+    plotter.plot_mem_nb_cycles(axs_mem[0, 1], mem_application_classes, "medium")
+    plotter.plot_mem_nb_cycles(axs_mem[0, 2], mem_application_classes, "high")
+
+    plotter.plot_mem_cpis(axs_mem[1, 0], mem_application_classes, "low")
+    plotter.plot_mem_cpis(axs_mem[1, 1], mem_application_classes, "medium")
+    plotter.plot_mem_cpis(axs_mem[1, 2], mem_application_classes, "high")
+    fig_mem.tight_layout()
+    for ax, col in zip(axs_calls[0], ["50 methods", "100 methods", "500 methods"]):
+        ax.set_title(col)
+    plt.xticks(["low", "medium", "high"])
     plt.show()

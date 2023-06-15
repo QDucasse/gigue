@@ -16,6 +16,8 @@ def window(arr: List[Any], k: int) -> Generator:
 
 
 def mean(list: Union[List[int], List[float]]):
+    if not list:
+        return 0
     return sum(list) / len(list)
 
 
