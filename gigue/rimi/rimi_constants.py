@@ -3,6 +3,7 @@ from typing import Dict
 from gigue.constants import OPCODE_FUNC3_MASK, InstructionInfo
 
 RIMI_SSP_REG: int = 28  # t3
+SHADOW_STACK_SIZE: int = 100 * 8
 
 RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     # Rules to choose opcodes:
@@ -121,7 +122,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     # Shadow stack instructions
     "ss": InstructionInfo(
         name="ss",
-        opcode=0b0111101,
+        opcode=0b0001111,
         funct3=0b011,
         instr_type="S",
         instr_class="memory",
@@ -129,7 +130,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "ls": InstructionInfo(
         name="ls",
-        opcode=0b1111111,
+        opcode=0b0111011,
         funct3=0b011,
         instr_type="I",
         instr_class="memory",
