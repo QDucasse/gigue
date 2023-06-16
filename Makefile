@@ -81,11 +81,13 @@ BINS=$(wildcard $(bin_dir)/*.bin)
 TEMPS=$(wildcard $(bin_dir)/*.temp)
 ELFS=$(wildcard $(bin_dir)/*.elf)
 ROCKET_LOGS=$(wildcard $(bin_dir)/*.rocket)
+UNIT_DUMPS=$(wildcard $(bin_dir)/unit/*.dump)
+UNIT_ELFS=$(wildcard $(bin_dir)/unit/*.elf)
 
 .PHONY: clean
 
 clean:
-	rm -rf $(ELFS) $(OBJS) $(DUMPS) $(TEMPS) $(ROCKET_LOGS)
+	rm -rf $(ELFS) $(OBJS) $(DUMPS) $(TEMPS) $(ROCKET_LOGS) 
 
 cleanall: clean
-	rm -rf $(BINS)
+	rm -rf $(BINS) $(UNIT_DUMPS) $(UNIT_ELFS)
