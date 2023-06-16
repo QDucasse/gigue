@@ -189,7 +189,7 @@ class InstructionBuilder:
         try:
             # Choose immediate with correct alignment
             alignment: int = InstructionBuilder.define_memory_access_alignment(name)
-            imm: int = align(random.randint(0, min(data_size, 0x7FF)), alignment)
+            imm: int = align(random.randint(0, min(data_size - 8, 0x7FF)), alignment)
         except InstructionAlignmentNotDefined as err:
             logger.error(err)
             raise
@@ -423,6 +423,28 @@ class InstructionBuilder:
 
     # Specific structures
     # \__________________
+
+    @staticmethod
+    def build_loop(
+        loop_nb: int,
+        loop_reg: int,
+        loop_body: List[Instruction],
+    ) -> List[Instruction]:
+        # Loop:
+        #   1 - Load the loop_nb in the loop reg
+        #   1 - Sub 1 from the loop reg
+        #   2 - Add the loop body (should not touch the loop reg)
+        #   3 - Branch back to the beginning if not reached
+        instructions: List[Instruction] = [
+            IInstruction.addi(rd=loop_reg, rs1=X0, imm=loop_nb),
+            IInstruction.addi(rd=loop_reg, rs1=loop_reg, imm=-1),
+        ]
+        instructions += loop_body
+        # TODO: Add check if it fits in the branch
+        offset = -(len(instructions) - 2) * 4
+        instructions.append(BInstruction.bne(rs1=X0, rs2=loop_reg, imm=offset))
+
+        return instructions
 
     @staticmethod
     def build_switch_case(

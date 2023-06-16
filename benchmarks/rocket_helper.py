@@ -50,7 +50,7 @@ if __name__ == "__main__":
         "sd1": [RIMISInstruction.sd1(rs1=31, rs2=10, imm=0)],
         "ss": [
             RIMISInstruction.ss(rs1=28, rs2=1, imm=0),
-            RIMIIInstruction.ls(rd=1, rs1=28, imm=0)
+            RIMIIInstruction.ls(rd=1, rs1=28, imm=0),
         ],
         "chdom": [
             UInstruction.auipc(6, 0),

@@ -65,7 +65,7 @@ class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
             weights=weights,
             output_bin_file=output_bin_file,
             output_data_bin_file=output_data_bin_file,
-            output_ss_bin_file=output_ss_bin_file
+            output_ss_bin_file=output_ss_bin_file,
         )
         self.builder: RIMIShadowStackInstructionBuilder = (
             RIMIShadowStackInstructionBuilder()
@@ -78,9 +78,7 @@ class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
         self.shadow_stack_size = shadow_stack_size
 
     def generate_shadowstack_binary(self) -> bytes:
-        self.ss_bin = self.miner.generate_data(
-            "zeroes", self.shadow_stack_size
-        )
+        self.ss_bin = self.miner.generate_data("zeroes", self.shadow_stack_size)
         return self.ss_bin
 
 
@@ -134,6 +132,6 @@ class RIMIFullTrampolineGenerator(RIMIShadowStackTrampolineGenerator):
             weights=weights,
             output_bin_file=output_bin_file,
             output_data_bin_file=output_data_bin_file,
-            output_ss_bin_file=output_ss_bin_file
+            output_ss_bin_file=output_ss_bin_file,
         )
         self.builder: RIMIFullInstructionBuilder = RIMIFullInstructionBuilder()

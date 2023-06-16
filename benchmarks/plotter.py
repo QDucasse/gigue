@@ -231,9 +231,9 @@ class Plotter:
         self, ax: Axes, application_classes_data: List[MemoryApplicationClassData]
     ):
         plot_colors = {
-            "low": (0.2),
-            "medium": (0.5),
-            "high": (0.9),
+            "low": 0.2,
+            "medium": 0.5,
+            "high": 0.9,
         }
         for app_data in application_classes_data:
             ax.scatter(
@@ -343,12 +343,12 @@ class Plotter:
 if __name__ == "__main__":
     fig_app, axs_app = plt.subplots(1, 2)
     plotter = Plotter()
-    call_application_classes: List[
-        CallApplicationClassData
-    ] = plotter.process_call_application_classes(["no_isolation"], True)
-    mem_application_classes: List[
-        MemoryApplicationClassData
-    ] = plotter.process_mem_application_classes(["no_isolation"], True)
+    call_application_classes: List[CallApplicationClassData] = (
+        plotter.process_call_application_classes(["no_isolation"], True)
+    )
+    mem_application_classes: List[MemoryApplicationClassData] = (
+        plotter.process_mem_application_classes(["no_isolation"], True)
+    )
     plotter.plot_call_application_classes(axs_app[0], call_application_classes)
     plotter.plot_mem_application_classes(axs_app[1], mem_application_classes)
     plt.show()

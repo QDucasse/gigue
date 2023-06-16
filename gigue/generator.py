@@ -502,9 +502,7 @@ class Generator:
             file.write(self.data_bin)
 
     def generate_shadowstack_binary(self) -> bytes:
-        self.ss_bin = self.miner.generate_data(
-            "zeroes", 8
-        )
+        self.ss_bin = self.miner.generate_data("zeroes", 8)
         return self.ss_bin
 
     def write_shadowstack_binary(self):
@@ -583,7 +581,7 @@ class TrampolineGenerator(Generator):
             weights=weights,
             output_bin_file=output_bin_file,
             output_data_bin_file=output_data_bin_file,
-            output_ss_bin_file=output_ss_bin_file
+            output_ss_bin_file=output_ss_bin_file,
         )
         # /!\ The call size is larger when using trampolines
         self.call_size: int = 6
