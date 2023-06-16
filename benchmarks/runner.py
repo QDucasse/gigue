@@ -164,11 +164,11 @@ class Runner:
         elif input_data["isolation_solution"] == "rimiss":
             assert input_data["uses_trampolines"]
             gen_class = RIMIShadowStackTrampolineGenerator
-            self.instructions_info = RIMI_INSTRUCTIONS_INFO
+            self.instructions_info = (RIMI_INSTRUCTIONS_INFO | INSTRUCTIONS_INFO)
         elif input_data["isolation_solution"] == "rimifull":
             assert input_data["uses_trampolines"]
             gen_class = RIMIFullTrampolineGenerator
-            self.instructions_info = RIMI_INSTRUCTIONS_INFO
+            self.instructions_info = (RIMI_INSTRUCTIONS_INFO | INSTRUCTIONS_INFO)
         elif input_data["isolation_solution"] == "fixer":
             assert input_data["uses_trampolines"]
             gen_class = FIXERTrampolineGenerator

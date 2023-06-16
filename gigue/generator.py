@@ -73,6 +73,7 @@ class Generator:
         # File naming
         output_bin_file: str = BIN_DIR + "out.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
+        output_ss_bin_file: str = BIN_DIR + "ss.bin",
     ):
         # Registers
         self.registers: List[int] = registers
@@ -146,6 +147,10 @@ class Generator:
         self.data_bin: bytes = b""
         self.data_generation_strategy: str = data_generation_strategy
         self.data_bin_file: str = output_data_bin_file
+
+        # Shadow stack (for subclasses)
+        self.ss_bin = b""
+        self.ss_bin_file: str = output_ss_bin_file
 
         logger.debug("👨‍🌾 Generator Instanciated:")
         logger.debug(
@@ -496,6 +501,16 @@ class Generator:
         with open(self.data_bin_file, "wb") as file:
             file.write(self.data_bin)
 
+    def generate_shadowstack_binary(self) -> bytes:
+        self.ss_bin = self.miner.generate_data(
+            "zeroes", 8
+        )
+        return self.ss_bin
+
+    def write_shadowstack_binary(self):
+        with open(self.ss_bin_file, "wb") as file:
+            file.write(self.ss_bin)
+
     #  Wrap-up
     # \_______
 
@@ -516,6 +531,8 @@ class Generator:
         # Write binaries
         self.write_binary()
         self.write_data_binary()
+        self.generate_shadowstack_binary()
+        self.write_shadowstack_binary()
 
 
 class TrampolineGenerator(Generator):
@@ -541,6 +558,7 @@ class TrampolineGenerator(Generator):
         weights: List[int] = INSTRUCTION_WEIGHTS,
         output_bin_file: str = BIN_DIR + "out.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
+        output_ss_bin_file: str = BIN_DIR + "ss.bin",
     ):
         self.trampolines: List[Trampoline] = []
         self.trampoline_instructions: List[Instruction] = []
@@ -565,6 +583,7 @@ class TrampolineGenerator(Generator):
             weights=weights,
             output_bin_file=output_bin_file,
             output_data_bin_file=output_data_bin_file,
+            output_ss_bin_file=output_ss_bin_file
         )
         # /!\ The call size is larger when using trampolines
         self.call_size: int = 6

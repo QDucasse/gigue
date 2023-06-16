@@ -10,6 +10,10 @@ def raise_no_strategy_error(generation_strategy):
 
 class Dataminer:
     @staticmethod
+    def mine_zeroes(*args, **kwargs) -> bytes:
+        return int_to_bytes64(0)
+
+    @staticmethod
     def mine_random(*args, **kwargs) -> bytes:
         return random.randbytes(8)
 

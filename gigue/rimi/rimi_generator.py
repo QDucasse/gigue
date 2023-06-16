@@ -14,7 +14,7 @@ from gigue.rimi.rimi_builder import (
     RIMIFullInstructionBuilder,
     RIMIShadowStackInstructionBuilder,
 )
-from gigue.rimi.rimi_constants import RIMI_SSP_REG
+from gigue.rimi.rimi_constants import RIMI_SSP_REG, SHADOW_STACK_SIZE
 
 
 class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
@@ -33,6 +33,7 @@ class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
         pics_mean_case_nb: int,
         data_size: int = DATA_SIZE,
         data_generation_strategy: str = "random",
+        shadow_stack_size: int = SHADOW_STACK_SIZE,
         pics_cmp_reg: int = CMP_REG,
         pics_hit_case_reg: int = HIT_CASE_REG,
         registers: List[int] = CALLER_SAVED_REG,
@@ -41,6 +42,7 @@ class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
         weights: List[int] = INSTRUCTION_WEIGHTS,
         output_bin_file: str = BIN_DIR + "out.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
+        output_ss_bin_file: str = BIN_DIR + "ss.bin",
     ):
         super().__init__(
             interpreter_start_address=interpreter_start_address,
@@ -63,6 +65,7 @@ class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
             weights=weights,
             output_bin_file=output_bin_file,
             output_data_bin_file=output_data_bin_file,
+            output_ss_bin_file=output_ss_bin_file
         )
         self.builder: RIMIShadowStackInstructionBuilder = (
             RIMIShadowStackInstructionBuilder()
@@ -72,8 +75,16 @@ class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
             reg for reg in self.registers if reg != self.rimi_ssp_reg
         ]
 
+        self.shadow_stack_size = shadow_stack_size
 
-class RIMIFullTrampolineGenerator(TrampolineGenerator):
+    def generate_shadowstack_binary(self) -> bytes:
+        self.ss_bin = self.miner.generate_data(
+            "zeroes", self.shadow_stack_size
+        )
+        return self.ss_bin
+
+
+class RIMIFullTrampolineGenerator(RIMIShadowStackTrampolineGenerator):
     def __init__(
         self,
         interpreter_start_address: int,
@@ -89,6 +100,7 @@ class RIMIFullTrampolineGenerator(TrampolineGenerator):
         pics_mean_case_nb: int,
         data_size: int = DATA_SIZE,
         data_generation_strategy: str = "random",
+        shadow_stack_size: int = SHADOW_STACK_SIZE,
         pics_cmp_reg: int = CMP_REG,
         pics_hit_case_reg: int = HIT_CASE_REG,
         registers: List[int] = CALLER_SAVED_REG,
@@ -97,6 +109,7 @@ class RIMIFullTrampolineGenerator(TrampolineGenerator):
         weights: List[int] = INSTRUCTION_WEIGHTS,
         output_bin_file: str = BIN_DIR + "out.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
+        output_ss_bin_file: str = BIN_DIR + "ss.bin",
     ):
         super().__init__(
             interpreter_start_address=interpreter_start_address,
@@ -112,16 +125,15 @@ class RIMIFullTrampolineGenerator(TrampolineGenerator):
             pics_mean_case_nb=pics_mean_case_nb,
             data_size=data_size,
             data_generation_strategy=data_generation_strategy,
+            shadow_stack_size=shadow_stack_size,
             pics_cmp_reg=pics_cmp_reg,
             pics_hit_case_reg=pics_hit_case_reg,
             registers=registers,
             data_reg=data_reg,
+            rimi_ssp_reg=rimi_ssp_reg,
             weights=weights,
             output_bin_file=output_bin_file,
             output_data_bin_file=output_data_bin_file,
+            output_ss_bin_file=output_ss_bin_file
         )
         self.builder: RIMIFullInstructionBuilder = RIMIFullInstructionBuilder()
-        self.rimi_ssp_reg: int = rimi_ssp_reg
-        self.registers: List[int] = [
-            reg for reg in self.registers if reg != self.rimi_ssp_reg
-        ]

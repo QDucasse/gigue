@@ -14,6 +14,7 @@ gigue_size:
     .global main
 main:
     la t6, tab             # Load the data address in t6
+    la t3, ss_end          # Load the shadow stack address in t3 (grows downwards)
     call gigue_start       # Call the generated binary
     li a0, 0               # Pass 0 to the exit function
     call exit              # 
@@ -24,3 +25,8 @@ main:
 .section .data
 tab: 
     .incbin "bin/data.bin"
+
+ss_start:
+    .incbin "bin/ss.bin"
+
+ss_end:
