@@ -34,6 +34,19 @@ class Instruction:
                 rocket_bin += instr[bit]
         return rocket_bin
 
+    def riscv_opcodes_encode(self):
+        return f"Undefined for this instruction type ({self.__class__.__name__})"
+
+    def riscv_opcodes_match_mask(self, instr_dict=INSTRUCTIONS_INFO):
+        cmp_mask = instr_dict[self.name].cmp_mask
+        mask = f"#define MASK_{self.name.upper()}  {hex(cmp_mask)}"
+        match = f"#define MATCH_{self.name.upper()} {hex(self.generate() & cmp_mask)}"
+        return f"{mask}\n{match}"
+
+    def riscv_opcodes_declare_insn(self):
+        upper_name = self.name.upper()
+        return f"DECLARE_INSN({self.name}, MATCH_{upper_name}, MASK_{upper_name})"
+
     def generate(self) -> int:
         raise NotImplementedError("Please Implement this method")
 
@@ -58,6 +71,13 @@ class RInstruction(Instruction):
 
     def __str__(self) -> str:
         return f"<{self.name}, {self.rd} {self.rs1} {self.rs2}>"
+
+    def riscv_opcodes_encode(self):
+        return (
+            f"{self.name:<8}rd rs1 rs2 31..25={self.funct7}"
+            f" 14..12={self.funct3} 6..2={hex((self.opcode & 0x7C) >> 2)}"
+            f" 1..0={self.opcode & 0x3}"
+        )
 
     def generate(self) -> int:
         self.machine_instruction = self.opcode
@@ -226,6 +246,13 @@ class IInstruction(Instruction):
         self.machine_instruction |= self.imm << 20
         self.machine_instruction |= self.funct7 << 25
         return self.machine_instruction
+
+    def riscv_opcodes_encode(self):
+        return (
+            f"{self.name:<8}rd rs1 imm12"
+            f" 14..12={self.funct3} 6..2={hex((self.opcode & 0x7C) >> 2)}"
+            f" 1..0={self.opcode & 0x3}"
+        )
 
     @classmethod
     def i_instr(cls, name: str, rd: int, rs1: int, imm: int) -> IInstruction:
@@ -425,6 +452,13 @@ class SInstruction(Instruction):
         self.rs1: int = format_to(rs1, 5)
         self.rs2: int = format_to(rs2, 5)
         self.imm: int = format_to(to_unsigned(imm, 12), 12)
+
+    def riscv_opcodes_encode(self):
+        return (
+            f"{self.name:<8}imm12hi rs1 rs2 imm12lo"
+            f" 14..12={self.funct3} 6..2={hex((self.opcode & 0x7C) >> 2)}"
+            f" 1..0={self.opcode & 0x3}"
+        )
 
     def shuffle_imm(self) -> List[int]:
         # imm1: imm[4:0]
