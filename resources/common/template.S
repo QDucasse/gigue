@@ -78,7 +78,7 @@ pmp_setup:
     csrw pmpaddr3, t0
 
     # Setup fifth PMP region: Main Stack
-    li t0, 0x80FFFFFF        # End of shadow stack!
+    li t0, 0x80800000        # End of shadow stack!
     srli t0, t0, 2           # Note: addr should be shifted by 2
     csrw pmpaddr4, t0
 
