@@ -180,13 +180,21 @@ class Parser(argparse.ArgumentParser):
         )
         # Output files
         self.add_argument(
-            "-O",
-            "--out",
+            "-oi",
+            "--outint",
             type=str,
-            default=BIN_DIR + "out.bin",
-            help="Name of the binary file",
+            default=BIN_DIR + "int.bin",
+            help="Name of the interpretation loop binary file",
         )
         self.add_argument(
+            "-oj",
+            "--outjit",
+            type=str,
+            default=BIN_DIR + "jit.bin",
+            help="Name of the jit binary file",
+        )
+        self.add_argument(
+            "-od",
             "--outdata",
             type=str,
             default=BIN_DIR + "data.bin",
@@ -254,7 +262,8 @@ def main(argv=None):
             pics_cmp_reg=args.piccmpreg,
             pics_hit_case_reg=args.pichitcasereg,
             # Files
-            output_bin_file=args.out,
+            output_int_bin_file=args.outint,
+            output_jit_bin_file=args.outjit,
             output_data_bin_file=args.outdata,
         )
     except GeneratorException as err:

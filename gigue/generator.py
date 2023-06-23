@@ -2,7 +2,7 @@ import logging
 import random
 from collections import defaultdict
 from math import ceil, trunc
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import (
@@ -71,7 +71,8 @@ class Generator:
         # Instruction weights
         weights: List[int] = INSTRUCTION_WEIGHTS,
         # File naming
-        output_bin_file: str = BIN_DIR + "out.bin",
+        output_int_bin_file: str = BIN_DIR + "int.bin",
+        output_jit_bin_file: str = BIN_DIR + "jit.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
         output_ss_bin_file: str = BIN_DIR + "ss.bin",
     ):
@@ -137,9 +138,8 @@ class Generator:
         self.interpreter_bytes: List[bytes] = []
         self.jit_bin: bytes = b""
         self.interpreter_bin: bytes = b""
-        self.fills_bin: bytes = b""
-        self.full_bin: bytes = b""
-        self.bin_file: str = output_bin_file
+        self.int_bin_file: str = output_int_bin_file
+        self.jit_bin_file: str = output_jit_bin_file
 
         # Data info
         self.data_size: int = data_size
@@ -473,16 +473,14 @@ class Generator:
         fills: List[bytes] = [
             self.builder.build_nop().generate_bytes() for i in range(fill_size)
         ]
-        self.fills_bin = b"".join(fills)
-        return self.fills_bin
+        return b"".join(fills)
 
-    def generate_output_binary(self) -> bytes:
+    def generate_output_binary(self) -> Tuple[bytes, bytes]:
         self.generate_interpreter_binary()
-        self.generate_fills_binary()
         self.generate_jit_binary()
 
-        self.full_bin = self.interpreter_bin + self.fills_bin + self.jit_bin
-        return self.full_bin
+        self.interpreter_bin += self.generate_fills_binary()
+        return self.interpreter_bin, self.jit_bin
 
     def generate_data_binary(self) -> bytes:
         self.data_bin = self.miner.generate_data(
@@ -493,9 +491,13 @@ class Generator:
     #  Binary Writing
     # \______________
 
-    def write_binary(self) -> None:
-        with open(self.bin_file, "wb") as file:
-            file.write(self.full_bin)
+    def write_int_binary(self) -> None:
+        with open(self.int_bin_file, "wb") as file:
+            file.write(self.interpreter_bin)
+
+    def write_jit_binary(self) -> None:
+        with open(self.jit_bin_file, "wb") as file:
+            file.write(self.jit_bin)
 
     def write_data_binary(self):
         with open(self.data_bin_file, "wb") as file:
@@ -527,7 +529,8 @@ class Generator:
         self.generate_output_binary()
         self.generate_data_binary()
         # Write binaries
-        self.write_binary()
+        self.write_int_binary()
+        self.write_jit_binary()
         self.write_data_binary()
         self.generate_shadowstack_binary()
         self.write_shadowstack_binary()
@@ -554,7 +557,8 @@ class TrampolineGenerator(Generator):
         registers: List[int] = CALLER_SAVED_REG,
         data_reg: int = DATA_REG,
         weights: List[int] = INSTRUCTION_WEIGHTS,
-        output_bin_file: str = BIN_DIR + "out.bin",
+        output_int_bin_file: str = BIN_DIR + "int.bin",
+        output_jit_bin_file: str = BIN_DIR + "jit.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
         output_ss_bin_file: str = BIN_DIR + "ss.bin",
     ):
@@ -579,7 +583,8 @@ class TrampolineGenerator(Generator):
             registers=registers,
             data_reg=data_reg,
             weights=weights,
-            output_bin_file=output_bin_file,
+            output_int_bin_file=output_int_bin_file,
+            output_jit_bin_file=output_jit_bin_file,
             output_data_bin_file=output_data_bin_file,
             output_ss_bin_file=output_ss_bin_file,
         )

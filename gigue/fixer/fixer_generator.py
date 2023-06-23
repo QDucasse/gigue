@@ -36,7 +36,8 @@ class FIXERTrampolineGenerator(TrampolineGenerator):
         data_reg: int = DATA_REG,
         fixer_cmp_reg: int = FIXER_CMP_REG,
         weights: List[int] = INSTRUCTION_WEIGHTS,
-        output_bin_file: str = BIN_DIR + "out.bin",
+        output_int_bin_file: str = BIN_DIR + "int.bin",
+        output_jit_bin_file: str = BIN_DIR + "jit.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
     ):
         super().__init__(
@@ -58,7 +59,8 @@ class FIXERTrampolineGenerator(TrampolineGenerator):
             registers=registers,
             data_reg=data_reg,
             weights=weights,
-            output_bin_file=output_bin_file,
+            output_int_bin_file=output_int_bin_file,
+            output_jit_bin_file=output_jit_bin_file,
             output_data_bin_file=output_data_bin_file,
         )
         self.builder: FIXERInstructionBuilder = FIXERInstructionBuilder()

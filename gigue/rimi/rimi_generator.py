@@ -40,7 +40,8 @@ class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
         data_reg: int = DATA_REG,
         rimi_ssp_reg: int = RIMI_SSP_REG,
         weights: List[int] = INSTRUCTION_WEIGHTS,
-        output_bin_file: str = BIN_DIR + "out.bin",
+        output_int_bin_file: str = BIN_DIR + "int.bin",
+        output_jit_bin_file: str = BIN_DIR + "jit.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
         output_ss_bin_file: str = BIN_DIR + "ss.bin",
     ):
@@ -63,7 +64,8 @@ class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
             registers=registers,
             data_reg=data_reg,
             weights=weights,
-            output_bin_file=output_bin_file,
+            output_int_bin_file=output_int_bin_file,
+            output_jit_bin_file=output_jit_bin_file,
             output_data_bin_file=output_data_bin_file,
             output_ss_bin_file=output_ss_bin_file,
         )
@@ -105,7 +107,8 @@ class RIMIFullTrampolineGenerator(RIMIShadowStackTrampolineGenerator):
         data_reg: int = DATA_REG,
         rimi_ssp_reg: int = RIMI_SSP_REG,
         weights: List[int] = INSTRUCTION_WEIGHTS,
-        output_bin_file: str = BIN_DIR + "out.bin",
+        output_int_bin_file: str = BIN_DIR + "int.bin",
+        output_jit_bin_file: str = BIN_DIR + "jit.bin",
         output_data_bin_file: str = BIN_DIR + "data.bin",
         output_ss_bin_file: str = BIN_DIR + "ss.bin",
     ):
@@ -130,7 +133,8 @@ class RIMIFullTrampolineGenerator(RIMIShadowStackTrampolineGenerator):
             data_reg=data_reg,
             rimi_ssp_reg=rimi_ssp_reg,
             weights=weights,
-            output_bin_file=output_bin_file,
+            output_int_bin_file=output_int_bin_file,
+            output_jit_bin_file=output_jit_bin_file,
             output_data_bin_file=output_data_bin_file,
             output_ss_bin_file=output_ss_bin_file,
         )

@@ -41,12 +41,12 @@ incs  += -I$(src_dir)
 
 default: dump
 
-dump: $(bin_dir)/out.dump $(bin_dir)/out.bin.dump
+dump: $(bin_dir)/out.dump
 
 exec: $(bin_dir)/out.rocket
 
 # Link all the object files!
-$(bin_dir)/out.elf: $(OBJS) $(bin_dir)/out.bin
+$(bin_dir)/out.elf: $(OBJS) $(bin_dir)/int.bin $(bin_dir)/jit.bin
 	$(RISCV_GCC) $(RISCV_LINK_OPTS) $(OBJS) -o $@
 
 # the objcopy way, the issue with this method is that the labels are auto generated!
@@ -54,20 +54,20 @@ $(bin_dir)/out.elf: $(OBJS) $(bin_dir)/out.bin
 # 	$(RISCV_PREFIX)objcopy -I binary -O elf64-littleriscv -B riscv --rename-section .data=.text $^ $@
 
 # Generate the object files
-bin/%.o: $(src_dir)/%.c $(bin_dir)/out.bin
+bin/%.o: $(src_dir)/%.c
 	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
 
-bin/%.o: $(src_dir)/%.S $(bin_dir)/out.bin
+bin/%.o: $(src_dir)/%.S
 	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
 
 # Dumps
 $(bin_dir)/out.dump: $(bin_dir)/out.elf
 	$(RISCV_OBJDUMP) $< > $@
 
-$(bin_dir)/out.bin.dump: $(bin_dir)/out.bin
-	$(RISCV_PREFIX)objcopy -I binary -O elf64-littleriscv -B riscv --rename-section .data=.text $^ $@.temp
-	$(RISCV_OBJDUMP) $@.temp > $@
-	rm $@.temp
+# $(bin_dir)/%.bin.dump: $(bin_dir)/%.bin
+# 	$(RISCV_PREFIX)objcopy -I binary -O elf64-littleriscv -B riscv --rename-section .data=.text $^ $@.temp
+# 	$(RISCV_OBJDUMP) $@.temp > $@
+# 	rm $@.temp
 
 # Rocket eecution
 $(bin_dir)/out.rocket: $(bin_dir)/out.elf
