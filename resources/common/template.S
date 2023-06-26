@@ -32,7 +32,7 @@
 # L (lock), X (execute), W (write), R (read) 
 # A matching mode (0b00-OFF, 0b01-TOR, 0b10-NA4, 0b11-NAPOT)
 
-# Config for this test:
+# PMP Config for this setup:
 # region0: locked TOR all rights   -> 0b10001111/0x8F  interpreter
 # region1: locked TOR all rights   -> 0b10011111/0x8F  jit code
 # region2: locked TOR RW           -> 0b10011011/0x8B  jit data 
@@ -41,9 +41,26 @@
 
 .equiv PMP_CONFIG, 0x0000008B8B8B8F8F
 
+# DMP Config for this setup
+# region0: domain 0  -> 0b00  - interpreter
+# region1: domain 1  -> 0b01  - jit code      
+# region2: domain 1  -> 0b01  - jit data      
+# region3: domain 2  -> 0b10  - shadow stack 
+# region4: inclusive -> 0b11  - main stack
+# Or when concatenated: 0b(00)11_1001_0100 > 0x394
+
+.equiv DMP_CONFIG, 0x0000000000000394
+
+.equiv DMP_CODE, 0x3f0
+
+.equiv CURDOM_CODE, 0x400
+
 .section .text
 
-pmp_setup:
+pmp_dmp_setup:
+    # Setup user mode / machine mode
+    # \_______________________________
+
     # Read the mode
     csrr t0, mstatus
 
@@ -56,6 +73,9 @@ pmp_setup:
     # Setup user mode entry address
     la t0, gigue_int_start
     csrw mepc, t0
+
+    # Setup PMP
+    # \__________
 
     # Setup first PMP region: Base interpreter
     la t0, PMP_ADDR0   # End of interpreter code!
@@ -86,13 +106,24 @@ pmp_setup:
     li t0, PMP_CONFIG
     csrw pmpcfg0, t0
 
+    # Setup DMP
+    # \__________
+    li t0, DMP_CONFIG
+    csrrw x0, DMP_CODE, t0
+    # Note: equivalent of csrw dmpcfg, t0
+
+    # Setup current domain
+    # \_____________________
+    csrrw x0, CURDOM_CODE, x0
+    # Note: equivalent of csrw dmpcfg, t0
+
     # Jump to the mepc address (test_start)
     mret
 
 main:
     la t6, tab             # Load the data address in t6
     la t3, ss_end          # Load the shadow stack address in t3 (grows downwards)
-    call pmp_setup         # Call the generated binary
+    call pmp_dmp_setup     # Setup PMP and DMP
     li a0, 0               # Pass 0 to the exit function
     call exit              # 
     
