@@ -153,6 +153,8 @@ class Generator:
         self.ss_bin_file: str = output_ss_bin_file
 
         logger.debug("👨‍🌾 Generator Instanciated:")
+        logger.debug(f" - jit size: {jit_size}")
+        logger.debug(f" - methods nb: {jit_nb_methods}")
         logger.debug(
             f" - method variation: mean {method_variation_mean} / std"
             f" {method_variation_stdev}"
@@ -435,11 +437,11 @@ class Generator:
     # \_______________________
 
     def generate_jit_machine_code(self) -> List[int]:
-        self.jit_machine_code += [elt.generate() for elt in self.jit_elements]
+        self.jit_machine_code = [elt.generate() for elt in self.jit_elements]
         return self.jit_machine_code
 
     def generate_interpreter_machine_code(self) -> List[int]:
-        self.interpreter_machine_code += [
+        self.interpreter_machine_code = [
             instr.generate() for instr in self.interpreter_instructions
         ]
         return self.interpreter_machine_code
@@ -448,7 +450,7 @@ class Generator:
     # \________________
 
     def generate_jit_bytes(self) -> List[bytes]:
-        self.jit_bytes += [elt.generate_bytes() for elt in self.jit_elements]
+        self.jit_bytes = [elt.generate_bytes() for elt in self.jit_elements]
         return self.jit_bytes
 
     def generate_interpreter_bytes(self) -> List[bytes]:
@@ -488,6 +490,10 @@ class Generator:
         )
         return self.data_bin
 
+    def generate_shadowstack_binary(self) -> bytes:
+        self.ss_bin = self.miner.generate_data("zeroes", 8)
+        return self.ss_bin
+
     #  Binary Writing
     # \______________
 
@@ -502,10 +508,6 @@ class Generator:
     def write_data_binary(self):
         with open(self.data_bin_file, "wb") as file:
             file.write(self.data_bin)
-
-    def generate_shadowstack_binary(self) -> bytes:
-        self.ss_bin = self.miner.generate_data("zeroes", 8)
-        return self.ss_bin
 
     def write_shadowstack_binary(self):
         with open(self.ss_bin_file, "wb") as file:
@@ -712,16 +714,16 @@ class TrampolineGenerator(Generator):
 
     def generate_jit_machine_code(self) -> List[int]:
         # Add machine code for trampolines at the start of JIT code
+        super().generate_jit_machine_code()
         self.jit_machine_code = [
             instr.generate() for instr in self.trampoline_instructions
-        ]
-        self.jit_machine_code += super().generate_jit_machine_code()
+        ] + self.jit_machine_code
         return self.jit_machine_code
 
     def generate_jit_bytes(self) -> List[bytes]:
         # Add bytes for trampolines at the start of JIT code
+        super().generate_jit_bytes()
         self.jit_bytes = [
             instr.generate_bytes() for instr in self.trampoline_instructions
-        ]
-        self.jit_bytes += super().generate_jit_bytes()
+        ] + self.jit_bytes
         return self.jit_bytes

@@ -154,11 +154,14 @@ def check_size(generator):
     logger.debug("Checking binary size before testing 📏")
     # 1. Check interpreter binary!
     #  \__ Check that int bin fits before the start of the jit bin
-    if INTERPRETER_START_ADDRESS + len(generator.interpreter_bin) > JIT_START_ADDRESS:
+    if (
+        INTERPRETER_START_ADDRESS + len(generator.interpreter_bytes * 4)
+        > JIT_START_ADDRESS
+    ):
         raise IncorrectSizeException(
             "Generated interpreter binary is too big for the test framework. Expecting"
             f" a max size of {hex(JIT_START_ADDRESS - INTERPRETER_START_ADDRESS)} and"
-            f" got {hex(len(generator.interpreter_bin))}."
+            f" got {hex(len(generator.interpreter_bytes * 4))}."
         )
     # 2. Check jit binary!
     #  \_ Check that jit bin fits before the start of the data bin
@@ -180,10 +183,11 @@ def check_size(generator):
     logger.debug("Binary info:")
     logger.debug("Name | Start address | End address | Size")
     logger.debug("_____|_______________|_____________|_____")
+    int_size = hex(INTERPRETER_START_ADDRESS + len(generator.interpreter_bytes * 4))
     logger.debug(
         f"INT  | {hex(INTERPRETER_START_ADDRESS):<{13}} |"
-        f" {hex(INTERPRETER_START_ADDRESS + len(generator.interpreter_bin)):<{11}} |"
-        f" {hex(len(generator.interpreter_bin))}"
+        f" {int_size:<{11}} |"
+        f" {hex(len(generator.interpreter_bytes * 4))}"
     )
     logger.debug(
         f"JIT  | {hex(JIT_START_ADDRESS):<{13}} |"

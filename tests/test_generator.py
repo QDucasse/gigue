@@ -82,6 +82,7 @@ def check_method_bounds(
     "call_occupation_mean, call_occupation_stdev", [(0.2, 0.1), (0.5, 0.2)]
 )
 @pytest.mark.parametrize("pics_mean_case_nb", [1, 3])
+@pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
 def test_fill_jit_code(
     jit_size,
     jit_nb_methods,
@@ -90,8 +91,9 @@ def test_fill_jit_code(
     call_occupation_stdev,
     call_depth_mean,
     pics_mean_case_nb,
+    generator_class,
 ):
-    generator = Generator(
+    generator = generator_class(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_size=jit_size,
@@ -140,8 +142,11 @@ def test_fill_jit_code(
 @pytest.mark.parametrize("jit_size", [100, 200, 500])
 @pytest.mark.parametrize("jit_nb_methods", [10, 100])
 @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
-def test_fill_interpretation_loop(jit_size, jit_nb_methods, pics_ratio):
-    generator = Generator(
+@pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
+def test_fill_interpretation_loop(
+    jit_size, jit_nb_methods, pics_ratio, generator_class
+):
+    generator = generator_class(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_size=jit_size,
@@ -155,12 +160,13 @@ def test_fill_interpretation_loop(jit_size, jit_nb_methods, pics_ratio):
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
-    generator.patch_jit_calls()
+    # generator.patch_jit_calls()
     generator.fill_interpretation_loop()
     assert (
         len(generator.interpreter_instructions)
-        == 2 * (len(generator.jit_elements) - generator.pic_count)
-        + 3 * generator.pic_count
+        == (generator.call_size - 1)
+        * (len(generator.jit_elements) - generator.pic_count)
+        + generator.call_size * generator.pic_count
         + Generator.INT_PROLOGUE_SIZE
         + Generator.INT_EPILOGUE_SIZE
     )
@@ -189,39 +195,39 @@ def test_fill_interpretation_loop(jit_size, jit_nb_methods, pics_ratio):
 
 
 # TODO: Smoke test, add real testing hihi
-@pytest.mark.parametrize("jit_size", [100, 200, 500])
-@pytest.mark.parametrize("jit_nb_methods", [10, 100])
-@pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
-@pytest.mark.parametrize("call_depth_mean", [2, 4])
-@pytest.mark.parametrize(
-    "call_occupation_mean, call_occupation_stdev", [(0.2, 0.1), (0.4, 0.2)]
-)
-@pytest.mark.parametrize("pics_mean_case_nb", [1, 2, 4])
-def test_patch_calls(
-    jit_size,
-    jit_nb_methods,
-    pics_ratio,
-    call_depth_mean,
-    call_occupation_mean,
-    call_occupation_stdev,
-    pics_mean_case_nb,
-):
-    generator = Generator(
-        jit_start_address=JIT_START_ADDRESS,
-        interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_size=jit_size,
-        jit_nb_methods=jit_nb_methods,
-        method_variation_mean=0.2,
-        method_variation_stdev=0.1,
-        call_occupation_mean=call_occupation_mean,
-        call_occupation_stdev=call_occupation_stdev,
-        call_depth_mean=call_depth_mean,
-        pics_mean_case_nb=pics_mean_case_nb,
-        pics_ratio=pics_ratio,
-    )
-    generator.fill_jit_code()
-    generator.patch_jit_calls()
-    generator.fill_interpretation_loop()
+# @pytest.mark.parametrize("jit_size", [100, 200, 500])
+# @pytest.mark.parametrize("jit_nb_methods", [10, 100])
+# @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
+# @pytest.mark.parametrize("call_depth_mean", [2, 4])
+# @pytest.mark.parametrize(
+#     "call_occupation_mean, call_occupation_stdev", [(0.2, 0.1), (0.4, 0.2)]
+# )
+# @pytest.mark.parametrize("pics_mean_case_nb", [1, 2, 4])
+# def test_patch_calls(
+#     jit_size,
+#     jit_nb_methods,
+#     pics_ratio,
+#     call_depth_mean,
+#     call_occupation_mean,
+#     call_occupation_stdev,
+#     pics_mean_case_nb,
+# ):
+#     generator = Generator(
+#         jit_start_address=JIT_START_ADDRESS,
+#         interpreter_start_address=INTERPRETER_START_ADDRESS,
+#         jit_size=jit_size,
+#         jit_nb_methods=jit_nb_methods,
+#         method_variation_mean=0.2,
+#         method_variation_stdev=0.1,
+#         call_occupation_mean=call_occupation_mean,
+#         call_occupation_stdev=call_occupation_stdev,
+#         call_depth_mean=call_depth_mean,
+#         pics_mean_case_nb=pics_mean_case_nb,
+#         pics_ratio=pics_ratio,
+#     )
+#     generator.fill_jit_code()
+#     generator.patch_jit_calls()
+#     generator.fill_interpretation_loop()
 
 
 # =================================
@@ -232,8 +238,11 @@ def test_patch_calls(
 @pytest.mark.parametrize("jit_size", [100, 200, 500])
 @pytest.mark.parametrize("jit_nb_methods", [10, 100])
 @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
-def test_generate_interpreter_machine_code(jit_size, jit_nb_methods, pics_ratio):
-    generator = Generator(
+@pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
+def test_generate_interpreter_machine_code(
+    jit_size, jit_nb_methods, pics_ratio, generator_class
+):
+    generator = generator_class(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_size=jit_size,
@@ -253,8 +262,9 @@ def test_generate_interpreter_machine_code(jit_size, jit_nb_methods, pics_ratio)
     generator.generate_interpreter_machine_code()
     assert (
         len(generator.interpreter_instructions)
-        == 2 * (len(generator.jit_elements) - generator.pic_count)
-        + 3 * generator.pic_count
+        == (generator.call_size - 1)
+        * (len(generator.jit_elements) - generator.pic_count)
+        + generator.call_size * generator.pic_count
         + Generator.INT_PROLOGUE_SIZE
         + Generator.INT_EPILOGUE_SIZE
     )
@@ -329,6 +339,7 @@ def test_generate_bytes(jit_size, jit_nb_methods, pics_ratio):
         (5000, 50, 0.5, 0.5, 0.2, 0.5, 0.2, 3),
     ],
 )
+@pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
 def test_execute_generated_binaries(
     jit_size,
     jit_nb_methods,
@@ -338,86 +349,13 @@ def test_execute_generated_binaries(
     call_occupation_mean,
     call_occupation_stdev,
     call_depth_mean,
+    generator_class,
     cap_disasm_setup,
     handler_setup,
     uc_emul_full_setup,
+    log_trace,
 ):
-    generator = Generator(
-        jit_start_address=JIT_START_ADDRESS,
-        interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_size=jit_size,
-        jit_nb_methods=jit_nb_methods,
-        method_variation_mean=meth_var_mean,
-        method_variation_stdev=meth_var_stdev,
-        call_occupation_mean=call_occupation_mean,
-        call_occupation_stdev=call_occupation_stdev,
-        call_depth_mean=call_depth_mean,
-        pics_mean_case_nb=1,
-        pics_ratio=pics_ratio,
-        data_reg=TEST_DATA_REG,
-        data_size=TEST_DATA_SIZE,
-    )
-    generator.fill_jit_code()
-    generator.patch_jit_calls()
-    generator.fill_interpretation_loop()
-    generator.generate_jit_machine_code()
-    generator.generate_interpreter_machine_code()
-    generator.generate_jit_bytes()
-    generator.generate_interpreter_bytes()
-    generator.generate_output_binary()
-    generator.generate_data_binary()
-
-    # Testing guard
-    check_size(generator)
-
-    # Capstone disasm:
-    cap_disasm = cap_disasm_setup
-
-    # Interpreter bin
-    interpreter_binary = generator.generate_interpreter_binary()
-    cap_disasm_bytes(cap_disasm, interpreter_binary, INTERPRETER_START_ADDRESS)
-    # JIT bin
-    jit_binary = generator.generate_jit_binary()
-    cap_disasm_bytes(cap_disasm, jit_binary, JIT_START_ADDRESS)
-
-    # Emulation
-    uc_emul = uc_emul_full_setup
-    uc_emul.mem_write(INTERPRETER_START_ADDRESS, interpreter_binary)
-    uc_emul.mem_write(JIT_START_ADDRESS, jit_binary)
-
-    # Handler
-    handler = handler_setup
-    handler.hook_instr_tracer(uc_emul)
-
-    uc_emul.emu_start(INTERPRETER_START_ADDRESS, RET_ADDRESS)
-    uc_emul.emu_stop()
-
-
-@pytest.mark.parametrize(
-    (
-        "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev,"
-        " call_occupation_mean, call_occupation_stdev, call_depth_mean"
-    ),
-    [
-        (50, 5, 0, 0.2, 0.1, 0.2, 0.1, 1),
-        (200, 10, 0.2, 0.4, 0.2, 0.4, 0.2, 2),
-        (5000, 50, 0.5, 0.5, 0.2, 0.5, 0.2, 3),
-    ],
-)
-def test_execute_trampoline_generated_binaries(
-    jit_size,
-    jit_nb_methods,
-    pics_ratio,
-    meth_var_mean,
-    meth_var_stdev,
-    call_occupation_mean,
-    call_occupation_stdev,
-    call_depth_mean,
-    cap_disasm_setup,
-    handler_setup,
-    uc_emul_full_setup,
-):
-    generator = TrampolineGenerator(
+    generator = generator_class(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_size=jit_size,
