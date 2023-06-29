@@ -74,7 +74,13 @@ if __name__ == "__main__":
         if not os.path.exists(BIN_DIR + "data.bin"):
             with open(BIN_DIR + "data.bin", "wb") as file:
                 miner.generate_data("iterative64", 100)
-        with open("bin/out.bin", "wb") as file:
+        if not os.path.exists(BIN_DIR + "ss.bin"):
+            with open(BIN_DIR + "ss.bin", "wb") as file:
+                miner.generate_data("zeroes", 10)
+        # Fake files to use the same compilation framework (lazy)
+        with open("bin/jit.bin", "wb") as file:
+            file.write(b"")
+        with open("bin/int.bin", "wb") as file:
             list_instr = [instr.generate_bytes() for instr in instr_examples[name]]
             bytes_instr = b"".join(list_instr) + IInstruction.ret().generate_bytes()
             file.write(bytes_instr)
@@ -97,7 +103,13 @@ if __name__ == "__main__":
         if not os.path.exists(BIN_DIR + "data.bin"):
             with open(BIN_DIR + "data.bin", "wb") as file:
                 miner.generate_data("iterative64", 100)
-        with open("bin/out.bin", "wb") as file:
+        if not os.path.exists(BIN_DIR + "ss.bin"):
+            with open(BIN_DIR + "ss.bin", "wb") as file:
+                miner.generate_data("zeroes", 10)
+        # Fake files to use the same compilation framework (lazy)
+        with open("bin/jit.bin", "wb") as file:
+            file.write(b"")
+        with open("bin/int.bin", "wb") as file:
             concat_instr = flatten_list(instr_examples.values())
             list_instr = [instr.generate_bytes() for instr in concat_instr]
             bytes_instr = b"".join(list_instr) + IInstruction.ret().generate_bytes()

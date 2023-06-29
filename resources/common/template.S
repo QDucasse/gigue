@@ -53,7 +53,7 @@
 
 .equiv DMP_CODE, 0x3f0
 
-.equiv CURDOM_CODE, 0x400
+.equiv CURDOM_CODE, 0x3f1
 
 .section .text
 
