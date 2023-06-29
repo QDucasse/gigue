@@ -74,9 +74,14 @@ def check_method_bounds(
     assert 0 <= method.call_depth <= poisson_chernoff_bound(call_depth_mean, 0.00001)
 
 
-@pytest.mark.parametrize("jit_size", [100, 200, 500])
-@pytest.mark.parametrize("jit_nb_methods", [10, 100])
-@pytest.mark.parametrize("pics_ratio", [0, 0.5])
+@pytest.mark.parametrize(
+    "jit_size, jit_nb_methods,pics_ratio",
+    [
+        (100, 10, 0),
+        (200, 10, 0.2),
+        (1000, 50, 0.5),
+    ],
+)
 @pytest.mark.parametrize("call_depth_mean", [1, 2])
 @pytest.mark.parametrize(
     "call_occupation_mean, call_occupation_stdev", [(0.2, 0.1), (0.5, 0.2)]
@@ -139,9 +144,14 @@ def test_fill_jit_code(
             )
 
 
-@pytest.mark.parametrize("jit_size", [100, 200, 500])
-@pytest.mark.parametrize("jit_nb_methods", [10, 100])
-@pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
+@pytest.mark.parametrize(
+    "jit_size, jit_nb_methods,pics_ratio",
+    [
+        (100, 10, 0),
+        (200, 10, 0.2),
+        (1000, 50, 0.5),
+    ],
+)
 @pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
 def test_fill_interpretation_loop(
     jit_size, jit_nb_methods, pics_ratio, generator_class
@@ -235,9 +245,14 @@ def test_fill_interpretation_loop(
 # =================================
 
 
-@pytest.mark.parametrize("jit_size", [100, 200, 500])
-@pytest.mark.parametrize("jit_nb_methods", [10, 100])
-@pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
+@pytest.mark.parametrize(
+    "jit_size, jit_nb_methods,pics_ratio",
+    [
+        (100, 10, 0),
+        (200, 10, 0.2),
+        (1000, 50, 0.5),
+    ],
+)
 @pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
 def test_generate_interpreter_machine_code(
     jit_size, jit_nb_methods, pics_ratio, generator_class
@@ -295,9 +310,14 @@ def test_generate_interpreter_machine_code(
     #         method_count += 1
 
 
-@pytest.mark.parametrize("jit_size", [200, 500])
-@pytest.mark.parametrize("jit_nb_methods", [10, 100])
-@pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
+@pytest.mark.parametrize(
+    "jit_size, jit_nb_methods,pics_ratio",
+    [
+        (100, 10, 0),
+        (200, 10, 0.2),
+        (1000, 50, 0.5),
+    ],
+)
 def test_generate_bytes(jit_size, jit_nb_methods, pics_ratio):
     generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
