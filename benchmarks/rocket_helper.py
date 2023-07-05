@@ -80,7 +80,7 @@ if __name__ == "__main__":
             bytes_instr = b"".join(list_instr) + IInstruction.ret().generate_bytes()
             file.write(bytes_instr)
 
-        subprocess.run(["make", "dump", "TEMPLATE=unit"], timeout=10, check=True)
+        subprocess.run(["make", "dump", "TEMPLATE=unitrimi"], timeout=10, check=True)
 
         base_dir = f"{BIN_DIR}/unit"
         if not os.path.exists(base_dir):
@@ -105,7 +105,7 @@ if __name__ == "__main__":
             bytes_instr = b"".join(list_instr) + IInstruction.ret().generate_bytes()
             file.write(bytes_instr)
 
-        subprocess.run(["make", "dump", "TEMPLATE=unit"], timeout=10, check=True)
+        subprocess.run(["make", "dump", "TEMPLATE=unitrimi"], timeout=10, check=True)
 
         base_dir = f"{BIN_DIR}/unit"
         if not os.path.exists(base_dir):
