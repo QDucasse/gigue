@@ -106,7 +106,7 @@ pmp_dmp_setup:
     li t0, PMP_CONFIG
     csrw pmpcfg0, t0
 
-    # Setup DMP
+    # Setup DMP 
     # \__________
     li t0, DMP_CONFIG
     csrrw x0, DMP_CODE, t0
@@ -120,6 +120,12 @@ pmp_dmp_setup:
     # Jump to the mepc address (test_start)
     mret
 
+gigue_int_start:
+    .incbin "bin/int.bin"
+
+gigue_jit_start:
+    .incbin "bin/jit.bin"
+
 main:
     la t6, tab             # Load the data address in t6
     la t3, ss_end          # Load the shadow stack address in t3 (grows downwards)
@@ -129,12 +135,6 @@ main:
     
     # addi    a7, x0, 93     # Set ecall to exit (93) function
     # ecall                  # Call linux to terminate the program
-
-gigue_int_start:
-    .incbin "bin/int.bin"
-
-gigue_jit_start:
-    .incbin "bin/jit.bin"
 
 .section .data
 tab: 

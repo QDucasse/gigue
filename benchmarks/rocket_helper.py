@@ -75,15 +75,12 @@ if __name__ == "__main__":
             file.write(miner.generate_data("iterative64", 100))
         with open(BIN_DIR + "ss.bin", "wb") as file:
             file.write(miner.generate_data("zeroes", 10))
-        # Fake files to use the same compilation framework (lazy)
-        with open("bin/jit.bin", "wb") as file:
-            file.write(miner.generate_data("zeroes", 10))
-        with open("bin/int.bin", "wb") as file:
+        with open("bin/unit.bin", "wb") as file:
             list_instr = [instr.generate_bytes() for instr in instr_examples[name]]
             bytes_instr = b"".join(list_instr) + IInstruction.ret().generate_bytes()
             file.write(bytes_instr)
 
-        subprocess.run(["make", "dump"], timeout=10, check=True)
+        subprocess.run(["make", "dump", "TEMPLATE=unit"], timeout=10, check=True)
 
         base_dir = f"{BIN_DIR}/unit"
         if not os.path.exists(base_dir):
@@ -102,16 +99,13 @@ if __name__ == "__main__":
             file.write(miner.generate_data("iterative64", 100))
         with open(BIN_DIR + "ss.bin", "wb") as file:
             file.write(miner.generate_data("zeroes", 10))
-        # Fake files to use the same compilation framework (lazy)
-        with open("bin/jit.bin", "wb") as file:
-            file.write(miner.generate_data("zeroes", 10))
-        with open("bin/int.bin", "wb") as file:
+        with open("bin/unit.bin", "wb") as file:
             concat_instr = flatten_list(instr_examples.values())
             list_instr = [instr.generate_bytes() for instr in concat_instr]
             bytes_instr = b"".join(list_instr) + IInstruction.ret().generate_bytes()
             file.write(bytes_instr)
 
-        subprocess.run(["make", "dump"], timeout=10, check=True)
+        subprocess.run(["make", "dump", "TEMPLATE=unit"], timeout=10, check=True)
 
         base_dir = f"{BIN_DIR}/unit"
         if not os.path.exists(base_dir):
