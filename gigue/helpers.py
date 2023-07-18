@@ -93,7 +93,7 @@ def generate_poisson(lmbda):
     # Poisson generator based upon the inversion by sequential search
     # based on Devroye "Discrete univariate distributions"
     # init:
-    #     Let x ← 0, p ← e−λ, s ← p.
+    #     Let x ← 0, p ← e^(−λ), s ← p.
     #     Generate uniform random number u in [0,1].
     # while u > s do:
     #     x ← x + 1.
@@ -105,6 +105,28 @@ def generate_poisson(lmbda):
     s = p
     u = random.random()
     while u > s:
+        x = x + 1
+        p *= lmbda / x
+        s = s + p
+    return x
+
+
+def generate_zero_truncated_poisson(lmbda):
+    # Poisson generator based upon the inversion by sequential search
+    # based on Devroye "Discrete univariate distributions"
+    # init:
+    #      Let x ← 1, p ← e^(−λ) / (1 - e^(−λ)) * λ, s ← p.
+    #      Generate uniform random number u in [0,1].
+    # while u > s do:
+    #      x ← x + 1.
+    #      p ← p * λ / x.
+    #      s ← s + p.
+    # return x.
+    x = 1
+    p = math.exp(-lmbda) / (1 - math.exp(-lmbda)) * lmbda
+    s = p
+    u = random.random()
+    while s < u:
         x = x + 1
         p *= lmbda / x
         s = s + p
@@ -130,8 +152,8 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     # Poisson distribution
-    lambda_value = 2  # Lambda parameter of the Poisson distribution
-    data = [generate_poisson(lambda_value) for _ in range(100000)]
+    lambda_value = 3  # Lambda parameter of the Poisson distribution
+    data = [generate_zero_truncated_poisson(lambda_value) for _ in range(100000)]
     print(max(data))
     print(poisson_chernoff_bound(lambda_value, 0.00001))
     plt.hist(data, bins=100)

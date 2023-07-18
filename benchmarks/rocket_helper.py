@@ -77,7 +77,7 @@ if __name__ == "__main__":
             file.write(miner.generate_data("zeroes", 10))
         with open("bin/unit.bin", "wb") as file:
             list_instr = [instr.generate_bytes() for instr in instr_examples[name]]
-            bytes_instr = b"".join(list_instr) + IInstruction.ret().generate_bytes()
+            bytes_instr = b"".join(list_instr)
             file.write(bytes_instr)
 
         subprocess.run(["make", "dump", "TEMPLATE=unitrimi"], timeout=10, check=True)
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         with open("bin/unit.bin", "wb") as file:
             concat_instr = flatten_list(instr_examples.values())
             list_instr = [instr.generate_bytes() for instr in concat_instr]
-            bytes_instr = b"".join(list_instr) + IInstruction.ret().generate_bytes()
+            bytes_instr = b"".join(list_instr)
             file.write(bytes_instr)
 
         subprocess.run(["make", "dump", "TEMPLATE=unitrimi"], timeout=10, check=True)

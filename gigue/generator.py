@@ -28,6 +28,7 @@ from gigue.helpers import (
     flatten_list,
     generate_poisson,
     generate_trunc_norm,
+    generate_zero_truncated_poisson,
 )
 from gigue.instructions import Instruction
 from gigue.method import Method
@@ -260,7 +261,8 @@ class Generator:
 
     def add_pic(self, address: int, remaining_methods: int) -> PIC:
         cases_nb: int = min(
-            generate_poisson(self.pics_mean_case_nb) + 1, remaining_methods
+            generate_zero_truncated_poisson(self.pics_mean_case_nb) + 1,
+            remaining_methods,
         )
         pic: PIC = PIC(
             address=address,
