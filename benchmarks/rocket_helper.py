@@ -80,7 +80,9 @@ if __name__ == "__main__":
             bytes_instr = b"".join(list_instr)
             file.write(bytes_instr)
 
-        subprocess.run(["make", "unitdump", "TEMPLATE=unitrimi"], timeout=10, check=True)
+        subprocess.run(
+            ["make", "unitdump", "TEMPLATE=unitrimi"], timeout=10, check=True
+        )
 
         base_dir = f"{BIN_DIR}/unit"
         if not os.path.exists(base_dir):
@@ -143,7 +145,7 @@ if __name__ == "__main__":
         solo_instr_bin(instr_name)
 
     elif argv[0] == "--concat":
-        all_instr_bin()
+        concat_bin()
 
     elif argv[0] == "--all":
         for instr_name in instr_examples.keys():

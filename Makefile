@@ -76,9 +76,9 @@ $(bin_dir)/%.bin.dump: $(bin_dir)/%.bin
 # Rocket execution
 $(bin_dir)/out.rocket: $(bin_dir)/out.elf
 	# Check for ROCKET toolchain env variable
-	ifndef ROCKET
-	$(error Please set environment variable ROCKET to the rocket-chip repo (it is expected to have the emulator compiled))
-	endif
+ifndef ROCKET
+$(error Please set environment variable ROCKET to the rocket-chip repo (it is expected to have the emulator compiled))
+endif
 	$(ROCKET_EMU)/emulator-freechips.rocketchip.system-freechips.rocketchip.system.$(ROCKET_CONFIG) \
 	+max-cycles=$(ROCKET_CYCLES) +verbose $< 3>&1 1>&2 2>&3 | \
 	$(RISCV)/bin/spike-dasm > $@

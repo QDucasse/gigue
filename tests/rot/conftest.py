@@ -1,8 +1,8 @@
 import pytest
 
 from gigue.constants import INSTRUCTIONS_INFO
-from gigue.rot.rot_constants import ROT_INSTRUCTIONS_INFO
 from gigue.disassembler import Disassembler
+from gigue.rot.rot_constants import ROT_INSTRUCTIONS_INFO
 from tests.conftest import Handler
 
 

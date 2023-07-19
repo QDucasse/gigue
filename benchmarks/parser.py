@@ -159,8 +159,8 @@ class LogParser:
     def extract_from_dump(dump_file: str) -> Tuple[int, int, int]:
         # 0000000080002a24 <gigue_start>:
         # 00000000800102e4 <gigue_end>:
-        start_regex = r"(\w*) <gigue_start>:"
-        end_regex = r"(\w*) <gigue_end>:"
+        start_regex = r"(\w*) <gigue_int_start>:"
+        end_regex = r"(\w*) <main>:"
         start_address: int = -1
         end_address: int = -1
         ret_address: int = -1
