@@ -261,7 +261,7 @@ class Generator:
 
     def add_pic(self, address: int, remaining_methods: int) -> PIC:
         cases_nb: int = min(
-            generate_zero_truncated_poisson(self.pics_mean_case_nb) + 1,
+            generate_zero_truncated_poisson(self.pics_mean_case_nb),
             remaining_methods,
         )
         pic: PIC = PIC(

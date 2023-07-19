@@ -122,6 +122,8 @@ def generate_zero_truncated_poisson(lmbda):
     #      p ← p * λ / x.
     #      s ← s + p.
     # return x.
+    if lmbda == 0:
+        raise ZeroDivisionError
     x = 1
     p = math.exp(-lmbda) / (1 - math.exp(-lmbda)) * lmbda
     s = p
@@ -131,6 +133,24 @@ def generate_zero_truncated_poisson(lmbda):
         p *= lmbda / x
         s = s + p
     return x
+
+
+def mean_zero_truncated_poisson(lmbda):
+    # Note: As 0 is not available, the mean is not equal to λ anymore
+    # but rather to λ / (1 - e^(−λ))
+    # Example values for λ are:
+    # λ  |   mean
+    # 1  | 1.58197670686932
+    # 2  | 2.31303528549933
+    # 3  | 3.15718708947376
+    # 4  | 4.07462944145509
+    # 5  | 5.03391827453152
+    # 6  | 6.01490946994106
+    # 7  | 7.00638899977255
+    # 8  | 8.00268460160673
+    # 9  | 9.00111082532351
+    # 10 | 10.00045401991009
+    return lmbda / (1 - math.exp(-lmbda))
 
 
 def poisson_chernoff_bound(lmbda, alpha):
@@ -172,3 +192,7 @@ if __name__ == "__main__":
     # print(sample_mean)
     plt.hist(data, bins=100)
     plt.show()
+
+    # ZTP means
+    for lmbda in range(1, 25):
+        print(f"For lambda={lmbda}, the corrresponding ZTP mean is {mean_zero_truncated_poisson(lmbda)}")
