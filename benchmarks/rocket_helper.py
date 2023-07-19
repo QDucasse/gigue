@@ -80,21 +80,21 @@ if __name__ == "__main__":
             bytes_instr = b"".join(list_instr)
             file.write(bytes_instr)
 
-        subprocess.run(["make", "dump", "TEMPLATE=unitrimi"], timeout=10, check=True)
+        subprocess.run(["make", "unitdump", "TEMPLATE=unitrimi"], timeout=10, check=True)
 
         base_dir = f"{BIN_DIR}/unit"
         if not os.path.exists(base_dir):
             os.makedirs(base_dir)
         shutil.copy(
-            src=f"{BIN_DIR}/out.elf",
+            src=f"{BIN_DIR}/unit.elf",
             dst=f"{BIN_DIR}/unit/{instr_name}.elf",
         )
         shutil.copy(
-            src=f"{BIN_DIR}/out.dump",
+            src=f"{BIN_DIR}/unit.dump",
             dst=f"{BIN_DIR}/unit/{instr_name}.dump",
         )
 
-    def all_instr_bin():
+    def concat_bin():
         with open(BIN_DIR + "data.bin", "wb") as file:
             file.write(miner.generate_data("iterative64", 100))
         with open(BIN_DIR + "ss.bin", "wb") as file:
@@ -111,12 +111,12 @@ if __name__ == "__main__":
         if not os.path.exists(base_dir):
             os.makedirs(base_dir)
         shutil.copy(
-            src=f"{BIN_DIR}/out.elf",
-            dst=f"{BIN_DIR}/unit/all.elf",
+            src=f"{BIN_DIR}/unit.elf",
+            dst=f"{BIN_DIR}/unit/concat.elf",
         )
         shutil.copy(
-            src=f"{BIN_DIR}/out.dump",
-            dst=f"{BIN_DIR}/unit/all.dump",
+            src=f"{BIN_DIR}/unit.dump",
+            dst=f"{BIN_DIR}/unit/concat.dump",
         )
 
     def riscv_opcodes():

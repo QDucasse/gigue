@@ -24,8 +24,9 @@ ROCKET_CONFIG ?= DefaultConfig
 # Define sources
 SRCS_C=$(wildcard $(src_dir)/*.c) 
 SRCS_S=$(wildcard $(src_dir)/*.S)
-OBJS=$(patsubst $(src_dir)/%.c,$(bin_dir)/%.o,$(SRCS_C)) $(patsubst $(src_dir)/%.S,$(bin_dir)/%.o,$(SRCS_S)) $(bin_dir)/template.o
-UNIT_OBJS=$(patsubst $(src_dir)/%.c,$(bin_dir)/%.o,$(SRCS_C)) $(patsubst $(src_dir)/%.S,$(bin_dir)/%.o,$(SRCS_S)) $(bin_dir)/unit.o
+COMMON_OBJS=$(patsubst $(src_dir)/%.c,$(bin_dir)/%.o,$(SRCS_C)) $(patsubst $(src_dir)/%.S,$(bin_dir)/%.o,$(SRCS_S)) 
+OBJS=$(COMMON_OBJS) $(bin_dir)/template.o
+UNIT_OBJS=$(COMMON_OBJS) $(bin_dir)/unittemplate.o
 
 # Define template
 TEMPLATE ?= base
@@ -60,7 +61,7 @@ $(bin_dir)/%.o: $(src_dir)/%.c
 $(bin_dir)/%.o: $(src_dir)/%.S
 	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
 
-$(bin_dir)/template.o: $(template_dir)/$(TEMPLATE).S $(bin_dir)/int.bin $(bin_dir)/jit.bin $(bin_dir)/unit.bin
+$(bin_dir)/template.o: $(template_dir)/$(TEMPLATE).S $(bin_dir)/int.bin $(bin_dir)/jit.bin
 	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
 
 # Dumps
@@ -82,6 +83,19 @@ $(bin_dir)/out.rocket: $(bin_dir)/out.elf
 	+max-cycles=$(ROCKET_CYCLES) +verbose $< 3>&1 1>&2 2>&3 | \
 	$(RISCV)/bin/spike-dasm > $@
 
+
+# Unit tests
+unitdump: $(bin_dir)/unit.dump
+
+$(bin_dir)/unit.elf: $(UNIT_OBJS)
+	$(RISCV_GCC) $(RISCV_LINK_OPTS) $(UNIT_OBJS) -o $@
+
+$(bin_dir)/unittemplate.o: $(template_dir)/$(TEMPLATE).S $(bin_dir)/unit.bin
+	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
+
+$(bin_dir)/unit.dump: $(bin_dir)/unit.elf
+	$(RISCV_OBJDUMP) $< > $@
+
 # Aliases for cleanup
 DUMPS=$(wildcard $(bin_dir)/*.dump)
 BINS=$(wildcard $(bin_dir)/*.bin)
@@ -95,7 +109,7 @@ UNIT_ELFS=$(wildcard $(bin_dir)/unit/*.elf)
 .PHONY: clean
 
 clean:
-	rm -rf $(ELFS) $(OBJS) $(DUMPS) $(TEMPS) $(ROCKET_LOGS) $(WAVEFORMS)
+	rm -rf $(ELFS) $(OBJS) $(UNIT_OBJS) $(DUMPS) $(TEMPS) $(ROCKET_LOGS) $(WAVEFORMS)
 
 cleanall: clean
 	rm -rf $(BINS) $(UNIT_DUMPS) $(UNIT_ELFS)
