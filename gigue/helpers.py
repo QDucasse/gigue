@@ -195,4 +195,7 @@ if __name__ == "__main__":
 
     # ZTP means
     for lmbda in range(1, 25):
-        print(f"For lambda={lmbda}, the corrresponding ZTP mean is {mean_zero_truncated_poisson(lmbda)}")
+        print(
+            f"For lambda={lmbda}, the corrresponding ZTP mean is"
+            f" {mean_zero_truncated_poisson(lmbda)}"
+        )

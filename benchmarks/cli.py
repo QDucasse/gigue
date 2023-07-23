@@ -48,7 +48,7 @@ nb_methods = {
         "jit_nb_methods": 100,
     },
     "high": {
-        "jit_nb_methods": 500,
+        "jit_nb_methods": 200,
     },
 }
 
@@ -60,7 +60,7 @@ call_occup = {
     },
     "medium": {
         "call_depth_mean": 2,
-        "call_occupation_mean": 0.2,
+        "call_occupation_mean": 0.3,
         "call_occupation_stdev": 0.1,
     },
     "high": {

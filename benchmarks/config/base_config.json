@@ -8,7 +8,7 @@
         "weights": [25, 30, 10, 5, 10, 10, 10],
         "interpreter_start_address": 0, 
         "jit_start_address": 12288,
-        "jit_size": 5000,
+        "jit_size": 10000,
         "jit_nb_methods": 100,
         "method_variation_mean": 0.2,
         "method_variation_stdev": 0.1,

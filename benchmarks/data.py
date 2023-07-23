@@ -194,6 +194,7 @@ class CallApplicationClassData(GigueData):
     call_occupations_qualif: str
     isolation: str
     nb_methods: List[int]
+    mean_method_sizes: List[float]
     call_occupations: List[float]
     nb_cycles: List[int]
     cpis: List[float]
@@ -205,6 +206,7 @@ class MemoryApplicationClassData(GigueData):
     mem_accesses_qualif: str
     isolation: str
     nb_methods: List[int]
+    mean_method_sizes: List[float]
     mem_accesses: List[float]
     nb_cycles: List[int]
     cpis: List[float]
