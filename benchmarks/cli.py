@@ -172,6 +172,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = Parser()
     args = parser.parse(argv)
 
+    if not argv:
+        parser.print_help()
+        return 0
+
     runner: Runner = Runner()
     config_data: ConfigData
     config_name: str

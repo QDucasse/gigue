@@ -68,10 +68,10 @@ class Parser(argparse.ArgumentParser):
 
         # General
         self.add_argument(
-            "-t",
+            "-not",
             "--uses_trampolines",
-            action="store_true",
-            help="Uses trampoline for calls/returns",
+            action="store_false",
+            help="Uses trampoline for calls/returns (activated by default)",
         )
         self.add_argument(
             "-i",
@@ -212,6 +212,10 @@ def main(argv=None):
     parser = Parser()
     args = parser.parse(argv)
 
+    if not argv:
+        parser.print_help()
+        return 0
+
     if not os.path.exists(BIN_DIR):
         os.makedirs(BIN_DIR)
 
@@ -231,12 +235,12 @@ def main(argv=None):
     elif args.isolation == "rimiss":
         assert (
             args.uses_trampolines
-        ), "RIMI (shadow stack) requires the use of trampolines (use the -T flag)."
+        ), "RIMI (shadow stack) requires the use of trampolines (use the -t flag)."
         gen_class = RIMIShadowStackTrampolineGenerator
     elif args.isolation == "rimifull":
         assert (
             args.uses_trampolines
-        ), "RIMI (full) requires the use of trampolines (use the -T flag)."
+        ), "RIMI (full) requires the use of trampolines (use the -t flag)."
         gen_class = RIMIFullTrampolineGenerator
     try:
         gen = gen_class(

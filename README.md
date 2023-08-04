@@ -55,47 +55,39 @@ The binary generator CLI and its main arguments are the following (others are de
 ```bash
 # Binary generator CLI
 python -m gigue -h
-usage: python -m gigue [-h] [-S SEED] [-T] [--isolation ISOLATION] [-I INTADDR] [-J JITADDR] [-N NBELT]  [--datasize DATASIZE] [--datagen DATAGEN] [-M METMAXSIZE] [--maxcallnb MAXCALLNB] [--maxcalldepth MAXCALLDEPTH] [-R PICRATIO] [-P PICMETMAXSIZE] [--picmaxcases PICMAXCASES] [--piccmpreg PICCMPREG]
-
-Gigue, JIT code generator
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -S SEED, --seed SEED  Start address of the interpretation loop
-  -T, --uses_trampolines
-                        Uses trampoline for calls/returns
-  --isolation ISOLATION
-                        Isolation solution to protect the binary (none, fixer, rimiss, rimifull)
-  -I INTADDR, --intaddr INTADDR
-                        Start address of the interpretation loop
-  -J JITADDR, --jitaddr JITADDR
-                        Start address of the JIT code
-  -N NBELT, --nbelt NBELT
-                        Number of JIT code elements (methods/pics)
-  --datasize DATASIZE   Size of the data section
-  --datagen DATAGEN     Data generation strategy
-  -M METMAXSIZE, --metmaxsize METMAXSIZE
-                        Maximum size of a method (in nb of instructions)
-  --maxcallnb MAXCALLNB
-                        Maximum calls in a method
-  --maxcalldepth MAXCALLDEPTH
-                        Maximum call depth of a method (i.e. nested calls)
-  -R PICRATIO, --picratio PICRATIO
-                        PIC to method ratio
-  -P PICMETMAXSIZE, --picmetmaxsize PICMETMAXSIZE
-                        PIC methods max size
-  --picmaxcases PICMAXCASES
-                        PIC max number of cases
+usage: __main__.py 
+    [-h] [-s SEED] [-a INTADDR] [-j JITADDR] [-t] 
+    [-i ISOLATION] [-js JITSIZE] [-n NBMETH] [--regs REGS]
+    [-vm VARMETH] [-vs STDEVMETH] 
+    [-cm CALLMEAN] [-cs CALLSTDEV] [-cdm CALLDEPTHMEAN] 
+    [--datareg DATAREG] [--datasize DATASIZE] [--datagen DATAGEN] 
+    [-r PICRATIO] [--picmeancase PICMEANCASE] [--piccmpreg PICCMPREG]
+    [--pichitcasereg PICHITCASEREG] 
+    [-oi OUTINT] [-oj OUTJIT] [-od OUTDATA]
 ```
+
+The whole list is available below but the most important ones are:
+ - **JIT size / methods number**: define the size of methods and the binary
+ - **Method size variation parameters**: define the amount of variation in method size
+ - **Call occupation parameters**: define the call occupation of methods
+ - **PIC parameters**: define the outline of PICs and their presence
 
 An example generation command would be:
 
 ```bash
-python -m gigue -T -N 100 -M 50 -R 0.5 --datasize 2048
+python -m gigue 
+    -js 1500 -n  25      # Will create 25 methods of size 60
+    -vm 0.2  -vs 0.1     # Size variation of 20% (10% std dev)
+    -cm 0.2  -cs 0.1     # Call occupation of 20% (10% std dev)
+    -cdm 2               # Mean call depth of 2
+    --isolation rimifull # Domain isolation / shadow stack
+    --datagen   random   # 200 bytes of random data
+    --datasize  1600     #            -
 ```
 
 This generates the following files in the `bin/` directory:
- - `out.bin`: raw machine code of the interpretation loop and JIT elements stitched together with `nop`s
+ - `int.bin`: raw machine code of the interpretation loop (with trailing `nop`s)
+ - `jit.bin`: raw machine code of the JIT code region
  - `data.bin`: raw machine code of the generated data (following the data generation strategy)
 
 To create a running executable, the environment variable `RISCV` should be defined to point to a working RISC-V toolchain (*e.g.:* `export RISCV="/opt/riscv-rocket"`), the instructions to setup the one defined by Rocket are [here](https://github.com/chipsalliance/rocket-chip#setting-up-the-riscv-environment-variable). 
@@ -107,56 +99,73 @@ To install the dependencies, follow this [guide](https://qducasse.github.io/post
 The [`Makefile`](https://github.com/QDucasse/gigue/blob/main/Makefile) then provides several commands:
 - `make dump`: (default) generates the executable binary and the different dumps
   1. compiles the different bare OS helpers (in [`resources/common`](https://github.com/QDucasse/gigue/blob/main/resources/)).
-  2. compiles the `gigue` binary using the [`template.S`](https://github.com/QDucasse/gigue/blob/main/resources/template.S)that loads `out.bin`, loads data address in a register and puts the data right after.
+  2. compiles the `gigue` binary using a template from [templates](https://github.com/QDucasse/gigue/blob/main/resources/templates)that loads `out.bin`, loads data address in a register, and puts the data right after. The templates vary to provide ways to set up security modules (PMP), or relax the structure for instruction unit tests.
   3. links them all together using a slightly modified [linker script](https://github.com/QDucasse/gigue/blob/main/resources/test.ld) than the one provided in the Rocket tests suite to generate an `elf` file
   4. generates the dump of both the generated `gigue` binary alone (obtained by "forcing" a conversion using `obj-copy` before `obj-dump`) and the linked binary
 - `make exec` runs the binary on top of the rocket emulator, default configuration is `DefaultConfig` but can be specified with *e.g.* `ROCKET_CONFIG=DefaultSmallConfig` and maximum test cycles with `ROCKET_MAX_CYCLES=10000000`.
 
-TODO: Expand on the execution model
-
 ### Running Benchmarks
 
-Gigue provides a script to generate, run and qualify binaries. All scripts are defined in the [`benchmarks`](https://github.com/QDucasse/gigue/blob/main/benchmarks) with the description of the data structures in [`data.py`](https://github.com/QDucasse/gigue/blob/main/benchmarks/data.py) and the main element, [`runner.py`](https://github.com/QDucasse/gigue/blob/main/benchmarks/runner.py). 
+Gigue provides another CLI to generate, run and qualify binaries. All scripts are defined in the [`benchmarks`](https://github.com/QDucasse/gigue/blob/main/benchmarks) section with the description of the data structures in [`data.py`](https://github.com/QDucasse/gigue/blob/main/benchmarks/data.py) and the main element, [`runner.py`](https://github.com/QDucasse/gigue/blob/main/benchmarks/runner.py). 
 
-The runner uses a `json` configuration file that should be added in the `benchmarks/config/` directory). The `default.json` contains:
+The runner will (1) generate a binary, (2) compile it, and (3) run it on the Rocket emulator. The CLI provides two ways of qualifying a runner configuration: 
+- (1) using a `json` config and providing it with: 
+```bash
+python -m benchmarks config <your_file>.json
+```
+When using this method, a configuration file can be derived from the base one as defined in [`base_config.json`](https://github.com/QDucasse/gigue/blob/main/benchmarks/config/base_config.json):
 
 ```json
 {
-    "nb_runs": 3,
+    "nb_runs": 1,
+    "run_seeds": [],
     "input_data": {
-        "uses_trampolines": 0,
+        "uses_trampolines": 1,
         "isolation_solution": "none",
-        "seed": 0,
-        "interpreter_start_address": 0, 
-        "jit_start_address": 8192,
-        "jit_elements_nb": 100,
         "registers": [5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30, 31],
+        "weights": [25, 30, 10, 5, 10, 10, 10],
+        "interpreter_start_address": 0, 
+        "jit_start_address": 12288,
+        "jit_size": 10000,
+        "jit_nb_methods": 100,
+        "method_variation_mean": 0.2,
+        "method_variation_stdev": 0.1,
+        "call_depth_mean": 2,
+        "call_occupation_mean": 0.2,
+        "call_occupation_stdev": 0.1,
+        "pics_ratio": 0.2,
+        "pics_mean_case_nb": 1,
+        "pics_cmp_reg": 6,
+        "pics_hit_case_reg": 5,
         "data_reg": 31,
         "data_size": 1600,
         "data_generation_strategy": "random",
-        "method_max_size": 50,
-        "max_call_depth": 5,
-        "max_call_nb": 5,
-        "pics_ratio": 0.2,
-        "pics_method_max_size": 25,
-        "pics_max_cases": 5,
-        "pics_cmp_reg": 6,
-        "pics_hit_case_reg": 5,
-        "rocket_config": "DefaultConfig",
-        "rocket_max_cycles": 100000000
+        "rocket_input_data": {
+            "rocket_config": "DefaultConfig",
+            "rocket_max_cycles": 10000000
+        }
     }
 }
 ```
-
 It involves the same arguments as the ones the gigue CLI uses and more metadata such as the seed or the isolation solution used.
 
-Launching the `runner` through the command line is done with:
-
+- (2) using presets as defined in the CLI:
 ```bash
-python -m benchmarks default  # for default.json config
+python -m benchmarks param -n low -c high --isolation rimifull
 ```
+The following parameters are accessible (seen with `python -m benchmarks param -h`):
+- `-r` the number of runs for a similar config
+- `-n` the number of methods (low/medium/high)
+- `-c` the call occupations (low/medium/high)
+- `-m` the memory access intensities (low/medium/high)
+- `-s` the seeds
+- `-i` the isolation solution
 
-This performs the following actions:
+
+---
+
+
+For each method, the following actions are performed:
 1. checks the environment variables (`RISCV` for the toolchain and `ROCKET` for the chip with the emulator compiled),
 2. loads the configuration file,
 
@@ -211,3 +220,37 @@ The CI uses `tox` to run the different tools on the code before running the test
 - [`mypy`](https://github.com/python/mypy), the type checker
 
 Unit tests use [Unicorn](https://github.com/unicorn-engine/unicorn) as a CPU simulator and [Capstone](https://github.com/capstone-engine/capstone) as a disassembler (along with an inhouse disassembler).
+
+
+## Parameters
+
+The full list of the parameters defining Gigue and available through its CLI is the following:
+
+|              Name           | Shortcut | Description | Default value |
+|-----------------------------|----------|-------------|---------------|
+|         Seed                |   `-s`   | Seed for generation replication           | `bytes_to_int(os.urandom(16))` |
+| Interpreter start address   |   `-a`   | Start address for the interpretation loop | `0x0` |
+| JIT start address           |   `-j`   | Start address for the JIT code region     | `0x2000` |
+| Isolation solution          |   `-i`   | Chosen isolation setup                    | `none`   |
+| Uses trampolines            |  `-not`  | Revokes the use of trampolines (prevents the usage of some isolation solutions) | `false` |
+| JIT code region size        |   `-js`  | Size in bytes of the JIT code region                    | `1000` |
+| Methods number              |   `-n`  | Number of methods in the JTI code region                    | `100` |
+| Available registers     | `--regs`   | Usable registers for the generation | RISC-V Callee-saved registers |
+| Method variation (variance) | `-vm` | Mean variation of method sizes (parameter of `TruncNorm` distribution law) | 0.2 |
+| Method variation (standard deviation) | `-vs` | Standard deviation of the variation of method sizes (parameter of a `TruncNorm` distribution law) | 0.1 |
+| Call occupation (variance) | `-cm` | Mean call occupation of methods (parameter of a `TruncNorm` distribution law) | 0.2 |
+| Call occupation (standard deviation) | `-cs` | Standard deviation of the call occupation of methods (parameter of a `TruncNorm` distribution law) | 0.1 |
+| Mean call depth  | `-cdm` | Mean of method call depths (parameter of a `Poisson` distribution law) | 2 |
+| Data register  | `--datareg` | Register storing the data address for simple offset access | 31 (refers to `X31`) |
+| Data size | `--datasize` | Size of the generated data | `8 * 200` |
+| Data generation | `--datagen` | Data generation method (random, iterative, etc.) | `random` |
+| PIC ratio | `-r` | Amount of PIC generated compared to simple methods | `0.2` |
+| PIC case number | `--picmeancase` | Mean number of PIC cases (parameter of a `ZeroTruncPoisson` distribution law) (1) | 2 |
+| PIC cmp register | `--piccmpreg` | Register used to compare the class register to the expected value in the PIC switch case | `X6` |
+| PIC hit case register | `--pichitcasereg` | Class register | `X5` |
+| Interpreter binary name | `-oi` | - | `int.bin` |
+| JIT code binary name | `-oj` | - | `jit.bin` |
+| Data binary name | `-od` | - | `data.bin` |
+
+
+> (1) Note that the mean of a `ZeroTruncPoisson` distribution is not equal to its parameter but comes close to it as it becomes bigger.
