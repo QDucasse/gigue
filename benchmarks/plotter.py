@@ -336,7 +336,7 @@ class Plotter:
             )
 
         # ax.legend([app_data["name"] for app_data in application_classes_data])
-        ax.set_ylim(0, 210)
+        ax.set_ylim(0, 250)
         ax.set_xticks([width, 1 + width, 2 + width], ["low", "medium", "high"])
         ax.set_xlabel("Call occupation (in % of executed instructions)")
         ax.set_ylabel("Number of cycles (in thousands of cycles)")
@@ -361,7 +361,6 @@ class Plotter:
         ax.bar(mem_accesses.keys(), mem_accesses.values(), color="green", alpha=0.5)
         # ax.legend([app_data["name"] for app_data in application_classes_data])
         ax.set_ylim(0, 100)
-        ax.set_ylim(0, 100000)
         ax.set_xlabel("Memory instruction density")
         ax.set_ylabel("Number of cycles")
         # ax.set_title("Number of cycles with varying memory instruction density")
@@ -388,7 +387,7 @@ class Plotter:
             )
 
         # ax.legend([app_data["name"] for app_data in application_classes_data])
-        ax.set_ylim(0, 210)
+        ax.set_ylim(0, 250)
         ax.set_xticks([width, 1 + width, 2 + width], ["low", "medium", "high"])
         ax.set_xlabel("Memory accesses (% of executed instructions)")
         ax.set_ylabel("Number of cycles (thousands of cycles)")
@@ -443,23 +442,21 @@ class Plotter:
 
 if __name__ == "__main__":
     import matplotlib
-    font = {
-        'weight' : 'bold',
-        'size'   : 18
-    }
 
-    matplotlib.rc('font', **font)
+    font = {"weight": "bold", "size": 20}
+
+    matplotlib.rc("font", **font)
 
     fig_app, axs_app = plt.subplots(1, 2)
     plotter = Plotter()
     call_application_classes: List[CallApplicationClassData] = (
         plotter.process_call_application_classes(
-            [""], "benchmarks/results/vmil_tests3/", True
+            [""], "benchmarks/results/vmil_tests4/", True
         )
     )
     mem_application_classes: List[MemoryApplicationClassData] = (
         plotter.process_mem_application_classes(
-            [""], "benchmarks/results/vmil_tests3/", True
+            [""], "benchmarks/results/vmil_tests4/", True
         )
     )
     plotter.plot_call_application_classes(axs_app[0], call_application_classes)
@@ -479,8 +476,12 @@ if __name__ == "__main__":
 
     # fig_calls, axs_calls = plt.subplots(2, 3)
     # plotter.plot_call_nb_cycles(axs_calls[0, 0], call_application_classes, "low")
-    # plotter.plot_call_nb_cycles(axs_calls[0, 1], call_application_classes, "medium", shift=1)
-    # plotter.plot_call_nb_cycles(axs_calls[0, 2], call_application_classes, "high", shift=2)
+    # plotter.plot_call_nb_cycles(
+    #     axs_calls[0, 1], call_application_classes, "medium", shift=1
+    # )
+    # plotter.plot_call_nb_cycles(
+    #     axs_calls[0, 2], call_application_classes, "high", shift=2
+    # )
 
     # plotter.plot_call_cpis(axs_calls[1, 0], call_application_classes, "low")
     # plotter.plot_call_cpis(axs_calls[1, 1], call_application_classes, "medium")
