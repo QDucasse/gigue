@@ -101,14 +101,14 @@ class Parser(argparse.ArgumentParser):
         self.add_argument(
             "-vm",
             "--varmeth",
-            type=int,
+            type=float,
             default=0.2,
             help="Mean variation of method length variation",
         )
         self.add_argument(
             "-vs",
             "--stdevmeth",
-            type=int,
+            type=float,
             default=0.1,
             help="Mean standard deviation of method length variation",
         )
