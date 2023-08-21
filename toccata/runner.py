@@ -7,7 +7,20 @@ import shutil
 import subprocess
 from typing import List, Mapping, Tuple, Type
 
-from benchmarks.data import (
+from gigue.constants import INSTRUCTIONS_INFO, InstructionInfo
+from gigue.exceptions import BuilderException, GeneratorException, MethodException
+from gigue.fixer.fixer_constants import FIXER_INSTRUCTIONS_INFO
+from gigue.fixer.fixer_generator import FIXERTrampolineGenerator
+from gigue.generator import Generator, TrampolineGenerator
+from gigue.helpers import mean
+from gigue.method import Method
+from gigue.pic import PIC
+from gigue.rimi.rimi_constants import RIMI_INSTRUCTIONS_INFO
+from gigue.rimi.rimi_generator import (
+    RIMIFullTrampolineGenerator,
+    RIMIShadowStackTrampolineGenerator,
+)
+from toccata.data import (
     CompilationData,
     ConfigData,
     ConsolidationData,
@@ -24,32 +37,19 @@ from benchmarks.data import (
     default_instr_class_data,
     default_instr_type_data,
 )
-from benchmarks.exceptions import (
+from toccata.exceptions import (
     EnvironmentException,
     UnknownIsolationSolutionException,
 )
-from benchmarks.parser import LogParser
-from gigue.constants import INSTRUCTIONS_INFO, InstructionInfo
-from gigue.exceptions import BuilderException, GeneratorException, MethodException
-from gigue.fixer.fixer_constants import FIXER_INSTRUCTIONS_INFO
-from gigue.fixer.fixer_generator import FIXERTrampolineGenerator
-from gigue.generator import Generator, TrampolineGenerator
-from gigue.helpers import mean
-from gigue.method import Method
-from gigue.pic import PIC
-from gigue.rimi.rimi_constants import RIMI_INSTRUCTIONS_INFO
-from gigue.rimi.rimi_generator import (
-    RIMIFullTrampolineGenerator,
-    RIMIShadowStackTrampolineGenerator,
-)
+from toccata.parser import LogParser
 
 logger = logging.getLogger("gigue")
 
 
 class Runner:
     # Directories
-    RESULTS_DIR: str = "benchmarks/results/"
-    CONFIG_DIR: str = "benchmarks/config/"
+    RESULTS_DIR: str = "toccata/results/"
+    CONFIG_DIR: str = "toccata/config/"
     BIN_DIR: str = "bin/"
     LOG_DIR: str = "log/"
     # Files

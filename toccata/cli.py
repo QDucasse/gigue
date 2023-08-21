@@ -3,16 +3,16 @@ Module that contains the command line app.
 
 Why does this file exist, and why not put this in __main__?
 
-  You might be tempted to import things from __main__ later, but that will cause
-  problems: the code will get executed twice:
+You might be tempted to import things from __main__ later, but that will cause
+problems: the code will get executed twice:
 
-  - When you run `python -m gigue` python will execute
-    ``__main__.py`` as a script. That means there won't be any
-    ``gigue.__main__`` in ``sys.modules``.
-  - When you import __main__ it will get executed again (as a module) because
-    there's no ``gigue.__main__`` in ``sys.modules``.
+- When you run `python -m gigue` python will execute
+``__main__.py`` as a script. That means there won't be any
+``gigue.__main__`` in ``sys.modules``.
+- When you import __main__ it will get executed again (as a module) because
+there's no ``gigue.__main__`` in ``sys.modules``.
 
-  Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
+Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 
 
@@ -23,7 +23,8 @@ import os
 import sys
 from typing import List, Optional
 
-from benchmarks.data import (
+from gigue.helpers import bytes_to_int
+from toccata.data import (
     CompilationData,
     ConfigData,
     ConsolidationData,
@@ -33,11 +34,10 @@ from benchmarks.data import (
     JITElementsData,
     RunData,
 )
-from benchmarks.exceptions import IncorrectSeedsNumberException
-from benchmarks.runner import Runner
-from gigue.helpers import bytes_to_int
+from toccata.exceptions import IncorrectSeedsNumberException
+from toccata.runner import Runner
 
-logger = logging.getLogger("benchmarks")
+logger = logging.getLogger("tocatta")
 logger.setLevel(logging.INFO)
 
 nb_methods = {
@@ -90,7 +90,7 @@ def apply_fields_to_conf(fields, config: ConfigData):
 
 class Parser(argparse.ArgumentParser):
     def __init__(self):
-        super(Parser, self).__init__(description="Beniguet, gigue benchmark runner")
+        super(Parser, self).__init__(description="Toccata, benchmark runner")
         self.add_parse_arguments()
 
     def add_parse_arguments(self):

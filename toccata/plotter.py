@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Callable, List, Optional
 
 import matplotlib.pyplot as plt
 
-from benchmarks.data import (
+from gigue.helpers import mean
+from toccata.data import (
     CallApplicationClassData,
     EmulationData,
     FullData,
@@ -15,7 +16,6 @@ from benchmarks.data import (
     RunData,
     TracingData,
 )
-from gigue.helpers import mean
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes

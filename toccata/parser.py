@@ -2,7 +2,8 @@ import logging
 import re
 from typing import List, Mapping, Tuple
 
-from benchmarks.data import (
+from gigue.constants import InstructionInfo
+from toccata.data import (
     DumpData,
     EmulationData,
     InstrClassData,
@@ -11,7 +12,6 @@ from benchmarks.data import (
     default_instr_class_data,
     default_instr_type_data,
 )
-from gigue.constants import InstructionInfo
 
 logger = logging.getLogger(__name__)
 

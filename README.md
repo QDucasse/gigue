@@ -104,16 +104,35 @@ The [`Makefile`](https://github.com/QDucasse/gigue/blob/main/Makefile) then prov
   4. generates the dump of both the generated `gigue` binary alone (obtained by "forcing" a conversion using `obj-copy` before `obj-dump`) and the linked binary
 - `make exec` runs the binary on top of the rocket emulator, default configuration is `DefaultConfig` but can be specified with *e.g.* `ROCKET_CONFIG=DefaultSmallConfig` and maximum test cycles with `ROCKET_MAX_CYCLES=10000000`.
 
+
+For binaries, several templates are available that define additional subroutines for the binary. Among them:
+
+- `base`: both sides of the JIT generation (interpreter and binary) along with a `.data` section
+- `pmp`: `base` + a PMP config and setup
+- `rimi`: `pmp` + DMP config and setup
+- `unit`: includes unit tests examples as defined in `benchmarks/rocket_helper.py` 
+- `unitrimi`: `unit` + PMP/DMP setup
+
+By default, the template selected for Gigue is `base`/`rimi` and `unit`/`unitrimi` for unit tests. The template can be specified explicitely with for example:
+
+```bash
+make TEMPLATE=base
+```
+
+It is expecting the corresponding binaries (`int.bin`/`jit.bin` for base templates and `unit.bin` for unit tests).
+
+
+
 ### Running Benchmarks
 
-Gigue provides another CLI to generate, run and qualify binaries. All scripts are defined in the [`benchmarks`](https://github.com/QDucasse/gigue/blob/main/benchmarks) section with the description of the data structures in [`data.py`](https://github.com/QDucasse/gigue/blob/main/benchmarks/data.py) and the main element, [`runner.py`](https://github.com/QDucasse/gigue/blob/main/benchmarks/runner.py). 
+Gigue provides another CLI to generate, run and qualify binaries named Toccata. All scripts are defined in the [`toccata`](https://github.com/QDucasse/gigue/blob/main/toccata) section with the description of the data structures in [`data.py`](https://github.com/QDucasse/gigue/blob/main/toccata/data.py) and the main element, [`runner.py`](https://github.com/QDucasse/gigue/blob/main/toccata/runner.py). 
 
 The runner will (1) generate a binary, (2) compile it, and (3) run it on the Rocket emulator. The CLI provides two ways of qualifying a runner configuration: 
 - (1) using a `json` config and providing it with: 
 ```bash
-python -m benchmarks config <your_file>.json
+python -m toccata config <your_file>.json
 ```
-When using this method, a configuration file can be derived from the base one as defined in [`base_config.json`](https://github.com/QDucasse/gigue/blob/main/benchmarks/config/base_config.json):
+When using this method, a configuration file can be derived from the base one as defined in [`base_config.json`](https://github.com/QDucasse/gigue/blob/main/toccata/config/base_config.json):
 
 ```json
 {
@@ -151,9 +170,9 @@ It involves the same arguments as the ones the gigue CLI uses and more metadata 
 
 - (2) using presets as defined in the CLI:
 ```bash
-python -m benchmarks param -n low -c high --isolation rimifull
+python -m toccata param -n low -c high --isolation rimifull
 ```
-The following parameters are accessible (seen with `python -m benchmarks param -h`):
+The following parameters are accessible (seen with `python -m toccata param -h`):
 - `-r` the number of runs for a similar config
 - `-n` the number of methods (low/medium/high)
 - `-c` the call occupations (low/medium/high)
@@ -174,7 +193,7 @@ For each method, the following actions are performed:
 3. generates the binary according to the input parameters,
 4. parses the `elf` dump to extract the start address, end address and return address,
 5. runs the binary on top of Rocket and extracts the number of cycles needed to run the binary,
-6. stores the dumps and rocket logs for each run in the corresponding `benchmarks/results/<config_name>_<datetime>/<run_nb>` directory and the `data.json` in the parent directory.
+6. stores the dumps and rocket logs for each run in the corresponding `toccata/results/<config_name>_<datetime>/<run_nb>` directory and the `data.json` in the parent directory.
 
 > *Note:* each step contains a `<step>_ok` parameter that ensures the process went correctly (but does not stop the benchmark altogether).
 
