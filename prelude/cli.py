@@ -63,8 +63,7 @@ class Parser(argparse.ArgumentParser):
             default="",
             help=(
                 "Instruction to generate a unit test of, e.g. lb1, lh1, ... and special"
-                " cases 'all' to generate all binary unit tests separately or 'concat'"
-                " to generate concatenated"
+                " cases 'all' to generate all binary unit tests separately"
             ),
         )
 

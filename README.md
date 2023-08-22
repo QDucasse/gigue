@@ -45,11 +45,11 @@ pipenv install
 pipenv shell
 ```
 
-## CLI and Usage
+## Gigue: CLI and Usage
 
-Gigue provides two different CLIs: one to generate one binary (and facilities to execute it) and another to generate several binaries, run them and extract information from the logs.
+Gigue supports three different usages and their corresponding CLIs: **Gigue** itself to generate one binary (and facilities to execute it), **Toccata** to generate several binaries, run them and extract information from the logs, and **Prelude** to display helper infos to implement custom instructions for toolchains/processors and generate minimal binaries containing these instructions.
 
-### Binary Generation and Execution
+### Gigue: Binary Generation and Execution
 
 The binary generator CLI and its main arguments are the following (others are defined in [`gigue/cli.py`](https://github.com/QDucasse/gigue/blob/main/gigue/cli.py)):
 ```bash
@@ -99,7 +99,7 @@ To install the dependencies, follow this [guide](https://qducasse.github.io/post
 The [`Makefile`](https://github.com/QDucasse/gigue/blob/main/Makefile) then provides several commands:
 - `make dump`: (default) generates the executable binary and the different dumps
   1. compiles the different bare OS helpers (in [`resources/common`](https://github.com/QDucasse/gigue/blob/main/resources/)).
-  2. compiles the `gigue` binary using a template from [templates](https://github.com/QDucasse/gigue/blob/main/resources/templates)that loads `out.bin`, loads data address in a register, and puts the data right after. The templates vary to provide ways to set up security modules (PMP), or relax the structure for instruction unit tests.
+  2. compiles the `gigue` binary using a template from [templates](https://github.com/QDucasse/gigue/blob/main/resources/templates)that loads `out.bin`, loads data address in a register, and puts the data right after. The templates vary to provide ways to set up security modules (PMP), or relax the structure for instruction unit tests. This template can be specified using `TEMPLATE=<template_name>` (presented below).
   3. links them all together using a slightly modified [linker script](https://github.com/QDucasse/gigue/blob/main/resources/test.ld) than the one provided in the Rocket tests suite to generate an `elf` file
   4. generates the dump of both the generated `gigue` binary alone (obtained by "forcing" a conversion using `obj-copy` before `obj-dump`) and the linked binary
 - `make exec` runs the binary on top of the rocket emulator, default configuration is `DefaultConfig` but can be specified with *e.g.* `ROCKET_CONFIG=DefaultSmallConfig` and maximum test cycles with `ROCKET_MAX_CYCLES=10000000`.
@@ -123,7 +123,7 @@ It is expecting the corresponding binaries (`int.bin`/`jit.bin` for base templat
 
 
 
-### Running Benchmarks
+### Toccata: Running Benchmarks
 
 Gigue provides another CLI to generate, run and qualify binaries named Toccata. All scripts are defined in the [`toccata`](https://github.com/QDucasse/gigue/blob/main/toccata) section with the description of the data structures in [`data.py`](https://github.com/QDucasse/gigue/blob/main/toccata/data.py) and the main element, [`runner.py`](https://github.com/QDucasse/gigue/blob/main/toccata/runner.py). 
 
@@ -196,6 +196,47 @@ For each method, the following actions are performed:
 6. stores the dumps and rocket logs for each run in the corresponding `toccata/results/<config_name>_<datetime>/<run_nb>` directory and the `data.json` in the parent directory.
 
 > *Note:* each step contains a `<step>_ok` parameter that ensures the process went correctly (but does not stop the benchmark altogether).
+
+### Prelude: Helper and Minimal Binaries
+
+Prelude provides simple helpers to display the changes needed to integrate custom instructions in well-known cores/toolchains. The helper functions available are `rocket` and `gnu`, and can be accessed using:
+
+```bash
+python -m prelude helper <helper_name>
+```
+
+Prelude also generates binaries with a minimal number of instructions to unit test custom instructions. Each new instruction is defined with an example (list of instructions) inside a tutorial. For example:
+
+```python
+RIMI_TUTORIAL: Tutorial = Tutorial(
+    examples=[
+        # ==========================
+        # load/stores:
+        #    add value to check
+        #    store value
+        #    load value back
+        # ==========================
+        InstructionExample(
+            ["lb1", "sb1"],
+            [
+                IInstruction.addi(rd=10, rs1=0, imm=0x12),
+                RIMISInstruction.sb1(rs1=31, rs2=10, imm=0),
+                RIMIIInstruction.lb1(rd=11, rs1=31, imm=0),
+            ],
+        ),
+        ...
+    ]
+)
+```
+
+The same example is used for `lb1` and `sb1` as they load/store a value! The corresponding binary is generated using:
+
+```bash
+python -m prelude instr lb1 -t unit
+```
+
+> Note: `-t` chooses the template for the binary generation as presented earlier.
+
 
 ## Gigue code structure
 
