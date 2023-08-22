@@ -139,7 +139,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                 bytes_instr = RIMI_TUTORIAL.example_binary_for(instr_name)
                 file.write(bytes_instr)
             subprocess.run(
-                ["make", "unitdump", "TEMPLATE=unitrimi"], timeout=10, check=True
+                ["make", "unitdump", f"TEMPLATE={args.template}"],
+                timeout=10,
+                check=True,
             )
             # Copy the resulting elf
             base_dir = f"{BIN_DIR}/unit"

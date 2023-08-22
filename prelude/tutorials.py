@@ -21,7 +21,6 @@ class Tutorial:
 
     def example_for(self, instr_name: str) -> List[Instruction]:
         for example in self.examples:
-            print(example.keys)
             if instr_name in example.keys:
                 return example.instructions
         msg = f"No example were found for key {instr_name}."
