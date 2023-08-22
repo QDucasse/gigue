@@ -1,6 +1,6 @@
 # Logs
 log/
-benchmarks/results/
+toccata/results/
 
 *.py[cod]
 __pycache__

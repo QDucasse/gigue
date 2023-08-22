@@ -38,13 +38,13 @@ msg "Starting benchmarks!"
 for meth_val in $values; do
     for call_val in $values; do
         msg "${GREEN}$meth_val methods${NOFORMAT} / ${ORANGE} $call_val call occupation${NOFORMAT}" 
-        python -m benchmarks param -n $meth_val -c $call_val -r ${RUN}
+        python -m tocatta param -n $meth_val -c $call_val -r ${RUN}
     done
 done
 
 for meth_val in $values; do
     for mem_val in $values; do
         msg "${GREEN}$meth_val methods${NOFORMAT} / ${ORANGE} $mem_val memory access${NOFORMAT}" 
-        python -m benchmarks param -n $meth_val -m $mem_val -r ${RUN}
+        python -m tocatta param -n $meth_val -m $mem_val -r ${RUN}
     done
 done
