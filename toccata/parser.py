@@ -1,5 +1,6 @@
 import logging
 import re
+from collections import Counter
 from typing import List, Mapping, Tuple
 
 from gigue.constants import InstructionInfo
@@ -105,27 +106,40 @@ class LogParser:
 
         if emulation_ok == 1:
             # Instr type
-            executed_instrs_type = [
+            executed_instrs_type: List[str] = [
                 instructions_info[instr].instr_type for instr in executed_instructions
             ]
-            # TODO: Cursed
-            instrs_type = {
-                instr_type: instrs_type.get(instr_type, 0) + executed_instrs_type.count(
-                    instr_type
-                )
-                for instr_type in executed_instrs_type
-            }  # type: ignore
+
+            instrs_type_counter = Counter(executed_instrs_type)
+            for key, val in instrs_type_counter.items():
+                try:
+                    instrs_type[key] = val  # type: ignore
+                except KeyError as err:
+                    logger.exception(err)
+                    logger.exception(
+                        "This type of instruction is not defined in the available ones,"
+                        " see InstrTypeData."
+                    )
+                raise
+
             # Instr class
-            executed_instrs_class = [
+            executed_instrs_class: List[str] = [
                 instructions_info[instr].instr_class for instr in executed_instructions
             ]
-            # TODO: Cursed
-            instrs_class = {
-                instr_class: instrs_class.get(
-                    instr_class, 0
-                ) + executed_instrs_class.count(instr_class)
-                for instr_class in executed_instrs_class
-            }  # type: ignore
+
+            instrs_class_counter = Counter(executed_instrs_class)
+            for key, val in instrs_class_counter.items():
+                try:
+                    instrs_class[key] = val  # type: ignore
+                except KeyError as err:
+                    logger.exception(err)
+                    logger.exception(
+                        "This class of instruction is not defined in the available"
+                        " ones, see InstrClassData."
+                    )
+                raise
+
+            # Tracing went ok
             tracing_ok = 1
 
         # If the emulation wasnt ok, simply pass the default values
@@ -138,8 +152,6 @@ class LogParser:
 
         if verbose:
             print("Executed instructions:")
-            from collections import Counter
-
             print(Counter(executed_instructions))
         # Format output data
         emulation_info: EmulationData = {

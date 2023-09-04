@@ -85,7 +85,15 @@ mem_access = {
 
 def apply_fields_to_conf(fields, config: ConfigData):
     for field, value in fields.items():
-        config["input_data"][field] = value
+        try:
+            config["input_data"][field] = value  # type: ignore
+        except KeyError as err:
+            logger.exception(err)
+            logger.exception(
+                "This class of instruction is not defined in the available ones,"
+                " see InstrClassData."
+            )
+        raise
 
 
 class Parser(argparse.ArgumentParser):

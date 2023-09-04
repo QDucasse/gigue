@@ -233,8 +233,8 @@ def test_build_epilogue(used_s_regs, local_var_nb, contains_call, disasm_setup):
     )
     # Jump check
     assert instrs[-1].name == "jalr"
-    assert instrs[-1].rd == 0
-    assert instrs[-1].rs1 == RA
+    assert disasm.extract_rd(instrs[-1].generate()) == 0
+    assert disasm.extract_rs1(instrs[-1].generate()) == RA
 
 
 # Trampolines

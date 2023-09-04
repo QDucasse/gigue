@@ -101,8 +101,8 @@ def test_build_ss_epilogue(used_s_regs, local_var_nb, contains_call, rimi_disasm
         assert rimi_disasm.extract_rd(instrs[-2].generate()) == RIMI_SSP_REG
     # Ret check
     assert instrs[-1].name == "jalr"
-    assert instrs[-1].rd == 0
-    assert instrs[-1].rs1 == RA
+    assert rimi_disasm.extract_rd(instrs[-1].generate()) == 0
+    assert rimi_disasm.extract_rs1(instrs[-1].generate()) == RA
 
 
 # Trampoline version
