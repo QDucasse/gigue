@@ -1,14 +1,24 @@
 import logging
-from typing import Dict, List
+from typing import Dict, List, Set
 
-from gigue.constants import InstructionInfo
+from gigue.constants import OPCODES_NAMES, InstructionInfo
+from gigue.rimi.rimi_constants import OPCODES_NAMES_RIMI
 
 logger = logging.getLogger("prelude")
+
+ALL_OPCODES_NAMES: Dict[int, str] = OPCODES_NAMES | OPCODES_NAMES_RIMI
+
+# Base Helper
+# \____________
 
 
 class Helper:
     def get_output(self, *args, **kwargs):
         raise NotImplementedError("Please implement this method in your helper")
+
+
+# GNU Helper
+# \___________
 
 
 class GNUHelper(Helper):
@@ -80,9 +90,13 @@ class GNUHelper(Helper):
         )
 
 
+# Rocket Helper
+# \______________
+
+
 class RocketHelper(Helper):
     @staticmethod
-    def rocket_display(instr_info: InstructionInfo) -> str:
+    def get_bitpats(instr_info: InstructionInfo) -> str:
         cmp_mask: str = format(instr_info.cmp_mask, "#034b")
         cmp_val: str = format(instr_info.cmp_val, "#034b")
         rocket_bin = "b"
@@ -91,7 +105,7 @@ class RocketHelper(Helper):
                 rocket_bin += "?"
             else:
                 rocket_bin += cmp_val[bit]
-        return rocket_bin
+        return f'def {instr_info.name.upper(): <19}= BitPat("{rocket_bin}")'
 
     def get_output(
         self, instr_names: List[str], instrs_info: Dict[str, InstructionInfo]
@@ -99,9 +113,37 @@ class RocketHelper(Helper):
         bitpats = ""
         for instr_name in instr_names:
             instr_info: InstructionInfo = instrs_info[instr_name]
-            bitpats += (
-                f'def {instr_name.upper(): <19}= BitPat("'
-                f'{self.rocket_display(instr_info)}")'
-                + "\n"
-            )
+            bitpats += self.get_bitpats(instr_info) + "\n"
         return f"# Include in: rocket/scala/rocket/Instruction.scala\n{bitpats}"
+
+
+# CVA6 Helper
+# \____________
+
+
+class CVA6Helper(Helper):
+    @staticmethod
+    def get_opcode(instr_info: InstructionInfo) -> str:
+        opcode: str = format(instr_info.opcode, "#09b")
+        return (
+            f"localparam {ALL_OPCODES_NAMES[instr_info.opcode]:<16}="
+            f" 7'b{opcode[2:4]}_{opcode[4:7]}_{opcode[7:9]}"
+        )
+
+    def get_output(
+        self, instr_names: List[str], instrs_info: Dict[str, InstructionInfo]
+    ) -> str:
+        met_opcodes: Set[str] = set()
+        names: str = ""
+        opcodes: str = ""
+        for instr_name in instr_names:
+            instr_info: InstructionInfo = instrs_info[instr_name]
+            instr_opcode: str = bin(instr_info.opcode)
+            if instr_opcode not in met_opcodes:
+                met_opcodes.add(instr_opcode)
+                opcodes += f"{self.get_opcode(instr_info)}" + "\n"
+            names += f"{instr_name.upper()}, "
+        return (
+            f"# Include in: cva6/core/ariane_pkg.sv:fu_op\n{names}\n"
+            f"# Include in: cva6/core/include/riscv_pkg.sv\n{opcodes}\n"
+        )

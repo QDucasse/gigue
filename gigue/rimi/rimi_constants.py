@@ -5,6 +5,20 @@ from gigue.constants import OPCODE_FUNC3_MASK, InstructionInfo
 RIMI_SSP_REG: int = 28  # t3
 SHADOW_STACK_SIZE: int = 100 * 8
 
+
+OPCODES_RIMI: Dict[str, int] = {
+    "OP_LOAD1": 0b0011111,
+    "OP_LOADSS": 0b0001111,
+    "OP_STORE1": 0b0111111,
+    "OP_STORESS": 0b0111011,
+    "OP_CHDOM": 0b1110111,
+    "OP_RETDOM": 0b1111111,
+}
+
+OPCODES_NAMES_RIMI: Dict[int, str] = dict(
+    (value, key) for (key, value) in OPCODES_RIMI.items()
+)
+
 RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     # Rules to choose opcodes:
     # - loads:       All op7 are changed from 0b0000011 > 0b0011111 | mask 0b0011100
@@ -15,7 +29,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     # Duplicated loads
     "lb1": InstructionInfo(
         name="lb1",
-        opcode=0b0011111,
+        opcode=OPCODES_RIMI["OP_LOAD1"],
         funct3=0b000,
         instr_type="I",
         instr_class="memory",
@@ -23,7 +37,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "lbu1": InstructionInfo(
         name="lbu1",
-        opcode=0b0011111,
+        opcode=OPCODES_RIMI["OP_LOAD1"],
         funct3=0b100,
         instr_type="I",
         instr_class="memory",
@@ -31,7 +45,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "lh1": InstructionInfo(
         name="lh1",
-        opcode=0b0011111,
+        opcode=OPCODES_RIMI["OP_LOAD1"],
         funct3=0b001,
         instr_type="I",
         instr_class="memory",
@@ -39,7 +53,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "lhu1": InstructionInfo(
         name="lhu1",
-        opcode=0b0011111,
+        opcode=OPCODES_RIMI["OP_LOAD1"],
         funct3=0b101,
         instr_type="I",
         instr_class="memory",
@@ -47,7 +61,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "lw1": InstructionInfo(
         name="lw1",
-        opcode=0b0011111,
+        opcode=OPCODES_RIMI["OP_LOAD1"],
         funct3=0b010,
         instr_type="I",
         instr_class="memory",
@@ -55,7 +69,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "lwu1": InstructionInfo(
         name="lwu1",
-        opcode=0b0011111,
+        opcode=OPCODES_RIMI["OP_LOAD1"],
         funct3=0b110,
         instr_type="I",
         instr_class="memory",
@@ -63,7 +77,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "ld1": InstructionInfo(
         name="ld1",
-        opcode=0b0011111,
+        opcode=OPCODES_RIMI["OP_LOAD1"],
         funct3=0b011,
         instr_type="I",
         instr_class="memory",
@@ -72,7 +86,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     # Duplicated stores
     "sb1": InstructionInfo(
         name="sb1",
-        opcode=0b0111111,
+        opcode=OPCODES_RIMI["OP_STORE1"],
         funct3=0b000,
         instr_type="S",
         instr_class="memory",
@@ -80,7 +94,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "sh1": InstructionInfo(
         name="sh1",
-        opcode=0b0111111,
+        opcode=OPCODES_RIMI["OP_STORE1"],
         funct3=0b001,
         instr_type="S",
         instr_class="memory",
@@ -88,7 +102,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "sw1": InstructionInfo(
         name="sw1",
-        opcode=0b0111111,
+        opcode=OPCODES_RIMI["OP_STORE1"],
         funct3=0b010,
         instr_type="S",
         instr_class="memory",
@@ -96,7 +110,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "sd1": InstructionInfo(
         name="sd1",
-        opcode=0b0111111,
+        opcode=OPCODES_RIMI["OP_STORE1"],
         funct3=0b011,
         instr_type="S",
         instr_class="memory",
@@ -105,7 +119,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     # Domain switching routines
     "chdom": InstructionInfo(
         name="chdom",
-        opcode=0b1110111,
+        opcode=OPCODES_RIMI["OP_CHDOM"],
         funct3=0b000,
         instr_type="I",
         instr_class="branching",
@@ -113,7 +127,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "retdom": InstructionInfo(
         name="retdom",
-        opcode=0b1111111,
+        opcode=OPCODES_RIMI["OP_RETDOM"],
         funct3=0b000,
         instr_type="I",
         instr_class="branching",
@@ -122,7 +136,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     # Shadow stack instructions
     "ss": InstructionInfo(
         name="ss",
-        opcode=0b0001111,
+        opcode=OPCODES_RIMI["OP_STORESS"],
         funct3=0b011,
         instr_type="S",
         instr_class="memory",
@@ -130,7 +144,7 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "ls": InstructionInfo(
         name="ls",
-        opcode=0b0111011,
+        opcode=OPCODES_RIMI["OP_LOADSS"],
         funct3=0b011,
         instr_type="I",
         instr_class="memory",

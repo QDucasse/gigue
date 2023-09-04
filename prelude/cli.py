@@ -28,7 +28,7 @@ from gigue.constants import BIN_DIR
 from gigue.dataminer import Dataminer
 from gigue.rimi.rimi_constants import RIMI_INSTRUCTIONS_INFO
 from prelude.exceptions import MissingHelperException
-from prelude.proc_helper import GNUHelper, Helper, RocketHelper
+from prelude.proc_helper import CVA6Helper, GNUHelper, Helper, RocketHelper
 from prelude.tutorials import RIMI_TUTORIAL
 
 logger = logging.getLogger("prelude")
@@ -98,6 +98,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.helper == "rocket":
             logger.info("Displaying Rocket help...")
             printer = RocketHelper()
+        elif args.helper == "cva6":
+            logger.info("Displaying CVA6 help...")
+            printer = CVA6Helper()
         elif args.helper == "gnu":
             logger.info("Displaying GNU toolchain help...")
             printer = GNUHelper()

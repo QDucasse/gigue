@@ -1,7 +1,5 @@
 """
-Entrypoint module, in case you use `python -m toccata`.
-
-
+Entrypoint module, in case you use `python -m prelude`.
 Why does this file exist, and why __main__? For more info, read:
 
 - https://www.python.org/dev/peps/pep-0338/
