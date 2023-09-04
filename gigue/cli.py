@@ -19,7 +19,7 @@ import logging
 import os
 import random
 import sys
-from typing import Type
+from typing import List, Optional, Type
 
 from gigue.constants import BIN_DIR, CALLER_SAVED_REG
 from gigue.exceptions import GeneratorException
@@ -201,11 +201,11 @@ class Parser(argparse.ArgumentParser):
             help="Name of the binary data file",
         )
 
-    def parse(self, args):
+    def parse(self, args: List[str]) -> argparse.Namespace:
         return self.parse_args(args)
 
 
-def main(argv=None):
+def main(argv: Optional[List[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
 
