@@ -27,7 +27,7 @@ ROT_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     # Immediate rotations
     "rori": InstructionInfo(
         name="rori",
-        opcode=OPCODES["OP_IMM"],
+        opcode=OPCODES["OP_OP_IMM"],
         funct3=0b101,
         funct7=0b011000,
         instr_type="I",
