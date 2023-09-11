@@ -141,9 +141,7 @@ class CustomInstructionInfo(InstructionInfo):
         self,
         name: str,
         custom_nb: int,
-        xd: int = 0,
-        xs1: int = 0,
-        xs2: int = 0,
+        funct3: int,
         funct7: int = 0,
         cmp_mask: int = OPCODE_FUNC3_FUNC7_MASK,
     ):
@@ -151,10 +149,6 @@ class CustomInstructionInfo(InstructionInfo):
             "custom-" + str(custom_nb)
         ]
         opcode: int = custom_instr_info.opcode
-        funct3: int = (xd << 2) + (xs1 << 1) + xs2
-        self.xd: int = xd
-        self.xs1: int = xs1
-        self.xs2: int = xs2
         instr_type: str = custom_instr_info.instr_type
         instr_class: str = custom_instr_info.instr_class
         super().__init__(
@@ -163,6 +157,30 @@ class CustomInstructionInfo(InstructionInfo):
             funct3=funct3,
             instr_type=instr_type,
             instr_class=instr_class,
+            funct7=funct7,
+            cmp_mask=cmp_mask,
+        )
+
+
+class RoCCCustomInstructionInfo(CustomInstructionInfo):
+    def __init__(
+        self,
+        name: str,
+        custom_nb: int,
+        xd: int = 0,
+        xs1: int = 0,
+        xs2: int = 0,
+        funct7: int = 0,
+        cmp_mask: int = OPCODE_FUNC3_FUNC7_MASK,
+    ):
+        funct3: int = (xd << 2) + (xs1 << 1) + xs2
+        self.xd: int = xd
+        self.xs1: int = xs1
+        self.xs2: int = xs2
+        super().__init__(
+            name=name,
+            custom_nb=custom_nb,
+            funct3=funct3,
             funct7=funct7,
             cmp_mask=cmp_mask,
         )
@@ -668,7 +686,7 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
     ),
     "custom-2": InstructionInfo(
         name="custom-2",
-        opcode=0b1011011,
+        opcode=OPCODES["OP_CUSTOM2"],
         funct3=0b000,
         instr_type="R",
         instr_class="custom",

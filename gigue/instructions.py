@@ -3,7 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Dict, List
 
-from gigue.constants import INSTRUCTIONS_INFO, CustomInstructionInfo
+from gigue.constants import (
+    INSTRUCTIONS_INFO,
+    RoCCCustomInstructionInfo,
+)
 from gigue.helpers import format_to, format_to_aligned, int_to_bytes32, to_unsigned
 
 # Note: Annotate with current typesss
@@ -164,9 +167,9 @@ class RInstruction(Instruction):
         return cls.r_instr("xor", rd, rs1, rs2)
 
 
-class CustomInstruction(RInstruction):
+class RoCCCustomInstruction(RInstruction):
     # The instructions info are not known this time and should be provided
-    CUSTOM_INSTRUCTIONS_INFO: Dict[str, CustomInstructionInfo] = {}
+    CUSTOM_INSTRUCTIONS_INFO: Dict[str, RoCCCustomInstructionInfo] = {}
 
     def __init__(self, name: str, xd: int, xs1: int, xs2: int, *args, **kwargs):
         self.xd = format_to(xd, 1)
@@ -177,9 +180,9 @@ class CustomInstruction(RInstruction):
         # Note: Type ignore due to star
 
     @classmethod
-    def custom_instr(cls, name, rd, rs1, rs2) -> CustomInstruction:
+    def custom_instr(cls, name, rd, rs1, rs2) -> RoCCCustomInstruction:
         try:
-            custom_instr_info: CustomInstructionInfo = cls.CUSTOM_INSTRUCTIONS_INFO[
+            custom_instr_info: RoCCCustomInstructionInfo = cls.CUSTOM_INSTRUCTIONS_INFO[
                 name
             ]
         except KeyError as err:
