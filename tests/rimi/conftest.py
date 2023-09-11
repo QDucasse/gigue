@@ -387,7 +387,8 @@ class RIMIHandler(Handler):
 
 @pytest.fixture
 def rimi_disasm_setup():
-    disassembler = Disassembler(INSTRUCTIONS_INFO | RIMI_INSTRUCTIONS_INFO)
+    # FIXME: Merging dicts with the RIMI info first
+    disassembler = Disassembler(RIMI_INSTRUCTIONS_INFO | INSTRUCTIONS_INFO)
     return disassembler
 
 

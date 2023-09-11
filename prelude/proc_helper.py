@@ -2,11 +2,12 @@ import logging
 from typing import Dict, List, Set
 
 from gigue.constants import OPCODES_NAMES, InstructionInfo
-from gigue.rimi.rimi_constants import OPCODES_NAMES_RIMI
 
 logger = logging.getLogger("prelude")
 
-ALL_OPCODES_NAMES: Dict[int, str] = OPCODES_NAMES | OPCODES_NAMES_RIMI
+
+# FIXME: meh..
+ALL_OPCODES_NAMES: Dict[int, str] = OPCODES_NAMES
 
 # Base Helper
 # \____________
