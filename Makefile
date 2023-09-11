@@ -74,7 +74,7 @@ $(bin_dir)/%.bin.dump: $(bin_dir)/%.bin
 # Verilator execution
 $(bin_dir)/out.corelog: $(bin_dir)/out.elf
 ifndef EMULATOR
-$(error Please set environment variable EMULATOR to the (compiled) verilator emulator of your core)
+	$(error Please set environment variable EMULATOR to the (compiled) verilator emulator of your core)
 endif
 	$(EMULATOR) +max-cycles=$(MAX_CYCLES) +verbose $< 3>&1 1>&2 2>&3 | $(RISCV)/bin/spike-dasm > $@
 
