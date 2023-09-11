@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 # Instruction Weights
 # \___________________
@@ -136,50 +136,32 @@ class ExceptionInstructionInfo(InstructionInfo):
         ) & self.cmp_mask
 
 
-class CustomInstructionInfo(InstructionInfo):
+class RoCCCustomInstructionInfo(InstructionInfo):
     def __init__(
         self,
         name: str,
-        custom_nb: int,
-        funct3: int,
-        funct7: int = 0,
-        cmp_mask: int = OPCODE_FUNC3_FUNC7_MASK,
-    ):
-        custom_instr_info: InstructionInfo = INSTRUCTIONS_INFO[
-            "custom-" + str(custom_nb)
-        ]
-        opcode: int = custom_instr_info.opcode
-        instr_type: str = custom_instr_info.instr_type
-        instr_class: str = custom_instr_info.instr_class
-        super().__init__(
-            name=name,
-            opcode=opcode,
-            funct3=funct3,
-            instr_type=instr_type,
-            instr_class=instr_class,
-            funct7=funct7,
-            cmp_mask=cmp_mask,
-        )
-
-
-class RoCCCustomInstructionInfo(CustomInstructionInfo):
-    def __init__(
-        self,
-        name: str,
-        custom_nb: int,
+        opcode: int,
+        instr_type: Optional[str] = None,
+        instr_class: Optional[str] = None,
         xd: int = 0,
         xs1: int = 0,
         xs2: int = 0,
         funct7: int = 0,
         cmp_mask: int = OPCODE_FUNC3_FUNC7_MASK,
     ):
+        if instr_type is None:
+            instr_type = "R"
+        if instr_class is None:
+            instr_class = "custom"
         funct3: int = (xd << 2) + (xs1 << 1) + xs2
         self.xd: int = xd
         self.xs1: int = xs1
         self.xs2: int = xs2
         super().__init__(
             name=name,
-            custom_nb=custom_nb,
+            opcode=opcode,
+            instr_type=instr_type,
+            instr_class=instr_class,
             funct3=funct3,
             funct7=funct7,
             cmp_mask=cmp_mask,
@@ -668,32 +650,32 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         cmp_mask=FULL_MASK,
     ),
     # Custom
-    "custom-0": InstructionInfo(
-        name="custom-0",
+    "custom0": InstructionInfo(
+        name="custom0",
         opcode=OPCODES["OP_CUSTOM0"],
         funct3=0b000,
         instr_type="R",
         instr_class="custom",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
-    "custom-1": InstructionInfo(
-        name="custom-1",
+    "custom1": InstructionInfo(
+        name="custom1",
         opcode=OPCODES["OP_CUSTOM1"],
         funct3=0b000,
         instr_type="R",
         instr_class="custom",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
-    "custom-2": InstructionInfo(
-        name="custom-2",
+    "custom2": InstructionInfo(
+        name="custom2",
         opcode=OPCODES["OP_CUSTOM2"],
         funct3=0b000,
         instr_type="R",
         instr_class="custom",
         cmp_mask=OPCODE_FUNC3_FUNC7_MASK,
     ),
-    "custom-3": InstructionInfo(
-        name="custom-3",
+    "custom3": InstructionInfo(
+        name="custom3",
         opcode=OPCODES["OP_CUSTOM3"],
         funct3=0b000,
         instr_type="R",

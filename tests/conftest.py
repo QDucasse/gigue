@@ -303,6 +303,12 @@ class Handler:
         try:
             # Extracts the instruction name
             instr_name = self.disasm.get_instruction_info(instr).name
+            if instr_name.startswith("custom"):
+                logger.warning(
+                    "Base custom instruction detected, maybe you would want to override"
+                    " them by concatenating dictionaries with the newer instructions"
+                    " first."
+                )
             # Compare it to the one expected (if needed)
             if isinstance(user_data, str):
                 logger.debug(f"Expecting {user_data}")

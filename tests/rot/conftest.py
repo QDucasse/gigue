@@ -41,7 +41,8 @@ class RotHandler(Handler):
 
 @pytest.fixture
 def fixer_disasm_setup():
-    disassembler = Disassembler(INSTRUCTIONS_INFO | ROT_INSTRUCTIONS_INFO)
+    # FIXME: Merging dicts with the ROT info first
+    disassembler = Disassembler(ROT_INSTRUCTIONS_INFO | INSTRUCTIONS_INFO)
     return disassembler
 
 
