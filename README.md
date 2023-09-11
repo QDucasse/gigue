@@ -4,7 +4,7 @@
 
 ---
 
-**Gigue** (*french for jitter*) consists of a machine code generator for RISC-V that mimics the execution of JIT code in concordance with an interpretation loop. The objective is to compare memory isolation memory on a simple model and easily (re-)generate the corresponding machine code parts for both the interpretation loop and JITed code. The base model generates an interpretation loop, a succession of calls to the JIT code. It generates a static binary with both binaries (interpretation loop and JIT elements) along with data the JIT elements use and basic OS facilities to run on top of the [Rocket CPU](https://github.com/chipsalliance/rocket-chip) (v1.5 version).
+**Gigue** (*french for jitter*) consists of a machine code generator for RISC-V that mimics the execution of JIT code in concordance with an interpretation loop. The objective is to compare memory isolation memory on a simple model and easily (re-)generate the corresponding machine code parts for both the interpretation loop and JITed code. The base model generates an interpretation loop, a succession of calls to the JIT code. It generates a static binary with both binaries (interpretation loop and JIT elements) along with data the JIT elements use and basic OS facilities to run on top of Verilator emulators from open-source cores (the [Rocket CPU](https://github.com/chipsalliance/rocket-chip) and [CVA6](https://github.com/openhwgroup/rocket-chip) were tested!).
 
 ## Installation
 
@@ -90,19 +90,17 @@ This generates the following files in the `bin/` directory:
  - `jit.bin`: raw machine code of the JIT code region
  - `data.bin`: raw machine code of the generated data (following the data generation strategy)
 
-To create a running executable, the environment variable `RISCV` should be defined to point to a working RISC-V toolchain (*e.g.:* `export RISCV="/opt/riscv-rocket"`), the instructions to setup the one defined by Rocket are [here](https://github.com/chipsalliance/rocket-chip#setting-up-the-riscv-environment-variable). 
+To create a running executable, the environment variable `RISCV` should be defined to point to a working RISC-V toolchain (*e.g.:* `export RISCV="/opt/riscv-newlib"`), the instructions to setup a toolchain can be found on the [`riscv-gnu-toolchain`` repo](https://github.com/riscv-collab/riscv-gnu-toolchain). 
 
-To run this executable, the environment variable `ROCKET` should be defined to point to the `rocket-chip` repository with a compiled emulator (*e.g.:* `export ROCKET="/path/to/rocket-chip"`). The instructions to compile the `emulator` are presented [here](https://github.com/chipsalliance/rocket-chip#building-the-project). 
-
-To install the dependencies, follow this [guide](https://qducasse.github.io/posts/2023-01-27-rocket_installation/)
+To run the executable on the [Verilator](https://www.veripool.org/verilator/) model of a core, the environment variable `EMULATOR` should be defined to point to the directory containing the compiled Verilator model. 
 
 The [`Makefile`](https://github.com/QDucasse/gigue/blob/main/Makefile) then provides several commands:
 - `make dump`: (default) generates the executable binary and the different dumps
   1. compiles the different bare OS helpers (in [`resources/common`](https://github.com/QDucasse/gigue/blob/main/resources/)).
   2. compiles the `gigue` binary using a template from [templates](https://github.com/QDucasse/gigue/blob/main/resources/templates)that loads `out.bin`, loads data address in a register, and puts the data right after. The templates vary to provide ways to set up security modules (PMP), or relax the structure for instruction unit tests. This template can be specified using `TEMPLATE=<template_name>` (presented below).
-  3. links them all together using a slightly modified [linker script](https://github.com/QDucasse/gigue/blob/main/resources/test.ld) than the one provided in the Rocket tests suite to generate an `elf` file
-  4. generates the dump of both the generated `gigue` binary alone (obtained by "forcing" a conversion using `obj-copy` before `obj-dump`) and the linked binary
-- `make exec` runs the binary on top of the rocket emulator, default configuration is `DefaultConfig` but can be specified with *e.g.* `ROCKET_CONFIG=DefaultSmallConfig` and maximum test cycles with `ROCKET_MAX_CYCLES=10000000`.
+  3. links them all together using a slightly modified [linker script](https://github.com/QDucasse/gigue/blob/main/resources/test.ld) than the one provided in the `riscv-tests` test suite to generate an `elf` file.
+  4. generates the dump of both the generated `gigue` binary alone (obtained by "forcing" a conversion using `obj-copy` before `obj-dump`) and the linked binary (and deleting the temporary files).
+- `make exec` runs the binary on top of the specified emulator, maximum test cycles can be specified with `MAX_CYCLES=10000000`.
 
 
 For binaries, several templates are available that define additional subroutines for the binary. Among them:
@@ -110,7 +108,7 @@ For binaries, several templates are available that define additional subroutines
 - `base`: both sides of the JIT generation (interpreter and binary) along with a `.data` section
 - `pmp`: `base` + a PMP config and setup
 - `rimi`: `pmp` + DMP config and setup
-- `unit`: includes unit tests examples as defined in `benchmarks/rocket_helper.py` 
+- `unit`: includes unit tests examples
 - `unitrimi`: `unit` + PMP/DMP setup
 
 By default, the template selected for Gigue is `base`/`rimi` and `unit`/`unitrimi` for unit tests. The template can be specified explicitely with for example:
@@ -127,7 +125,7 @@ It is expecting the corresponding binaries (`int.bin`/`jit.bin` for base templat
 
 Gigue provides another CLI to generate, run and qualify binaries named Toccata. All scripts are defined in the [`toccata`](https://github.com/QDucasse/gigue/blob/main/toccata) section with the description of the data structures in [`data.py`](https://github.com/QDucasse/gigue/blob/main/toccata/data.py) and the main element, [`runner.py`](https://github.com/QDucasse/gigue/blob/main/toccata/runner.py). 
 
-The runner will (1) generate a binary, (2) compile it, and (3) run it on the Rocket emulator. The CLI provides two ways of qualifying a runner configuration: 
+The runner will (1) generate a binary, (2) compile it, and (3) run it on the specified emulator. The CLI provides two ways of qualifying a runner configuration: 
 - (1) using a `json` config and providing it with: 
 ```bash
 python -m toccata config <your_file>.json
@@ -159,10 +157,7 @@ When using this method, a configuration file can be derived from the base one as
         "data_reg": 31,
         "data_size": 1600,
         "data_generation_strategy": "random",
-        "rocket_input_data": {
-            "rocket_config": "DefaultConfig",
-            "rocket_max_cycles": 10000000
-        }
+        "max_emu_cycles": 10000000
     }
 }
 ```
@@ -185,21 +180,21 @@ The following parameters are accessible (seen with `python -m toccata param -h`)
 
 
 For each method, the following actions are performed:
-1. checks the environment variables (`RISCV` for the toolchain and `ROCKET` for the chip with the emulator compiled),
+1. checks the environment variables (`RISCV` for the toolchain and `EMULATOR` for the compiled emulator),
 2. loads the configuration file,
 
 (for each run)
 
 3. generates the binary according to the input parameters,
 4. parses the `elf` dump to extract the start address, end address and return address,
-5. runs the binary on top of Rocket and extracts the number of cycles needed to run the binary,
-6. stores the dumps and rocket logs for each run in the corresponding `toccata/results/<config_name>_<datetime>/<run_nb>` directory and the `data.json` in the parent directory.
+5. runs the binary on top of the emulator and extracts the number of cycles needed to run the binary,
+6. stores the dumps and core logs for each run in the corresponding `toccata/results/<config_name>_<datetime>/<run_nb>` directory and the `data.json` in the parent directory.
 
 > *Note:* each step contains a `<step>_ok` parameter that ensures the process went correctly (but does not stop the benchmark altogether).
 
 ### Prelude: Helper and Minimal Binaries
 
-Prelude provides simple helpers to display the changes needed to integrate custom instructions in well-known cores/toolchains. The helper functions available are `rocket` and `gnu`, and can be accessed using:
+Prelude provides simple helpers to display the changes needed to integrate custom instructions in well-known cores/toolchains. The helper functions available are `gnu`, `rocket`, and `cva6`, and are accessed with:
 
 ```bash
 python -m prelude helper <helper_name>

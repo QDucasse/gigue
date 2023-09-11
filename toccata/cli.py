@@ -276,7 +276,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         execution_data: ExecutionData = runner.execute_binary(
             start_address=compilation_data["dump_data"]["start_address"],
             ret_address=compilation_data["dump_data"]["ret_address"],
-            rocket_input_data=config_data["input_data"]["rocket_input_data"],
+            max_cycles=config_data["input_data"]["max_cycles"],
         )
         if not runner.execution_ok:
             logger.warning("Execution failed, skipping to next run...")

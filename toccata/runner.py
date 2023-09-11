@@ -33,7 +33,6 @@ from toccata.data import (
     JITElementsData,
     MethodData,
     PICData,
-    RocketInputData,
     default_instr_class_data,
     default_instr_type_data,
 )
@@ -55,7 +54,7 @@ class Runner:
     # Files
     ELF_FILE: str = "out.elf"
     DUMP_FILE: str = "out.dump"
-    ROCKET_FILE: str = "out.rocket"
+    CORE_LOG_FILE: str = "out.core"
     GIGUE_LOG_FILE: str = "gigue.log"
 
     def __init__(self):
@@ -84,11 +83,11 @@ class Runner:
                 "to point to your installed toolchain location "
                 "(i.e. export RISCV=path/to/your/toolchain)"
             )
-        if "ROCKET" not in os.environ:
+        if "EMULATOR" not in os.environ:
             raise EnvironmentException(
-                "ROCKET environment variable is not set. Please define it "
-                "to point to the rocket-chip repository "
-                "(i.e. export ROCKET=path/to/rocket/repo)"
+                "EMULATOR environment variable is not set. Please define it "
+                "to point to the (compiled) verilator emulator "
+                "(i.e. export EMULATOR=path/to/compiled/emulator)"
             )
 
     def load_config(self, config_file: str) -> ConfigData:
@@ -327,7 +326,7 @@ class Runner:
         return compilation_data
 
     def execute_binary(
-        self, start_address: int, ret_address: int, rocket_input_data: RocketInputData
+        self, start_address: int, ret_address: int, max_cycles: int
     ) -> ExecutionData:
         # Error structures
         emulation_data: EmulationData = {
@@ -347,16 +346,13 @@ class Runner:
             "execution_ok": 0,
             "emulation_data": emulation_data,
         }
-        # Execute on top of rocket
-        rocket_config = rocket_input_data["rocket_config"]
-        rocket_max_cycles = rocket_input_data["rocket_max_cycles"]
+        # Execute on top of the core emulator
         try:
             subprocess.run(
                 [
                     "make",
                     "exec",
-                    f"ROCKET_CYCLES={rocket_max_cycles}",
-                    f"ROCKET_CONFIG={rocket_config}",
+                    f"MAX_CYCLES={max_cycles}",
                 ],
                 timeout=500,
                 check=True,
@@ -375,8 +371,8 @@ class Runner:
             return execution_data
 
         # Parse execution logs
-        emulation_data = self.parser.parse_rocket_log(
-            log_file=Runner.BIN_DIR + Runner.ROCKET_FILE,
+        emulation_data = self.parser.parse_core_log(
+            log_file=Runner.BIN_DIR + Runner.CORE_LOG_FILE,
             start_address=start_address,
             ret_address=ret_address,
             instructions_info=self.instructions_info,
@@ -432,8 +428,8 @@ class Runner:
             # )
             # # Copy exec log
             # shutil.copy(
-            #     src=Runner.BIN_DIR + Runner.ROCKET_FILE,
-            #     dst=f"{base_name}.rocket",
+            #     src=Runner.BIN_DIR + Runner.CORE_FILE,
+            #     dst=f"{base_name}.corelog",
             # )
             # TODO: Cleanup is performed when loading the config
             # Cleanup

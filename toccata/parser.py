@@ -64,7 +64,7 @@ class LogParser:
         }
         return dump_info
 
-    def parse_rocket_log(
+    def parse_core_log(
         self,
         log_file: str,
         start_address: int,
@@ -90,10 +90,10 @@ class LogParser:
                 start_cycle,
                 end_cycle,
                 executed_instructions,
-            ) = self.extract_from_rocket_log(
+            ) = self.extract_from_core_log(
                 start_address=start_address,
                 ret_address=ret_address,
-                rocket_log_file=log_file,
+                core_log_file=log_file,
             )
             emulation_ok = 1
         except (
@@ -208,12 +208,12 @@ class LogParser:
         # TODO: Use a data structure
         return start_address, ret_address, end_address
 
-    # Rocket log extraction
+    # Core log extraction
     # \______________________
 
     @staticmethod
-    def extract_from_rocket_log(
-        start_address: int, ret_address: int, rocket_log_file: str
+    def extract_from_core_log(
+        start_address: int, ret_address: int, core_log_file: str
     ) -> Tuple[int, int, int, List[str]]:
         # using random seed 1681861037
         # ...
@@ -224,7 +224,7 @@ class LogParser:
         # ...
         # Extracts the cycle in the first group, the pc in the second and instr
         #            vvvv             vvvvvvvvv                     vvvvv
-        ROCKET_PC_CYCLE_INSTR_REGEX: str = (
+        CORE_PC_CYCLE_INSTR_REGEX: str = (
             r"C0:\s*(\d+) \[1\] pc=\[([0-9a-fA-F]+)\].*inst=\[.*?\] (\w*)"
         )
         seed: int = -1
@@ -232,14 +232,14 @@ class LogParser:
         end_cycle: int = -1
         executed_instructions: List[str] = []
         try:
-            with open(rocket_log_file) as rocket_log:
+            with open(core_log_file) as core_log:
                 in_gigue = False
-                for i, line in enumerate(rocket_log):
+                for i, line in enumerate(core_log):
                     # Extract the seed on the first line
                     if i == 0:
                         seed = int(line.split(" ")[-1])
                     # Extract both the PC and cycle info
-                    match = re.search(ROCKET_PC_CYCLE_INSTR_REGEX, line)
+                    match = re.search(CORE_PC_CYCLE_INSTR_REGEX, line)
                     if match:
                         if int(match.group(2), 16) == start_address:
                             start_cycle = int(match.group(1))
@@ -252,13 +252,12 @@ class LogParser:
                             executed_instructions.append(match.group(3))
             if start_cycle == -1:
                 raise MissingCycleException(
-                    "Start cycle was not found (start address never met) in the rocket"
+                    "Start cycle was not found (start address never met) in the core"
                     " logs."
                 )
             if end_cycle == -1:
                 raise MissingCycleException(
-                    "End cycle was not found (end address never met) in the rocket"
-                    " logs."
+                    "End cycle was not found (end address never met) in the core logs."
                 )
         except EnvironmentError as err:
             logger.error(err)
@@ -274,10 +273,10 @@ if __name__ == "__main__":
     parser = LogParser()
     instructions_info: Mapping[str, InstructionInfo] = INSTRUCTIONS_INFO
     dump_data: DumpData = parser.parse_dump(dump_file="bin/out.dump")
-    emulation_data: EmulationData = parser.parse_rocket_log(
+    emulation_data: EmulationData = parser.parse_core_log(
         start_address=dump_data["start_address"],
         ret_address=dump_data["ret_address"],
-        log_file="bin/out.rocket",
+        log_file="bin/out.corelog",
         instructions_info=instructions_info,
         verbose=True,
     )

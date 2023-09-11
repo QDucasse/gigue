@@ -86,8 +86,9 @@ class GNUHelper(Helper):
                 raise
         return (
             f"# Include in: riscv-opcodes/opcodes\n{rvo_opcodes}\n"
-            "# Include in: riscv-gnu-toolchain/riscv-binutils-gdb/"
-            f"include/opcode/riscv-opc.h\n{gnu_matches_masks}\n{gnu_declares}"
+            "# Include in: riscv-gnu-toolchain/binutils/include/opcode/"
+            "riscv-opc.h (or the same files in gdb)\n"
+            f"{gnu_matches_masks}\n{gnu_declares}"
         )
 
 

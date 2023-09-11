@@ -50,10 +50,7 @@ class Parser(argparse.ArgumentParser):
             "helper",
             type=str,
             default="",
-            help=(
-                "Print helper infos for known tools and targets, e.g. rocket, cva6,"
-                " gnu, ..."
-            ),
+            help="Print helper infos for known tools and targets, (rocket, cva6, gnu)",
         )
 
         instr_parser = subparsers.add_parser("instr")

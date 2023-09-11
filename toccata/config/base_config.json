@@ -22,9 +22,6 @@
         "data_reg": 31,
         "data_size": 1600,
         "data_generation_strategy": "random",
-        "rocket_input_data": {
-            "rocket_config": "DefaultConfig",
-            "rocket_max_cycles": 10000000
-        }
+        "max_cycles": 10000000
     }
 }
