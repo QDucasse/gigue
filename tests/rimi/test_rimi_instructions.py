@@ -23,7 +23,7 @@ from tests.rimi.conftest import (
 
 
 @pytest.mark.parametrize(
-    "name", ["ls", "lb1", "lbu1", "lh1", "lhu1", "lw1", "lwu1", "ld1"]
+    "name", ["lst", "lb1", "lbu1", "lh1", "lhu1", "lw1", "lwu1", "ld1"]
 )
 def test_capstone_rimi_loads(name, cap_disasm_custom_setup, rimi_disasm_setup):
     constr = getattr(RIMIIInstruction, name)
@@ -43,7 +43,7 @@ def test_capstone_rimi_loads(name, cap_disasm_custom_setup, rimi_disasm_setup):
     assert instr_info.funct7 == rimi_disasm.extract_funct7(mc)
 
 
-@pytest.mark.parametrize("name", ["ss", "sb1", "sh1", "sw1", "sd1"])
+@pytest.mark.parametrize("name", ["sst", "sb1", "sh1", "sw1", "sd1"])
 def test_capstone_rimi_stores(name, cap_disasm_custom_setup, rimi_disasm_setup):
     constr = getattr(RIMISInstruction, name)
     instr = constr(rs1=5, rs2=6, imm=0)
@@ -182,7 +182,7 @@ def test_unicorn_rimi_stores(
 def test_unicorn_rimi_ls(
     rimi_handler_setup, cap_disasm_custom_setup, rimi_uc_emul_full_setup
 ):
-    instr = RIMIIInstruction.ls(rd=RA, rs1=RIMI_SSP_REG, imm=0)
+    instr = RIMIIInstruction.lst(rd=RA, rs1=RIMI_SSP_REG, imm=0)
     bytes = instr.generate_bytes()
     # Handler
     rimi_handler = rimi_handler_setup
@@ -192,7 +192,7 @@ def test_unicorn_rimi_ls(
     # Emulation
     uc_emul = rimi_uc_emul_full_setup
     rimi_handler.hook_instr_tracer(uc_emul)
-    rimi_handler.hook_handler_expected(uc_emul, "ls")
+    rimi_handler.hook_handler_expected(uc_emul, "lst")
     # rimi_handler.hook_handler_end_address(uc_emul, D1_ADDRESS + 4)
     uc_emul.reg_write(UC_RIMI_SSP_REG, RIMI_SHADOW_STACK_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_RA, 0x0)
@@ -207,7 +207,7 @@ def test_unicorn_rimi_ls(
 def test_unicorn_rimi_ss(
     rimi_handler_setup, cap_disasm_custom_setup, rimi_uc_emul_full_setup
 ):
-    instr = RIMISInstruction.ss(rs1=RIMI_SSP_REG, rs2=RA, imm=0)
+    instr = RIMISInstruction.sst(rs1=RIMI_SSP_REG, rs2=RA, imm=0)
     bytes = instr.generate_bytes()
     # Handler
     rimi_handler = rimi_handler_setup
@@ -217,7 +217,7 @@ def test_unicorn_rimi_ss(
     # Emulation
     uc_emul = rimi_uc_emul_full_setup
     rimi_handler.hook_instr_tracer(uc_emul)
-    rimi_handler.hook_handler_expected(uc_emul, "ss")
+    rimi_handler.hook_handler_expected(uc_emul, "sst")
     # rimi_handler.hook_handler_end_address(uc_emul, D1_ADDRESS + 4)
     uc_emul.reg_write(UC_RIMI_SSP_REG, RIMI_SHADOW_STACK_ADDRESS)
     return_address = b"\xfe\xdc\xba\x98\x76\x54\x32\x10"

@@ -120,16 +120,16 @@ RIMI_INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
     # Shadow stack instructions
-    "ss": InstructionInfo(
-        name="ss",
+    "sst": InstructionInfo(
+        name="sst",
         opcode=OP_STORE1,
         funct3=0b111,
         instr_type="S",
         instr_class="memory",
         cmp_mask=OPCODE_FUNC3_MASK,
     ),
-    "ls": InstructionInfo(
-        name="ls",
+    "lst": InstructionInfo(
+        name="lst",
         opcode=OP_LOAD1,
         funct3=0b111,
         instr_type="I",

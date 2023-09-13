@@ -83,11 +83,11 @@ RIMI_TUTORIAL: Tutorial = Tutorial(
             ],
         ),
         InstructionExample(
-            ["ls", "ss"],
+            ["lst", "sst"],
             [
                 IInstruction.addi(rd=10, rs1=0, imm=0x12345678),
-                RIMISInstruction.ss(rs1=28, rs2=1, imm=0),
-                RIMIIInstruction.ls(rd=1, rs1=28, imm=0),
+                RIMISInstruction.sst(rs1=28, rs2=1, imm=0),
+                RIMIIInstruction.lst(rd=1, rs1=28, imm=0),
             ],
         ),
         # ==========================

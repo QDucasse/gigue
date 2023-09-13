@@ -62,7 +62,7 @@ def test_build_ss_prologue(
         assert rimi_disasm.extract_imm_i(gen_instrs[-2], sign_extend=True) == -8
         assert rimi_disasm.extract_rs1(instrs[-2].generate()) == RIMI_SSP_REG
         assert rimi_disasm.extract_rd(instrs[-2].generate()) == RIMI_SSP_REG
-        assert instrs[-1].name == "ss"
+        assert instrs[-1].name == "sst"
         assert rimi_disasm.extract_imm_s(gen_instrs[-1]) == 0
         assert rimi_disasm.extract_rs2(instrs[-1].generate()) == RA
         assert rimi_disasm.extract_rs1(instrs[-1].generate()) == RIMI_SSP_REG
@@ -91,7 +91,7 @@ def test_build_ss_epilogue(used_s_regs, local_var_nb, contains_call, rimi_disasm
     )
     # Shadow stack pointer increase and store (pop)
     if contains_call:
-        assert instrs[-3].name == "ls"
+        assert instrs[-3].name == "lst"
         assert rimi_disasm.extract_imm_i(gen_instrs[-3]) == 0
         assert rimi_disasm.extract_rd(instrs[-3].generate()) == RA
         assert rimi_disasm.extract_rs1(instrs[-3].generate()) == RIMI_SSP_REG
@@ -140,7 +140,7 @@ def test_build_ss_trampoline_epilogue(
     )
     # Shadow stack pointer increase and store (pop)
     if contains_call:
-        assert instrs[-3].name == "ls"
+        assert instrs[-3].name == "lst"
         assert rimi_disasm.extract_imm_i(gen_instrs[-3]) == 0
         assert rimi_disasm.extract_rd(instrs[-3].generate()) == RA
         assert rimi_disasm.extract_rs1(instrs[-3].generate()) == RIMI_SSP_REG

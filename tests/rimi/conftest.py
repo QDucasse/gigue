@@ -112,8 +112,8 @@ class RIMIHandler(Handler):
         "sh1": 1,
         "sw1": 1,
         "sd1": 1,
-        "ls": 2,
-        "ss": 2,
+        "lst": 2,
+        "sst": 2,
         "chdom": 0,
         "retdom": 1,
     }
@@ -233,8 +233,8 @@ class RIMIHandler(Handler):
     # Shadow stack instructions
     # \________________________
 
-    def handle_ss(self, uc_emul, pc, instr):
-        logger.debug(">>> Handling ss")
+    def handle_sst(self, uc_emul, pc, instr):
+        logger.debug(">>> Handling sst")
         # Change domain and save previous one
         previous_domain = self.current_domain
         self.current_domain = 2
@@ -246,8 +246,8 @@ class RIMIHandler(Handler):
         new_instr = self.generate_new_sinstr(instr, SInstruction.sd)
         self.execute_new_instr(uc_emul, pc, int_to_bytes32(instr), new_instr)
 
-    def handle_ls(self, uc_emul, pc, instr):
-        logger.debug(">>> Handling ls")
+    def handle_lst(self, uc_emul, pc, instr):
+        logger.debug(">>> Handling lst")
         # Change domain and save previous one
         previous_domain = self.current_domain
         self.current_domain = 2
