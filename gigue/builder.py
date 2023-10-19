@@ -333,7 +333,7 @@ class InstructionBuilder:
         # /!\ The trampoline offset is computed starting from the base address
 
         # 0x00 auipc ra, 0                          |  \
-        # 0x04 addi  ra, ra, 0                      | - > Generate return address
+        # 0x04 addi  ra, ra, 0  0x14                | - > Generate return address
         # 0x08 auipc temp_call, off_high            |  \
         # 0x0c addi  temp_call, temp_call, off_low  | - > Generate call target
         # 0x10 j     call_tramp                     | - > Jump to the trampoline

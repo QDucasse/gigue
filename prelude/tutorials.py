@@ -23,6 +23,7 @@ class Tutorial:
         for example in self.examples:
             if instr_name in example.keys:
                 return example.instructions
+        print(self.examples)
         msg = f"No example were found for key {instr_name}."
         logger.error(msg)
         raise MissingExampleException(msg)
@@ -97,7 +98,7 @@ RIMI_TUTORIAL: Tutorial = Tutorial(
         #    return from domain
         # ==========================
         InstructionExample(
-            ["chdom, retdom"],
+            ["chdom", "retdom"],
             [
                 UInstruction.auipc(6, 0),
                 IInstruction.addi(6, 6, 12),

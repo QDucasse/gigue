@@ -150,5 +150,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                 src=f"{BIN_DIR}/unit.elf",
                 dst=f"{BIN_DIR}/unit/{args.instr}.elf",
             )
+            shutil.copy(
+                src=f"{BIN_DIR}/unit.dump",
+                dst=f"{BIN_DIR}/unit/{args.instr}.dump",
+            )
 
     return 0
