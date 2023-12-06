@@ -168,6 +168,22 @@ def poisson_chernoff_bound(lmbda, alpha):
         k += 1
 
 
+def generate_pharo_pic_nb():
+    # Define the probabilities based on (Miranda et al. 2018)
+    probabilities = [0.9, 0.08, 0.02]
+
+    random_number = random.random()
+    # Monomorphic
+    if random_number < probabilities[0]:
+        return 1
+    # Polymorphic
+    elif random_number < probabilities[0] + probabilities[1]:
+        return random.randint(2, 6)
+    # Megamorphic
+    else:
+        return random.randint(6, 10)
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
