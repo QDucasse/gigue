@@ -16,8 +16,9 @@ RISCV_GCC_OPTS ?= -march=rv64g -mabi=lp64d -DPREALLOCATE=1 -mcmodel=medany -stat
 RISCV_LINK_OPTS ?= -static -nostdlib -nostartfiles -lm -lgcc -T $(src_dir)/test.ld
 RISCV_OBJDUMP ?= $(RISCV_PREFIX)objdump --disassemble --full-contents --disassemble-zeroes --section=.text --section=.text.startup --section=.text.init --section=.data
 
-# Emulator info
+# Rocket emulator info
 MAX_CYCLES ?= 100000000
+CONFIG ?= DefaultConfig
 
 # Define sources
 SRCS_C=$(wildcard $(src_dir)/*.c) 
@@ -42,7 +43,13 @@ default: dump
 
 dump: $(bin_dir)/out.dump $(bin_dir)/jit.bin.dump $(bin_dir)/int.bin.dump
 
-exec: $(bin_dir)/out.corelog
+rocket: $(bin_dir)/rocket.log
+cva6: $(bin_dir)/cva6.log
+
+rocketwf: $(bin_dir)/rocket.fst
+cva6wf: $(bin_dir)/cva6.fst
+
+
 
 # Link all the object files!
 $(bin_dir)/out.elf: $(OBJS)
@@ -52,15 +59,19 @@ $(bin_dir)/out.elf: $(OBJS)
 # $(bin_dir)/out.o: $(bin_dir)/out.bin
 # 	$(RISCV_PREFIX)objcopy -I binary -O elf64-littleriscv -B riscv --rename-section .data=.text $^ $@
 
+define rv-gcc
+$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
+endef
+
 # Generate the object files
 $(bin_dir)/%.o: $(src_dir)/%.c
-	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
+	$(rv-gcc)
 
 $(bin_dir)/%.o: $(src_dir)/%.S
-	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
+	$(rv-gcc)
 
 $(bin_dir)/template.o: $(template_dir)/$(TEMPLATE).S $(bin_dir)/int.bin $(bin_dir)/jit.bin
-	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
+	$(rv-gcc)
 
 # Dumps
 $(bin_dir)/out.dump: $(bin_dir)/out.elf
@@ -71,12 +82,42 @@ $(bin_dir)/%.bin.dump: $(bin_dir)/%.bin
 	$(RISCV_OBJDUMP) $@.temp > $@
 	rm $@.temp
 
-# Verilator execution
-$(bin_dir)/out.corelog: $(bin_dir)/out.elf
-ifndef EMULATOR
-	$(error Please set environment variable EMULATOR to the (compiled) verilator emulator of your core)
+# Emulator executions
+# - Rocket -
+# TODO: spike from toolchain
+$(bin_dir)/rocket.log: $(bin_dir)/out.elf
+ifndef ROCKET
+	$(error Please set environment variable ROCKET to the (compiled) Rocket verilator emulator (i.e. rocket/emulator/))
 endif
-	$(EMULATOR) +max-cycles=$(MAX_CYCLES) +verbose $< 3>&1 1>&2 2>&3 | $(RISCV)/bin/spike-dasm > $@
+	$(info Trying CONFIG=$(CONFIG), if this is not the expected one, specify it directly)
+	$(ROCKET)/emulator-freechips.rocketchip.system-freechips.rocketchip.system.$(CONFIG) +max-cycles=$(MAX_CYCLES) +verbose $< 3>&1 1>&2 2>&3 | spike-dasm > $@
+
+
+# - CVA6 -
+# Note: Make is not happy if the execution fails!
+$(bin_dir)/cva6.log: $(bin_dir)/out.elf
+ifndef CVA6
+	$(error Please set environment variable CVA6 to the (compiled) CVA6 verilator emulator (i.e. cva6/work-ver/Variane_testharness))
+endif
+	($(CVA6) $< > $@ 2>&1) || true 
+	spike-dasm < trace_hart_00.dasm >> $@
+
+# Waveform generation
+# - Rocket -
+$(bin_dir)/rocket.fst: $(bin_dir)/out.elf
+ifndef ROCKET
+	$(error Please set environment variable ROCKET to the (compiled) Rocket verilator emulator (i.e.))
+endif
+	$(info Trying CONFIG=$(CONFIG), if this is not the expected one, specify it directly)
+	$(EMULATOR)/emulator-freechips.rocketchip.system-freechips.rocketchip.system.$(CONFIG) -v - +max-cycles=$(MAX_CYCLES) $< | vcd2fst - $@
+
+# - CVA6 -
+$(bin_dir)/cva6.fst: $(bin_dir)/out.elf
+ifndef EMULATOR
+	$(error Please set environment variable EMULATOR to the (compiled) CVA6 verilator emulator (i.e. cva6/work-ver/Variane_testharness))
+endif
+	($(CVA6) $< -v - | vcd2fst - $@) || true
+
 
 
 # Unit tests
@@ -86,7 +127,7 @@ $(bin_dir)/unit.elf: $(UNIT_OBJS)
 	$(RISCV_GCC) $(RISCV_LINK_OPTS) $(UNIT_OBJS) -o $@
 
 $(bin_dir)/unittemplate.o: $(template_dir)/$(TEMPLATE).S $(bin_dir)/unit.bin
-	$(RISCV_GCC) $(incs) $(RISCV_GCC_OPTS) $< -c -o $@ 
+	$(rv-gcc) 
 
 $(bin_dir)/unit.dump: $(bin_dir)/unit.elf
 	$(RISCV_OBJDUMP) $< > $@
@@ -96,8 +137,8 @@ DUMPS=$(wildcard $(bin_dir)/*.dump)
 BINS=$(wildcard $(bin_dir)/*.bin)
 TEMPS=$(wildcard $(bin_dir)/*.temp)
 ELFS=$(wildcard $(bin_dir)/*.elf)
-CORE_LOGS=$(wildcard $(bin_dir)/*.core)
-WAVEFORMS=$(wildcard $(bin_dir)/*.vcd)
+CORE_LOGS=$(wildcard $(bin_dir)/*.log)
+WAVEFORMS=$(wildcard $(bin_dir)/*.vcd) $(wildcard $(bin_dir)/*.fst)
 UNIT_DUMPS=$(wildcard $(bin_dir)/unit/*.dump)
 UNIT_ELFS=$(wildcard $(bin_dir)/unit/*.elf)
 
