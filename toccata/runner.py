@@ -38,7 +38,7 @@ from toccata.data import (
     default_instr_type_data,
 )
 from toccata.exceptions import EnvironmentException, UnknownIsolationSolutionException
-from toccata.parser import LogParser
+from toccata.parser import CVA6LogParser, DumpParser, RocketLogParser
 
 logger = logging.getLogger("gigue")
 
@@ -55,7 +55,9 @@ class Runner:
     GIGUE_LOG_FILE: str = "gigue.log"
 
     def __init__(self):
-        self.parser: LogParser = LogParser()
+        self.dump_parser: DumpParser = DumpParser()
+        self.rocket_parser: RocketLogParser = RocketLogParser()
+        self.cva6_parser: CVA6LogParser = CVA6LogParser()
         # Check environment variables
         try:
             self.check_envs()
@@ -315,7 +317,7 @@ class Runner:
             self.compilation_ok = 0
             return compilation_data
         # Parse dump
-        dump_data = self.parser.parse_dump(Runner.BIN_DIR + Runner.DUMP_FILE)
+        dump_data = self.dump_parser.parse_dump(Runner.BIN_DIR + Runner.DUMP_FILE)
         compilation_data = {
             "compilation_ok": self.compilation_ok,
             "dump_data": dump_data,
@@ -325,6 +327,7 @@ class Runner:
     def execute_binary(
         self, start_address: int, ret_address: int, max_cycles: int, core: str
     ) -> ExecutionData:
+        log_parser = getattr(self, f"{core}_parser")
         # Error structures
         emulation_data: EmulationData = {
             "emulation_ok": 0,
@@ -368,7 +371,7 @@ class Runner:
             return execution_data
 
         # Parse execution logs
-        emulation_data = self.parser.parse_core_log(
+        emulation_data = log_parser.parse_core_log(
             log_file=Runner.BIN_DIR + f"{core}.log",
             start_address=start_address,
             ret_address=ret_address,
@@ -398,7 +401,7 @@ class Runner:
             os.makedirs(run_dir_name)
             # Base name
             base_name: str = (
-                f"{run_dir_name}{config_name}_{formatted_date}-{run_number}"
+                f"{run_dir_name}{formatted_date}_{config_name}-{run_number}"
             )
             # Dump the config data
             with open(f"{base_name}.config.json", "w") as outfile:

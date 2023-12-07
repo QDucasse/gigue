@@ -33,7 +33,8 @@ class MissingCycleException(ParserException):
     pass
 
 
-class LogParser:
+class DumpParser:
+
     # Info filling methods
     # \_____________________
 
@@ -65,6 +66,49 @@ class LogParser:
         }
         return dump_info
 
+    @staticmethod
+    def extract_from_dump(dump_file: str) -> Tuple[int, int, int]:
+        # 0000000080002a24 <gigue_start>:
+        # 00000000800102e4 <gigue_end>:
+        start_regex = r"(\w*) <gigue_int_start>:"
+        end_regex = r"(\w*) <main>:"
+        start_address: int = -1
+        end_address: int = -1
+        ret_address: int = -1
+        try:
+            with open(dump_file) as dump:
+                # Flag to get the interpreter ret address
+                in_gigue_bin = False
+                for line in dump:
+                    # Check start
+                    match_start = re.search(start_regex, line)
+                    if match_start:
+                        start_address = int(match_start.group(1), 16)
+                        in_gigue_bin = True
+                    # Check end and use address right before
+                    match_end = re.search(end_regex, line)
+                    if match_end:
+                        end_address = int(match_end.group(1), 16) - 4
+                        in_gigue_bin = False
+                    if in_gigue_bin and "ret" in line:
+                        ret_address = int(line.split(":")[0], 16)
+                        in_gigue_bin = False
+            if start_address == -1:
+                raise MissingAddressException(
+                    "Start address was not found in the dump."
+                )
+            if end_address == -1:
+                raise MissingAddressException("End address was not found in the dump.")
+            if ret_address == -1:
+                raise MissingAddressException("Ret address was not found in the dump.")
+        except EnvironmentError as err:
+            logger.error(err)
+            raise
+        # TODO: Use a data structure
+        return start_address, ret_address, end_address
+
+
+class LogParser:
     def parse_core_log(
         self,
         log_file: str,
@@ -164,47 +208,6 @@ class LogParser:
             "tracing_data": tracing_info,
         }
         return emulation_info
-
-    @staticmethod
-    def extract_from_dump(dump_file: str) -> Tuple[int, int, int]:
-        # 0000000080002a24 <gigue_start>:
-        # 00000000800102e4 <gigue_end>:
-        start_regex = r"(\w*) <gigue_int_start>:"
-        end_regex = r"(\w*) <main>:"
-        start_address: int = -1
-        end_address: int = -1
-        ret_address: int = -1
-        try:
-            with open(dump_file) as dump:
-                # Flag to get the interpreter ret address
-                in_gigue_bin = False
-                for line in dump:
-                    # Check start
-                    match_start = re.search(start_regex, line)
-                    if match_start:
-                        start_address = int(match_start.group(1), 16)
-                        in_gigue_bin = True
-                    # Check end and use address right before
-                    match_end = re.search(end_regex, line)
-                    if match_end:
-                        end_address = int(match_end.group(1), 16) - 4
-                        in_gigue_bin = False
-                    if in_gigue_bin and "ret" in line:
-                        ret_address = int(line.split(":")[0], 16)
-                        in_gigue_bin = False
-            if start_address == -1:
-                raise MissingAddressException(
-                    "Start address was not found in the dump."
-                )
-            if end_address == -1:
-                raise MissingAddressException("End address was not found in the dump.")
-            if ret_address == -1:
-                raise MissingAddressException("Ret address was not found in the dump.")
-        except EnvironmentError as err:
-            logger.error(err)
-            raise
-        # TODO: Use a data structure
-        return start_address, ret_address, end_address
 
     @staticmethod
     @abstractmethod

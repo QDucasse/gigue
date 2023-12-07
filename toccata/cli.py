@@ -234,7 +234,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # 3. Format result directory name
     now: datetime.datetime = datetime.datetime.now()
     formatted_date: str = now.strftime("%Y-%m-%d_%H-%M-%S")
-    base_dir_name: str = f"{Runner.RESULTS_DIR}{config_name}_{formatted_date}/"
+    base_dir_name: str = f"{Runner.RESULTS_DIR}{formatted_date}_{config_name}/"
 
     # 4. Setup seeds
     nb_runs: int = config_data["nb_runs"]
