@@ -45,6 +45,7 @@ class InputData(GigueData):
     data_size: int
     data_generation_strategy: str
     # Execution info
+    core: str
     max_cycles: int
 
 

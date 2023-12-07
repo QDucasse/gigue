@@ -15,7 +15,6 @@ there's no ``gigue.__main__`` in ``sys.modules``.
 Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 
-
 import argparse
 import datetime
 import logging
@@ -93,7 +92,7 @@ def apply_fields_to_conf(fields, config: ConfigData):
                 "This class of instruction is not defined in the available ones,"
                 " see InstrClassData."
             )
-        raise
+            raise
 
 
 class Parser(argparse.ArgumentParser):
@@ -277,6 +276,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             start_address=compilation_data["dump_data"]["start_address"],
             ret_address=compilation_data["dump_data"]["ret_address"],
             max_cycles=config_data["input_data"]["max_cycles"],
+            core=config_data["input_data"]["core"],
         )
         if not runner.execution_ok:
             logger.warning("Execution failed, skipping to next run...")

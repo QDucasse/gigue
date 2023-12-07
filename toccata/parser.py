@@ -1,5 +1,6 @@
 import logging
 import re
+from abc import abstractmethod
 from collections import Counter
 from typing import List, Mapping, Tuple
 
@@ -33,9 +34,9 @@ class MissingCycleException(ParserException):
 
 
 class LogParser:
-    # Main methods
-    # \____________
-    # TODO: Split in two
+    # Info filling methods
+    # \_____________________
+
     def parse_dump(self, dump_file: str) -> DumpData:
         # Correctness flag
         dump_ok: int = 0
@@ -120,7 +121,7 @@ class LogParser:
                         "This type of instruction is not defined in the available ones,"
                         " see InstrTypeData."
                     )
-                raise
+                    raise
 
             # Instr class
             executed_instrs_class: List[str] = [
@@ -137,7 +138,7 @@ class LogParser:
                         "This class of instruction is not defined in the available"
                         " ones, see InstrClassData."
                     )
-                raise
+                    raise
 
             # Tracing went ok
             tracing_ok = 1
@@ -163,9 +164,6 @@ class LogParser:
             "tracing_data": tracing_info,
         }
         return emulation_info
-
-    # Dump extraction
-    # \________________
 
     @staticmethod
     def extract_from_dump(dump_file: str) -> Tuple[int, int, int]:
@@ -208,6 +206,16 @@ class LogParser:
         # TODO: Use a data structure
         return start_address, ret_address, end_address
 
+    @staticmethod
+    @abstractmethod
+    def extract_from_core_log(
+        start_address: int, ret_address: int, core_log_file: str
+    ) -> Tuple[int, int, int, List[str]]:
+        pass
+
+
+class RocketLogParser(LogParser):
+
     # Core log extraction
     # \______________________
 
@@ -224,7 +232,7 @@ class LogParser:
         # ...
         # Extracts the cycle in the first group, the pc in the second and instr
         #            vvvv             vvvvvvvvv                     vvvvv
-        CORE_PC_CYCLE_INSTR_REGEX: str = (
+        ROCKET_PC_CYCLE_INSTR_REGEX: str = (
             r"C0:\s*(\d+) \[1\] pc=\[([0-9a-fA-F]+)\].*inst=\[.*?\] (\w*)"
         )
         seed: int = -1
@@ -239,7 +247,7 @@ class LogParser:
                     if i == 0:
                         seed = int(line.split(" ")[-1])
                     # Extract both the PC and cycle info
-                    match = re.search(CORE_PC_CYCLE_INSTR_REGEX, line)
+                    match = re.search(ROCKET_PC_CYCLE_INSTR_REGEX, line)
                     if match:
                         if int(match.group(2), 16) == start_address:
                             start_cycle = int(match.group(1))
@@ -266,24 +274,103 @@ class LogParser:
         return seed, start_cycle, end_cycle, executed_instructions
 
 
+class CVA6LogParser(LogParser):
+
+    # Core log extraction
+    # \______________________
+
+    @staticmethod
+    def extract_from_core_log(
+        start_address: int, ret_address: int, core_log_file: str
+    ) -> Tuple[int, int, int, List[str]]:
+        # This emulator compiled with JTAG Remote
+        # Bitbang client. To enable, use +jtag_rbb_enable=1.
+        # Listening on port 35955
+        # No explicit VCD file name supplied, using RTL defaults.
+        # bin/out.elf *** SUCCESS *** (tohost = 0) after 67271 cycles
+        # *** [rvf_tracer] WARNING: No valid address of 'tohost'
+        # (tohost == 0x00000000000000),
+        # termination possible only by timeout or Ctrl-C!
+        # CPU time used: 20501.60 ms
+        # Wall clock time passed: 20522.29 ms
+        #  265 0x10000 M (0x00100413) li      s0, 1
+        #  270 0x10004 M (0x01f41413) slli    s0, s0, 31
+        #  ...
+
+        # Extracts the cycle in the first group, the pc in the second and instr
+        #                                      vvvvv vvvvvvvvvvvvvvvv     vvvvv
+        CVA6_PC_CYCLE_INSTR_REGEX: str = r"^\s*(\d+) (0x[0-9a-fA-F]+).*\) (\w*)"
+        start_cycle: int = -1
+        end_cycle: int = -1
+        executed_instructions: List[str] = []
+        try:
+            with open(core_log_file) as core_log:
+                in_gigue = False
+                for i, line in enumerate(core_log):
+                    # Extract both the PC and cycle info
+                    match = re.search(CVA6_PC_CYCLE_INSTR_REGEX, line)
+                    if match:
+                        if int(match.group(2), 16) == start_address:
+                            start_cycle = int(match.group(1))
+                            in_gigue = True
+                        if int(match.group(2), 16) == ret_address:
+                            end_cycle = int(match.group(1))
+                            in_gigue = False
+                            break
+                        if in_gigue:
+                            executed_instructions.append(match.group(3))
+            if start_cycle == -1:
+                raise MissingCycleException(
+                    "Start cycle was not found (start address never met) in the core"
+                    " logs."
+                )
+            if end_cycle == -1:
+                raise MissingCycleException(
+                    "End cycle was not found (end address never met) in the core logs."
+                )
+        except EnvironmentError as err:
+            logger.error(err)
+            raise
+        # TODO: Use a data structure
+        # Note: CVA6 does not have this seed input
+        return 0, start_cycle, end_cycle, executed_instructions
+
+
 if __name__ == "__main__":
     # Utility to parse the current dumps
     from gigue.constants import INSTRUCTIONS_INFO
 
-    parser = LogParser()
     instructions_info: Mapping[str, InstructionInfo] = INSTRUCTIONS_INFO
-    dump_data: DumpData = parser.parse_dump(dump_file="bin/out.dump")
-    emulation_data: EmulationData = parser.parse_core_log(
+
+    cva6_parser = CVA6LogParser()
+    dump_data: DumpData = cva6_parser.parse_dump(dump_file="bin/out.dump")
+    cva6_emulation_data: EmulationData = cva6_parser.parse_core_log(
         start_address=dump_data["start_address"],
         ret_address=dump_data["ret_address"],
-        log_file="bin/out.corelog",
+        log_file="bin/cva6.log",
         instructions_info=instructions_info,
         verbose=True,
     )
     print(
         f"Start address: {hex(dump_data['start_address'])}\n"
         f"Ret address:   {hex(dump_data['ret_address'])}\n"
-        f"Nb cycles:     {emulation_data['nb_cycles']}\n"
-        f"Instrs type:   {emulation_data['tracing_data']['instrs_type']}\n"
-        f"Instrs class:  {emulation_data['tracing_data']['instrs_class']}"
+        f"Nb cycles:     {cva6_emulation_data['nb_cycles']}\n"
+        f"Instrs type:   {cva6_emulation_data['tracing_data']['instrs_type']}\n"
+        f"Instrs class:  {cva6_emulation_data['tracing_data']['instrs_class']}"
+    )
+
+    rocket_parser = RocketLogParser()
+    rocket_emulation_data: EmulationData = rocket_parser.parse_core_log(
+        start_address=dump_data["start_address"],
+        ret_address=dump_data["ret_address"],
+        log_file="bin/rocket.log",
+        instructions_info=instructions_info,
+        verbose=True,
+    )
+    print(
+        f"Start address: {hex(dump_data['start_address'])}\n"
+        f"Ret address:   {hex(dump_data['ret_address'])}\n"
+        f"Nb cycles:     {rocket_emulation_data['nb_cycles']}\n"
+        f"Instrs type:   {rocket_emulation_data['tracing_data']['instrs_type']}\n"
+        f"Instrs class:  {rocket_emulation_data['tracing_data']['instrs_class']}"
     )

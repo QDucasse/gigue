@@ -5,6 +5,7 @@ import os
 import random
 import shutil
 import subprocess
+import sys
 from typing import List, Mapping, Tuple, Type
 
 from gigue.constants import INSTRUCTIONS_INFO, InstructionInfo
@@ -36,10 +37,7 @@ from toccata.data import (
     default_instr_class_data,
     default_instr_type_data,
 )
-from toccata.exceptions import (
-    EnvironmentException,
-    UnknownIsolationSolutionException,
-)
+from toccata.exceptions import EnvironmentException, UnknownIsolationSolutionException
 from toccata.parser import LogParser
 
 logger = logging.getLogger("gigue")
@@ -54,7 +52,6 @@ class Runner:
     # Files
     ELF_FILE: str = "out.elf"
     DUMP_FILE: str = "out.dump"
-    CORE_LOG_FILE: str = "out.core"
     GIGUE_LOG_FILE: str = "gigue.log"
 
     def __init__(self):
@@ -64,7 +61,7 @@ class Runner:
             self.check_envs()
         except EnvironmentException as err:
             logger.error(err)
-            raise
+            sys.exit(1)
         # Create missing directories
         if not os.path.exists(Runner.BIN_DIR):
             os.mkdir(Runner.BIN_DIR)
@@ -326,7 +323,7 @@ class Runner:
         return compilation_data
 
     def execute_binary(
-        self, start_address: int, ret_address: int, max_cycles: int
+        self, start_address: int, ret_address: int, max_cycles: int, core: str
     ) -> ExecutionData:
         # Error structures
         emulation_data: EmulationData = {
@@ -351,7 +348,7 @@ class Runner:
             subprocess.run(
                 [
                     "make",
-                    "exec",
+                    f"{core}",
                     f"MAX_CYCLES={max_cycles}",
                 ],
                 timeout=500,
@@ -372,7 +369,7 @@ class Runner:
 
         # Parse execution logs
         emulation_data = self.parser.parse_core_log(
-            log_file=Runner.BIN_DIR + Runner.CORE_LOG_FILE,
+            log_file=Runner.BIN_DIR + f"{core}.log",
             start_address=start_address,
             ret_address=ret_address,
             instructions_info=self.instructions_info,
