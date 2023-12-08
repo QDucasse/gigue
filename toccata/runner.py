@@ -82,11 +82,12 @@ class Runner:
                 "to point to your installed toolchain location "
                 "(i.e. export RISCV=path/to/your/toolchain)"
             )
-        if "EMULATOR" not in os.environ:
+        if "ROCKET" not in os.environ and "CVA6" not in os.environ:
             raise EnvironmentException(
-                "EMULATOR environment variable is not set. Please define it "
-                "to point to the (compiled) verilator emulator "
-                "(i.e. export EMULATOR=path/to/compiled/emulator)"
+                "ROCKET and CVA6 environment variables are not set. Please define the"
+                " corresponding one to point to the (compiled) verilator emulator (i.e."
+                " export ROCKET=rocket/emulator, or"
+                " CVA6=cva6/work-ver/Variane_testharness)"
             )
 
     def load_config(self, config_file: str) -> ConfigData:
@@ -354,7 +355,7 @@ class Runner:
                     f"{core}",
                     f"MAX_CYCLES={max_cycles}",
                 ],
-                timeout=500,
+                # timeout=500,
                 check=True,
                 stdout=subprocess.DEVNULL,
             )

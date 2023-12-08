@@ -36,48 +36,48 @@ from toccata.data import (
 from toccata.exceptions import IncorrectSeedsNumberException
 from toccata.runner import Runner
 
-logger = logging.getLogger("tocatta")
+logger = logging.getLogger("toccata")
 logger.setLevel(logging.INFO)
 
-nb_methods = {
+nbmethods = {
     "low": {
-        "jit_nb_methods": 50,
+        "jit_nb_methods": 75,
     },
     "medium": {
-        "jit_nb_methods": 100,
+        "jit_nb_methods": 175,
     },
     "high": {
-        "jit_nb_methods": 200,
+        "jit_nb_methods": 275,
     },
 }
 
-call_occup = {
+calloccup = {
     "low": {
         "call_depth_mean": 1,
-        "call_occupation_mean": 0.1,
-        "call_occupation_stdev": 0.1,
+        "call_occupation_mean": 0.01,
+        "call_occupation_stdev": 0.01,
     },
     "medium": {
         "call_depth_mean": 2,
-        "call_occupation_mean": 0.3,
-        "call_occupation_stdev": 0.1,
+        "call_occupation_mean": 0.03,
+        "call_occupation_stdev": 0.03,
     },
     "high": {
         "call_depth_mean": 3,
-        "call_occupation_mean": 0.5,
-        "call_occupation_stdev": 0.2,
+        "call_occupation_mean": 0.1,
+        "call_occupation_stdev": 0.1,
     },
 }
 
-mem_access = {
+memaccess = {
     "low": {
-        "weights": [32, 34, 14, 5, 10, 2, 2],
+        "weights": [28, 28, 20, 8, 8, 4, 4],
     },
     "medium": {
-        "weights": [25, 30, 10, 5, 10, 10, 10],
+        "weights": [20, 20, 20, 8, 8, 12, 12],
     },
     "high": {
-        "weights": [20, 20, 7, 5, 8, 20, 20],
+        "weights": [20, 20, 4, 8, 8, 20, 20],
     },
 }
 
@@ -101,38 +101,47 @@ class Parser(argparse.ArgumentParser):
         self.add_parse_arguments()
 
     def add_parse_arguments(self):
-        subparsers = self.add_subparsers(
-            dest="command", parser_class=argparse.ArgumentParser
-        )
-        config_parser = subparsers.add_parser("config")
-
-        config_parser.add_argument(
-            "config",
+        self.add_argument(
+            "-f",
+            "--fileconf",
             type=str,
             default=f"{Runner.CONFIG_DIR}base_config.json",
             help="Complete config to use, usable as the only CLI argument",
         )
 
-        param_parser = subparsers.add_parser("param")
+        self.add_argument(
+            "-i",
+            "--isolation",
+            default="",
+            help="Isolation technique to use",
+        )
+
+        self.add_argument(
+            "-e",
+            "--emulator",
+            default="",
+            help="Core emulator running the experiments",
+        )
+
+        self.add_argument(
+            "-r",
+            "--runs",
+            type=int,
+            default=0,
+            help="Run number for this config",
+        )
+
         possible_choices = ["low", "medium", "high"]
-        param_parser.add_argument(
+        self.add_argument(
             "-n",
-            "--nb_methods",
+            "--nbmethods",
             type=str,
             default="",
             choices=possible_choices,
             help="Method number",
         )
 
-        param_parser.add_argument(
-            "-r",
-            "--nb_runs",
-            type=int,
-            default=1,
-            help="Run number for this config",
-        )
-
-        param_parser.add_argument(
+        self.add_argument(
             "-s",
             "--seeds",
             action="append",
@@ -142,17 +151,10 @@ class Parser(argparse.ArgumentParser):
             ),
         )
 
-        param_parser.add_argument(
-            "-i",
-            "--isolation",
-            default="none",
-            help="Isolation technique to use",
-        )
-
-        group = param_parser.add_mutually_exclusive_group()
+        group = self.add_mutually_exclusive_group()
         group.add_argument(
             "-c",
-            "--call_occup",
+            "--calloccup",
             type=str,
             default="",
             choices=possible_choices,
@@ -161,7 +163,7 @@ class Parser(argparse.ArgumentParser):
 
         group.add_argument(
             "-m",
-            "--mem_access",
+            "--memaccess",
             type=str,
             default="",
             choices=possible_choices,
@@ -188,48 +190,44 @@ def main(argv: Optional[List[str]] = None) -> int:
     config_name: str
 
     # Check if the config subcommand is activated
-    if args.command == "config":
-        logger.info("Loading config...")
-        config_file: str = args.config
-        config_data = runner.load_config(config_file=config_file)
-        config_name = config_file.split("/")[-1].split(".")[0]
+    logger.info("Loading config...")
+    # 1. Load the base config file
+    config_file: str = args.fileconf
+    config_data = runner.load_config(config_file=config_file)
+    config_name = config_file.split("/")[-1].split(".")[0]
 
-    elif args.command == "param":
-        logger.info("Loading config...")
-        # 1. Load the base config file
-        base_config_file: str = f"{Runner.CONFIG_DIR}base_config.json"
-        config_data = runner.load_config(config_file=base_config_file)
+    # 2. Use cli args to alter the config
+    # 2.1 Number of runs and their seeds
+    if args.runs > 0:
+        config_data["nb_runs"] = args.runs
+    if args.seeds:
+        if len(args.seeds) != config_data["nb_runs"]:
+            raise IncorrectSeedsNumberException(
+                "Number of specified seeds is incorrect. The config file should"
+                " hold the same number of seeds and runs, if no seed are specified,"
+                " please use an empty list '[]'."
+            )
+        else:
+            config_data["run_seeds"] = args.seeds
 
-        # 2. Use cli args to alter the base config
-        # 2.1 Number of runs and their seeds
-        config_data["nb_runs"] = args.nb_runs
-        if args.seeds:
-            if len(args.seeds) != config_data["nb_runs"]:
-                raise IncorrectSeedsNumberException(
-                    "Number of specified seeds is incorrect. The config file should"
-                    " hold the same number of seeds and runs, if no seed are specified,"
-                    " please use an empty list '[]'."
-                )
-            else:
-                config_data["run_seeds"] = args.seeds
-
-        # 2.2 Other parameters
+    # 2.2 Isolation
+    if args.isolation:
         config_data["input_data"]["isolation_solution"] = args.isolation
-        # TODO: Cursed
-        parameters = ["nb_methods", "call_occup", "mem_access"]
-        config_name = ""
-        for parameter in parameters:
-            if getattr(args, parameter):
-                apply_fields_to_conf(
-                    globals()[parameter][getattr(args, parameter)], config_data
-                )
-                config_name += (
-                    f"{'_' if config_name else ''}{getattr(args, parameter)}_"
-                    f"{parameter}"
-                )
 
-        if not config_name:
-            config_name = "base_config"
+    # 2.3 Core selection
+    if args.emulator:
+        config_data["input_data"]["core"] = args.emulator
+
+    # 2.2 Other parameters
+    parameters = ["nbmethods", "calloccup", "memaccess"]
+    for parameter in parameters:
+        if getattr(args, parameter):
+            apply_fields_to_conf(
+                globals()[parameter][getattr(args, parameter)], config_data
+            )
+            config_name += (
+                f"{'_' if config_name else ''}{getattr(args, parameter)}_{parameter}"
+            )
 
     # 3. Format result directory name
     now: datetime.datetime = datetime.datetime.now()

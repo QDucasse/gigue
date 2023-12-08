@@ -33,18 +33,19 @@ setup_colors
 values="low medium high"
 
 RUN=${1:-10}
+CONFIG="toccata/config/manuscript_config_reduced.json"
 
 msg "Starting benchmarks!" 
 for meth_val in $values; do
     for call_val in $values; do
         msg "${GREEN}$meth_val methods${NOFORMAT} / ${ORANGE} $call_val call occupation${NOFORMAT}" 
-        python -m tocatta param -n $meth_val -c $call_val -r ${RUN}
+        python -m toccata -f ${CONFIG} -n $meth_val -c $call_val -r ${RUN}
     done
 done
 
 for meth_val in $values; do
     for mem_val in $values; do
         msg "${GREEN}$meth_val methods${NOFORMAT} / ${ORANGE} $mem_val memory access${NOFORMAT}" 
-        python -m tocatta param -n $meth_val -m $mem_val -r ${RUN}
+        python -m toccata -f ${CONFIG} -n $meth_val -m $mem_val -r ${RUN}
     done
 done
