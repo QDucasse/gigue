@@ -14,6 +14,7 @@ class GigueData(TypedDict):
 class ConfigData(GigueData):
     nb_runs: int
     run_seeds: List[int]
+    config_name: str
     input_data: InputData
 
 

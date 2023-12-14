@@ -95,6 +95,10 @@ def apply_fields_to_conf(fields, config: ConfigData):
             raise
 
 
+def list_of_ints(arg):
+    return list(map(int, arg.split(",")))
+
+
 class Parser(argparse.ArgumentParser):
     def __init__(self):
         super(Parser, self).__init__(description="Toccata, benchmark runner")
@@ -144,8 +148,8 @@ class Parser(argparse.ArgumentParser):
         self.add_argument(
             "-s",
             "--seeds",
-            action="append",
             default=[],
+            type=list_of_ints,
             help=(
                 "Seeds for each run (should have a length equal to the number of runs)"
             ),
@@ -203,9 +207,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.seeds:
         if len(args.seeds) != config_data["nb_runs"]:
             raise IncorrectSeedsNumberException(
-                "Number of specified seeds is incorrect. The config file should"
-                " hold the same number of seeds and runs, if no seed are specified,"
-                " please use an empty list '[]'."
+                "Number of specified seeds is incorrect. The config file should hold"
+                f" the same number of seeds ({len(args.seeds)}) and runs"
+                f" ({config_data['nb_runs']}), if no seed are specified, please use an"
+                " empty list '[]'."
             )
         else:
             config_data["run_seeds"] = args.seeds

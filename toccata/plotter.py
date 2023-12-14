@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 from typing import TYPE_CHECKING, Callable, List, Optional
 
 import matplotlib.pyplot as plt
@@ -87,7 +88,7 @@ class Plotter:
         ]
         instrs_nb: int = tracing_data["instrs_nb"]
         mem_instrs_nb: int = tracing_data["instrs_class"]["memory"]
-        mem_access: float = mem_instrs_nb / instrs_nb * 100
+        mem_access: float = mem_instrs_nb / instrs_nb * 100 if instrs_nb != 0 else 0
         return mem_access
 
     def extract_mem_accesses(self, full_data: FullData):
@@ -114,7 +115,7 @@ class Plotter:
         emulation_data: EmulationData = run_data["execution_data"]["emulation_data"]
         instrs_nb: int = emulation_data["tracing_data"]["instrs_nb"]
         cycles_nb: int = emulation_data["nb_cycles"]
-        cpi: float = cycles_nb / instrs_nb
+        cpi: float = cycles_nb / instrs_nb if instrs_nb != 0 else 0
         return cpi
 
     def extract_cpis(self, full_data: FullData):
@@ -157,9 +158,16 @@ class Plotter:
                     # Extract CPI
                     cpis: List[float] = self.extract_cpis(full_data)
                     # Extract qualifiers
-                    splitted = str(call_app_path).split("_")
-                    nb_methods_qualif = splitted[0]
-                    call_occupations_qualif = splitted[3]
+                    config_name = full_data["config_data"]["config_name"]
+                    pattern = (
+                        re.escape(config_name) + r"_(\w+)_nbmethods_(\w+)_calloccup"
+                    )
+                    match = re.search(pattern, call_app_path)
+                    if match is not None:
+                        nb_methods_qualif = match.group(1)
+                        call_occupations_qualif = match.group(2)
+                    else:
+                        raise Exception("Regex empty.")
                     call_application_class_data: CallApplicationClassData = {
                         "name": str(call_app_path),
                         "nb_methods_qualif": nb_methods_qualif,
@@ -173,9 +181,7 @@ class Plotter:
                     }
                     application_classes_data.append(call_application_class_data)
         if store_plot_data:
-            with open(
-                f"{Plotter.LOCKED_RESULTS_PATH}/calls_plot_data.json", "w"
-            ) as outfile:
+            with open(f"{experiments_path}/calls_plot_data.json", "w") as outfile:
                 json.dump(
                     application_classes_data, outfile, indent=2, separators=(",", ": ")
                 )
@@ -212,9 +218,16 @@ class Plotter:
                     # Extract CPI
                     cpis: List[float] = self.extract_cpis(full_data)
                     # Extract qualifiers
-                    splitted = str(mem_app_path).split("_")
-                    nb_methods_qualif = splitted[0]
-                    mem_accesses_qualif = splitted[3]
+                    config_name = full_data["config_data"]["config_name"]
+                    pattern = (
+                        re.escape(config_name) + r"_(\w+)_nbmethods_(\w+)_memaccess"
+                    )
+                    match = re.search(pattern, mem_app_path)
+                    if match is not None:
+                        nb_methods_qualif = match.group(1)
+                        mem_accesses_qualif = match.group(2)
+                    else:
+                        raise Exception("Regex empty.")
                     mem_application_class_data: MemoryApplicationClassData = {
                         "name": str(mem_app_path),
                         "nb_methods_qualif": nb_methods_qualif,
@@ -228,9 +241,7 @@ class Plotter:
                     }
                     application_classes_data.append(mem_application_class_data)
         if store_plot_data:
-            with open(
-                f"{plotter.LOCKED_RESULTS_PATH}/mem_plot_data.json", "w"
-            ) as outfile:
+            with open(f"{experiments_path}/mem_plot_data.json", "w") as outfile:
                 json.dump(
                     application_classes_data, outfile, indent=2, separators=(",", ": ")
                 )
@@ -296,7 +307,7 @@ class Plotter:
         for app_data in application_classes_data:
             if nb_methods == app_data["nb_methods_qualif"]:
                 call_occupations[app_data["call_occupations_qualif"]] = mean(
-                    app_data["nb_cycles"]
+                    [nb_cycles for nb_cycles in app_data["nb_cycles"] if nb_cycles != 0]
                 )
 
         ax.bar(
@@ -355,7 +366,7 @@ class Plotter:
         for app_data in application_classes_data:
             if nb_methods == app_data["nb_methods_qualif"]:
                 mem_accesses[app_data["mem_accesses_qualif"]] = mean(
-                    app_data["nb_cycles"]
+                    [nb_cycles for nb_cycles in app_data["nb_cycles"] if nb_cycles != 0]
                 )
 
         ax.bar(mem_accesses.keys(), mem_accesses.values(), color="green", alpha=0.5)
@@ -451,12 +462,12 @@ if __name__ == "__main__":
     plotter = Plotter()
     call_application_classes: List[CallApplicationClassData] = (
         plotter.process_call_application_classes(
-            [""], "benchmarks/results/vmil_tests4/", True
+            [""], "toccata/results/manuscript-no-isolation-cva6/", True
         )
     )
     mem_application_classes: List[MemoryApplicationClassData] = (
         plotter.process_mem_application_classes(
-            [""], "benchmarks/results/vmil_tests4/", True
+            [""], "toccata/results/manuscript-no-isolation-cva6/", True
         )
     )
     plotter.plot_call_application_classes(axs_app[0], call_application_classes)
