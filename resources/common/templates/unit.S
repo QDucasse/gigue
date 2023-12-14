@@ -1,9 +1,5 @@
 # This assembly file includes the raw binaries for interpreter and jit, the data and shadow stack space
 
-.global main
-.global ss_start
-.global ss_end
-
 main:
     la t6, tab             # Load the data address in t6
     la t3, ss_end          # Load the shadow stack address in t3 (grows downwards)
