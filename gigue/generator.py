@@ -350,6 +350,7 @@ class Generator:
 
     def patch_jit_calls(self) -> None:
         logger.debug("Phase 2: Patching calls")
+        elt: Union[Method, PIC]
         for elt in self.jit_elements:
             # Patch PIC -> patch methods in it
             if isinstance(elt, PIC):
@@ -369,6 +370,12 @@ class Generator:
                 )
                 self.patch_method_calls(elt)
         logger.debug("Phase 2: Calls patched!")
+
+    def build_element_call(self, element: Union[Method, PIC], current_address: int):
+        # Extracted to override in subclasses!
+        return self.builder.build_element_base_call(
+            element, element.address - current_address
+        )
 
     def patch_method_calls(self, method: Method) -> None:
         # Extracted to override in subclasses!
@@ -390,7 +397,7 @@ class Generator:
     def fill_interpretation_loop(self) -> None:
         logger.debug("Phase 3: Filling interpretation loop")
         # Build a prologue as if all callee-saved regs are used!
-        prologue_instructions: List[Instruction] = self.builder.build_prologue(
+        prologue_instructions: List[Instruction] = self.build_interpreter_prologue(
             used_s_regs=10, local_var_nb=0, contains_call=True
         )
         self.interpreter_instructions += prologue_instructions
@@ -401,7 +408,7 @@ class Generator:
         shuffled_elements: List[Union[Method, PIC]] = self.jit_elements.copy()
         random.shuffle(shuffled_elements)
         for element in shuffled_elements:
-            call_instructions: List[Instruction] = self.build_element_call(
+            call_instructions: List[Instruction] = self.build_interpreter_element_call(
                 element, current_address
             )
             self.interpreter_instructions += call_instructions
@@ -410,7 +417,7 @@ class Generator:
                 f"{self.log_int_prefix()} {hex(current_address)}: Adding call to JIT"
                 f" element at {hex(element.address)}."
             )
-        epilogue_instructions: List[Instruction] = self.builder.build_epilogue(
+        epilogue_instructions: List[Instruction] = self.build_interpreter_epilogue(
             10, 0, True
         )
         # Update sizes
@@ -429,10 +436,32 @@ class Generator:
             )
         logger.debug("Phase 3: Interpretation loop filled!")
 
-    def build_element_call(self, element: Union[Method, PIC], current_address: int):
+    def build_interpreter_prologue(
+        self, used_s_regs: int, local_var_nb: int, contains_call: bool
+    ):
+        # Extracted to override in subclasses!
+        return self.builder.build_prologue(
+            used_s_regs=used_s_regs,
+            local_var_nb=local_var_nb,
+            contains_call=contains_call,
+        )
+
+    def build_interpreter_epilogue(
+        self, used_s_regs: int, local_var_nb: int, contains_call: bool
+    ):
+        # Extracted to override in subclasses!
+        return self.builder.build_epilogue(
+            used_s_regs=used_s_regs,
+            local_var_nb=local_var_nb,
+            contains_call=contains_call,
+        )
+
+    def build_interpreter_element_call(
+        self, element: Union[Method, PIC], current_address: int
+    ):
         # Extracted to override in subclasses!
         return self.builder.build_element_base_call(
-            element, element.address - current_address
+            elt=element, offset=element.address - current_address
         )
 
     #  Machine code generation
@@ -636,83 +665,26 @@ class TrampolineGenerator(Generator):
             except AttributeError as err:
                 logger.exception(err)
                 raise
-        # Add elements
-        current_method_count: int = 0
-        # Add a first leaf method
-        leaf_method: Method = self.add_leaf_method(current_address)
-        leaf_method.fill_with_trampoline_instructions(
-            registers=self.registers,
-            data_reg=self.data_reg,
-            data_size=self.data_size,
-            weights=self.weights,
-            ret_trampoline_offset=self.find_trampoline_offset(
-                "ret_from_jit_elt", current_address
-            ),
-        )
-        try:
-            current_address += leaf_method.total_size() * 4
-            current_method_count += 1
-        except EmptySectionException as err:
-            logger.exception(err)
-            raise
-        # Add other methods
-        while current_method_count < self.jit_nb_methods:
-            code_type: str = random.choices(
-                ["method", "pic"], [1 - self.pics_ratio, self.pics_ratio]
-            )[0]
-            adder_function: Callable = getattr(Generator, "add_" + code_type)
-            current_element: Union[PIC, Method] = adder_function(
-                self, current_address, self.jit_nb_methods - current_method_count
-            )
-            current_element.fill_with_trampoline_instructions(
-                registers=self.registers,
-                data_reg=self.data_reg,
-                data_size=self.data_size,
-                weights=self.weights,
-                ret_trampoline_offset=self.find_trampoline_offset(
-                    "ret_from_jit_elt", current_address
-                ),
-            )
-            try:
-                current_address += current_element.total_size() * 4
-                current_method_count += current_element.method_nb()
-            except EmptySectionException as err:
-                logger.exception(err)
-                raise
-        logger.debug("Phase 1: JIT code elements filled!")
+        super().fill_jit_code(start_address=current_address)
 
     # Calls
-    # \_____
+    # \____
 
-    def build_element_call(self, element: Union[Method, PIC], current_address: int):
+    def build_interpreter_element_call(
+        self, element: Union[Method, PIC], current_address: int
+    ):
         call_trampoline_offset: int = self.find_trampoline_offset(
             name="call_jit_elt", current_address=current_address
         )
-        return self.builder.build_element_trampoline_call(
-            element, element.address - current_address, call_trampoline_offset
+        # Extracted to override in subclasses!
+        return self.builder.build_interpreter_trampoline_call(
+            elt=element,
+            offset=element.address - current_address,
+            call_trampoline_offset=call_trampoline_offset,
         )
 
-    def patch_method_calls(self, method: Method) -> None:
-        # Extracted to override in subclasses!
-        try:
-            method.patch_trampoline_calls(
-                self.extract_callees(
-                    call_depth=method.call_depth, nb=method.call_number
-                ),
-                self.find_trampoline_offset(
-                    name="call_jit_elt", current_address=method.address
-                ),
-            )
-        except (
-            RecursiveCallException,
-            MutualCallException,
-            CallNumberException,
-        ) as err:
-            logger.exception(err)
-            raise
-
-    # Generation
-    # \__________
+    # Code Generation
+    # \_______________
 
     def generate_jit_machine_code(self) -> List[int]:
         # Add machine code for trampolines at the start of JIT code

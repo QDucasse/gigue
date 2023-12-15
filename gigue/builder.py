@@ -210,7 +210,7 @@ class InstructionBuilder:
         try:
             # Choose immediate with correct alignment
             alignment: int = InstructionBuilder.define_memory_access_alignment(name)
-            imm: int = align(random.randint(0, min(data_size, 0x7FF)), alignment)
+            imm: int = align(random.randint(0, min(data_size - 8, 0x7FF)), alignment)
         except InstructionAlignmentNotDefined as err:
             logger.error(err)
             raise
@@ -298,13 +298,6 @@ class InstructionBuilder:
     ) -> List[Instruction]:
         return elt.accept_build_base_call(offset)
 
-    # Visitor to build either a PIC or method call with trampolines (visitor!)
-    @staticmethod
-    def build_element_trampoline_call(
-        elt: Union[Method, PIC], offset: int, call_trampoline_offset: int
-    ) -> List[Instruction]:
-        return elt.accept_build_trampoline_call(offset, call_trampoline_offset)
-
     @staticmethod
     def build_method_base_call(offset: int) -> List[Instruction]:
         # Base method, no trampolines
@@ -319,47 +312,6 @@ class InstructionBuilder:
         return [
             UInstruction.auipc(RA, offset_high),
             IInstruction.jalr(RA, RA, offset_low),
-        ]
-
-    @staticmethod
-    def build_method_trampoline_call(
-        offset: int, call_trampoline_offset: int
-    ) -> List[Instruction]:
-        # This method uses the trampoline to call/return from JIT elements
-        # It is composed as follows:
-        # 1. Compute RA and save it (in RA!)
-        # 2. Compute the target address of the call and save it in CALL_TMP_REG
-        # 3. Jump to the call jit elt trampoline
-        # /!\ The trampoline offset is computed starting from the base address
-
-        # 0x00 auipc ra, 0                          |  \
-        # 0x04 addi  ra, ra, 0  0x14                | - > Generate return address
-        # 0x08 auipc temp_call, off_high            |  \
-        # 0x0c addi  temp_call, temp_call, off_low  | - > Generate call target
-        # 0x10 j     call_tramp                     | - > Jump to the trampoline
-        # 0x14 < RA should point here!
-        try:
-            # Split offset
-            offset_low: int
-            offset_high: int
-            offset_low, offset_high = InstructionBuilder.split_offset(
-                offset - 0x8, 0x14
-            )
-        except WrongOffsetException as err:
-            logger.error(err)
-            raise
-        # Note: minimum offset size of call, mitigation two instructions before call
-        return [
-            # 1. Save RA
-            UInstruction.auipc(RA, 0),
-            IInstruction.addi(RA, RA, 0x14),
-            # Note: 0x14 to aim at the end of this call (after j)
-            # 2. Save target
-            UInstruction.auipc(CALL_TMP_REG, offset_high),
-            IInstruction.addi(CALL_TMP_REG, CALL_TMP_REG, offset_low),
-            # 3. Jump to trampoline
-            JInstruction.j(call_trampoline_offset - 0x10),
-            # Note: -0x10 to mitigate the 4 previous instructions
         ]
 
     @staticmethod
@@ -383,42 +335,100 @@ class InstructionBuilder:
             IInstruction.jalr(rd=RA, rs1=RA, imm=offset_low),
         ]
 
+    # Interpreter calls
+    # \___________________
+
+    # Visitor to build either a PIC or method call (visitor!)
     @staticmethod
-    def build_pic_trampoline_call(
+    def build_interpreter_trampoline_call(
+        elt: Union[Method, PIC], offset: int, call_trampoline_offset
+    ) -> List[Instruction]:
+        return elt.accept_build_interpreter_call(offset, call_trampoline_offset)
+
+    @staticmethod
+    def build_interpreter_trampoline_method_call(
+        offset: int, call_trampoline_offset: int
+    ) -> List[Instruction]:
+        # This method uses the trampoline to call a JIT element
+        # It is composed as follows:
+        # 1. Setup the calling address in a temporary register
+        # 2. Call the "call jit elt" trampoline
+        # /!\ The trampoline offset is computed starting from the base address
+
+        # 0x00 auipc temp_call_reg, off_high               (JIT elt addr)
+        # 0x04 addi  temp_call_reg, temp_call_reg, off_low (JIT elt addr)
+        # 0x08 auipc ra, offset_high (trampoline)
+        # 0x0c jalr  offset_low(ra)  (trampoline)
+
+        try:
+            # Split offset
+            offset_low_target: int
+            offset_high_target: int
+            offset_low_target, offset_high_target = InstructionBuilder.split_offset(
+                offset=offset, min_offset=0xC
+            )
+            # Split offset trampoline
+            offset_low_tramp: int
+            offset_high_tramp: int
+            offset_low_tramp, offset_high_tramp = InstructionBuilder.split_offset(
+                call_trampoline_offset - 0x8, min_offset=0xC
+            )
+        except WrongOffsetException as err:
+            logger.error(err)
+            raise
+        # Note: minimum offset size of call, mitigation two instructions before call
+        return [
+            # 1. Setup the calling address in a temporary register
+            UInstruction.auipc(CALL_TMP_REG, offset_high_target),
+            IInstruction.addi(CALL_TMP_REG, CALL_TMP_REG, offset_low_target),
+            UInstruction.auipc(RA, offset_high_tramp),
+            IInstruction.jalr(RA, RA, offset_low_tramp),
+        ]
+
+    @staticmethod
+    def build_interpreter_trampoline_pic_call(
         offset: int,
         call_trampoline_offset: int,
         hit_case: int,
         hit_case_reg: int = HIT_CASE_REG,
     ) -> List[Instruction]:
-        # This method uses the trampoline to call/return from JIT elements
+        # This method uses the trampoline to call a JIT element
         # It is composed as follows:
-        # 1. Needed case hit
-        # 2/3. Jump to the PC-related PIC location
+        # 1. Setup the calling address in a temporary register
+        # 2. Setup the pic case
+        # 2. Call the "call jit elt" trampoline
+        # /!\ The trampoline offset is computed starting from the base address
+
+        # 0x00 auipc temp_call_reg, off_high               (JIT elt addr)
+        # 0x04 addi  temp_call_reg, temp_call_reg, off_low (JIT elt addr)
+        # 0x08 addi  hitcase_reg, x0, hit case   (load hit case to check)
+        # 0x0c auipc ra, offset_high (trampoline)
+        # 0x10 jalr  offset_low(ra)  (trampoline)
+
         try:
             # Split offset
-            offset_low: int
-            offset_high: int
-            offset_low, offset_high = InstructionBuilder.split_offset(
-                offset - 0xC, 0x18
+            offset_low_target: int
+            offset_high_target: int
+            offset_low_target, offset_high_target = InstructionBuilder.split_offset(
+                offset=offset, min_offset=0x14
+            )
+            # Split offset trampoline
+            offset_low_tramp: int
+            offset_high_tramp: int
+            offset_low_tramp, offset_high_tramp = InstructionBuilder.split_offset(
+                call_trampoline_offset - 0xC, min_offset=0x14
             )
         except WrongOffsetException as err:
             logger.error(err)
             raise
-        # Note: minimum offset size of call,
-        #       mitigation of the three instructions before call
+        # Note: minimum offset size of call, mitigation two instructions before call
         return [
-            # 1. Hit case
+            # 1. Setup the calling address in a temporary register
+            UInstruction.auipc(CALL_TMP_REG, offset_high_target),
+            IInstruction.addi(CALL_TMP_REG, CALL_TMP_REG, offset_low_target),
             IInstruction.addi(rd=hit_case_reg, rs1=X0, imm=hit_case),
-            # 2. Save RA
-            UInstruction.auipc(RA, 0),
-            IInstruction.addi(RA, RA, 0x14),
-            # Note: 0x14 to aim at the end of this call (after j)
-            # 3. Save target
-            UInstruction.auipc(CALL_TMP_REG, offset_high),
-            IInstruction.addi(CALL_TMP_REG, CALL_TMP_REG, offset_low),
-            # 4. Jump to trampoline
-            JInstruction.j(call_trampoline_offset - 0x14),
-            # Note: -0x14 to mitigate the 5 previous instructions
+            UInstruction.auipc(RA, offset_high_tramp),
+            IInstruction.jalr(RA, RA, offset_low_tramp),
         ]
 
     # Specific structures
@@ -520,40 +530,6 @@ class InstructionBuilder:
         instructions.append(IInstruction.ret())
         return instructions
 
-    @staticmethod
-    def build_trampoline_epilogue(
-        used_s_regs: int,
-        local_var_nb: int,
-        contains_call: bool,
-        ret_trampoline_offset: int,
-    ) -> List[Instruction]:
-        # An example epilogue would be:
-        # ld s0 0(sp)
-        # ld s1 4(sp)
-        # ld s2 8(sp)
-        # ld ra 12(sp)
-        # addi sp sp 16 (+local vars)
-        # j ret_trampoline         <-- Changed instruction
-        instructions: List[Instruction] = []
-        stack_space: int = (
-            used_s_regs + local_var_nb + (1 if contains_call else 0)
-        ) * 8
-        # Reload saved registers used
-        for i in range(used_s_regs):
-            instructions.append(
-                IInstruction.ld(rd=CALLEE_SAVED_REG[i], rs1=SP, imm=i * 8)
-            )
-        # Reload ra (if necessary)
-        if contains_call:
-            instructions.append(IInstruction.ld(rd=RA, rs1=SP, imm=used_s_regs * 8))
-        # Increment sp to previous value
-        instructions.append(IInstruction.addi(rd=SP, rs1=SP, imm=stack_space))
-        # Jump to the return trampoline
-        instructions.append(
-            JInstruction.j(ret_trampoline_offset - len(instructions) * 4)
-        )
-        return instructions
-
     # Trampoline-related
     # \_________________
 
@@ -575,17 +551,38 @@ class InstructionBuilder:
 
     @staticmethod
     def build_call_jit_elt_trampoline() -> List[Instruction]:
-        # The call JIT trampoline is used to call a JIT method/PIC (wow).
-        # It does not do much without isolation solution set up (see RIMI builder!).
-        # Note that:
-        #  - The RA should be set by the caller.
-        #  - The callee address is set in a dedicated register.
-        return [IInstruction.jr(rs1=CALL_TMP_REG)]
+        # The call JIT trampoline is used to call a JIT method/PIC (wow) from the
+        # interpreter. It does not do much without isolation solution set up
+        # (see RIMI builder!).
+        # 1. It stores the return address of the interpreter in the call stack
+        # 2. It sets the RA register to the  "return" trampoline
+        # 3. It transfers control-flow to the CALL_TMP_REG
+        return [
+            # 1. Store the return address on the control stack
+            IInstruction.addi(rd=SP, rs1=SP, imm=-8),
+            SInstruction.sd(rs1=SP, rs2=RA, imm=0),
+            # 2. Set RA to the return trampoline (note: should be right after)
+            UInstruction.auipc(rd=RA, imm=0),
+            IInstruction.addi(rd=RA, rs1=RA, imm=0xC),
+            # 3. CF transfer
+            IInstruction.jr(rs1=CALL_TMP_REG),
+        ]
 
     @staticmethod
     def build_ret_from_jit_elt_trampoline() -> List[Instruction]:
         # The ret JIT trampoline is used to return from a JIT method/PIC (wow).
         # It does not do much without isolation solution set up (see RIMI builder!).
-        # Note that:
-        #  - The RA should be set by the caller.
-        return [IInstruction.ret()]
+        # 1. It pops the return address from the call stack
+        # 2. Comparison if the return address is JIT/interpreter
+        # 3. Transfer control-flow (with ret or variant)
+        return [
+            # 1. Store the return address on the control stack
+            IInstruction.ld(rd=RA, rs1=SP, imm=0),
+            IInstruction.addi(rd=SP, rs1=SP, imm=8),
+            # 2. Compare to PC
+            UInstruction.auipc(rd=CALL_TMP_REG, imm=0),
+            BInstruction.blt(rs1=RA, rs2=CALL_TMP_REG, imm=8),
+            # 3. CF transfer (identical in this case)
+            IInstruction.ret(),
+            IInstruction.ret(),
+        ]

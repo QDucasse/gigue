@@ -20,7 +20,7 @@ class Trampoline:
     # \_______
 
     def log_prefix(self) -> str:
-        return f"🍵 {hex(self.address)}: {self.name} trampoline"
+        return f"🌾 {hex(self.address)}: {self.name} trampoline"
 
     # Instruction Building
     # \____________________

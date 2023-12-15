@@ -10,12 +10,8 @@ from gigue.exceptions import (
     CallNumberException,
     EmptySectionException,
 )
-from gigue.helpers import (
-    flatten_list,
-    generate_poisson,
-    generate_trunc_norm,
-)
-from gigue.instructions import Instruction, JInstruction
+from gigue.helpers import flatten_list, generate_poisson, generate_trunc_norm
+from gigue.instructions import Instruction
 from gigue.method import Method
 
 logger = logging.getLogger("gigue")
@@ -107,11 +103,11 @@ class PIC:
             raise
         return instrs
 
-    def accept_build_trampoline_call(self, method_offset, call_trampoline_offset):
+    def accept_build_interpreter_call(self, offset, call_trampoline_offset):
         hit_case = random.randint(1, self.case_number)
         try:
-            instrs = self.builder.build_pic_trampoline_call(
-                offset=method_offset,
+            instrs = self.builder.build_interpreter_trampoline_pic_call(
+                offset=offset,
                 call_trampoline_offset=call_trampoline_offset,
                 hit_case=hit_case,
             )
@@ -215,118 +211,7 @@ class PIC:
         self.add_switch_instructions()
         logger.debug(f"{self.log_prefix()} PIC filled.")
 
-    # Trampolines
-    # \___________
-
-    def fill_with_trampoline_instructions(
-        self, registers, data_reg, data_size, weights, ret_trampoline_offset
-    ):
-        logger.debug(f"{self.log_prefix()} Filling PIC (case methods and switch).")
-        self.add_trampoline_case_methods(
-            registers=registers,
-            data_reg=data_reg,
-            data_size=data_size,
-            weights=weights,
-            ret_trampoline_offset=ret_trampoline_offset,
-        )
-        self.add_trampoline_switch_instructions(
-            ret_trampoline_offset=ret_trampoline_offset
-        )
-        logger.debug(f"{self.log_prefix()} PIC filled.")
-
-    def add_trampoline_switch_instructions(self, ret_trampoline_offset: int) -> None:
-        # WARNING!!!! hit case starts at 1
-        # The switch instructions consist of:
-        #   1 - Loading the value to compare in cmp_reg (x6)
-        #   2 - Compare to the current case that should be in hit_case_reg (x5)
-        #   3 - Jump to the corresponding method if equal
-        #   4 - Go to the next case if not
-        #   5 - Repeat (1/2/3/4)
-        #   6 - Simple ret at the end if no case was reached
-        for case_nb, method in enumerate(self.methods):
-            current_address = self.address + ((case_nb + 1) * 3) * 4
-            method_offset = method.address - current_address
-            switch_case = self.builder.build_switch_case(
-                case_number=case_nb + 1,
-                method_offset=method_offset,
-                hit_case_reg=self.hit_case_reg,
-                cmp_reg=self.cmp_reg,
-            )
-            self.switch_instructions.append(switch_case)
-        self.switch_instructions.append(
-            [JInstruction.j(ret_trampoline_offset - (3 * self.case_number) * 4)]
-        )
-
-    def add_trampoline_case_methods(
-        self,
-        registers: List[int],
-        data_reg: int,
-        data_size: int,
-        weights: List[int],
-        ret_trampoline_offset: int,
-    ) -> None:
-        logger.debug(f"{self.log_prefix()} Adding case methods.")
-        method_address: int = self.address + self.get_switch_size() * 4
-        for _ in range(self.case_number):
-            # TODO: Probably should refactor with generator's add_method
-            # body size = method size (bin size / nb of methods) * (1 +- size variation)
-            # note: the +- is defined as a one ot of two chance
-            size_variation: float = generate_trunc_norm(
-                variance=self.method_variation_mean,
-                std_dev=self.method_variation_stdev,
-                lower_bound=0,
-                higher_bound=1.0,
-            )
-            body_size: int = ceil(self.method_size * (1 + size_variation))
-            # call number is derived from call occupation:
-            # max call nb = body size / call size
-            # call nb = call occupation * max call nb
-            call_occupation: float = generate_trunc_norm(
-                variance=self.method_call_occupation_mean,
-                std_dev=self.method_call_occupation_stdev,
-                lower_bound=0,
-                higher_bound=1.0,
-            )
-            max_call_nb: int = body_size // self.call_size
-            call_nb: int = trunc(call_occupation * max_call_nb)
-            # call depth follows a Poisson distribution with lambda = mean
-            call_depth: int = generate_poisson(self.method_call_depth_mean)
-            try:
-                case_method: Method = Method(
-                    address=method_address,
-                    body_size=body_size,
-                    call_number=call_nb,
-                    call_depth=call_depth,
-                    builder=self.builder,
-                )
-                case_method.fill_with_trampoline_instructions(
-                    registers=registers,
-                    data_reg=data_reg,
-                    data_size=data_size,
-                    weights=weights,
-                    ret_trampoline_offset=ret_trampoline_offset
-                    - (method_address - self.address),
-                )
-                self.methods.append(case_method)
-                method_address += case_method.total_size() * 4
-            except CallNumberException as err:
-                logger.exception(err)
-                raise
-            except EmptySectionException as err:
-                logger.exception(err)
-                raise
-            logger.debug(
-                f"{self.log_prefix()} {case_method.log_prefix()} Case method added"
-                f" with size ({body_size}), call nb ({call_nb} => call occupation"
-                f" {call_occupation}) and call depth ({call_depth})"
-            )
-            logger.debug(
-                f"{self.log_prefix()} {case_method.log_prefix()} Effective call"
-                f" occupation: {case_method.call_occupation()}"
-            )
-        logger.debug(f"{self.log_prefix()} Case methods added.")
-
-    # Generation
+    # # Generation
     # \__________
 
     def generate(self):

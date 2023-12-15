@@ -79,6 +79,26 @@ class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
 
         self.shadow_stack_size = shadow_stack_size
 
+    def build_interpreter_prologue(
+        self, used_s_regs: int, local_var_nb: int, contains_call: bool
+    ):
+        # Use the base prologue setup, (using non-duplicated sd)
+        return super(RIMIShadowStackInstructionBuilder, self.builder).build_prologue(
+            used_s_regs=used_s_regs,
+            local_var_nb=local_var_nb,
+            contains_call=contains_call,
+        )
+
+    def build_interpreter_epilogue(
+        self, used_s_regs: int, local_var_nb: int, contains_call: bool
+    ):
+        # Use the base epilogue (using non-duplicated ld)
+        return super(RIMIShadowStackInstructionBuilder, self.builder).build_epilogue(
+            used_s_regs=used_s_regs,
+            local_var_nb=local_var_nb,
+            contains_call=contains_call,
+        )
+
     def generate_shadowstack_binary(self) -> bytes:
         self.ss_bin = self.miner.generate_data("zeroes", self.shadow_stack_size)
         return self.ss_bin

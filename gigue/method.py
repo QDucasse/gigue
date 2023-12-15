@@ -124,16 +124,6 @@ class Method:
         self.instructions += epilogue_instructions
         self.epilogue_size = len(epilogue_instructions)
 
-    def fill_trampoline_epilogue(self, ret_trampoline_offset):
-        epilogue_instructions = self.builder.build_trampoline_epilogue(
-            self.used_s_regs,
-            self.local_vars_nb,
-            not self.is_leaf,
-            ret_trampoline_offset,
-        )
-        self.instructions += epilogue_instructions
-        self.epilogue_size = len(epilogue_instructions)
-
     def fill_with_instructions(self, registers, data_reg, data_size, weights):
         logger.debug(f"{self.log_prefix()} Filling method.")
         # Fill prologue
@@ -148,28 +138,6 @@ class Method:
         )
         # Generate epilogue
         self.fill_epilogue()
-        logger.debug(f"{self.log_prefix()} Method filled.")
-
-    def fill_with_trampoline_instructions(
-        self, registers, data_reg, data_size, weights, ret_trampoline_offset
-    ):
-        logger.debug(f"{self.log_prefix()} Filling method.")
-        # Fill prologue
-        self.fill_prologue()
-        # Generate random instructions
-        self.fill_body(
-            registers=registers,
-            data_reg=data_reg,
-            data_size=data_size,
-            weights=weights,
-            call_size=6,
-        )
-        # Generate epilogue
-        self.fill_trampoline_epilogue(
-            ret_trampoline_offset=ret_trampoline_offset
-            - self.body_size * 4
-            - self.prologue_size * 4
-        )
         logger.debug(f"{self.log_prefix()} Method filled.")
 
     # Generation
@@ -189,18 +157,19 @@ class Method:
     # Call-related methods
     # \____________________
 
-    def accept_build_base_call(self, method_offset):
+    def accept_build_base_call(self, offset):
         try:
-            instrs = self.builder.build_method_base_call(method_offset)
+            instrs = self.builder.build_method_base_call(offset)
         except BuilderException as err:
             logger.exception(err)
             raise
         return instrs
 
-    def accept_build_trampoline_call(self, method_offset, call_trampoline_offset):
+    def accept_build_interpreter_call(self, offset, call_trampoline_offset):
         try:
-            instrs = self.builder.build_method_trampoline_call(
-                method_offset, call_trampoline_offset
+            instrs = self.builder.build_interpreter_trampoline_method_call(
+                offset=offset,
+                call_trampoline_offset=call_trampoline_offset,
             )
         except BuilderException as err:
             logger.exception(err)
@@ -267,31 +236,4 @@ class Method:
 
         logger.debug(
             f"{self.log_prefix()} Method base calls patched and callers updated."
-        )
-
-    def patch_trampoline_calls(self, callees, call_trampoline_offset):
-        logger.debug(f"{self.log_prefix()} Patching method trampoline calls.")
-        self.check_callees(callees)
-        self.callees = callees
-
-        # Replace random parts of the method with calls to chosen callees
-        # The different argument of the range aim the method body size and goes 3 by 3
-        indexes = self.select_paching_indexes(call_size=6)
-        for ind, callee in zip(indexes, self.callees):
-            # Compute the offset
-            offset = callee.address - (self.address + ind * 4)
-            # print(
-            #     f"Offset: {hex(callee.address)} - ({hex(self.address)}
-            #     + {hex(ind*4)}) = {hex(offset)}"
-            # )
-            call_instructions = self.builder.build_element_trampoline_call(
-                elt=callee,
-                offset=offset,
-                call_trampoline_offset=call_trampoline_offset - ind * 4,
-            )
-            # Add call instructions (5 to 6 instructions!)
-            self.instructions[ind : ind + len(call_instructions)] = call_instructions
-
-        logger.debug(
-            f"{self.log_prefix()} Method trampoline calls patched and callers updated."
         )

@@ -99,7 +99,7 @@ $(bin_dir)/cva6.log: $(bin_dir)/out.elf
 ifndef CVA6
 	$(error Please set environment variable CVA6 to the (compiled) CVA6 verilator emulator (i.e. cva6/work-ver/Variane_testharness))
 endif
-	($(CVA6) $< > $@ 2>&1) || true 
+	($(CVA6) +max-cycles=$(MAX_CYCLES) $< > $@ 2>&1) || true 
 	spike-dasm < trace_hart_00.dasm >> $@
 
 # Waveform generation
