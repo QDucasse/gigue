@@ -2,6 +2,10 @@
 
 .section .text
 
+.global main
+
+#define PMP_ADDR0 0x100000000000
+#define PMP_CONFIG 0x000000000000000f
 
 main:
     la t6, gigue_jit_data  # Load the data address in t6
@@ -32,6 +36,18 @@ umode_setup:
     # Setup user mode entry address
     la t0, gigue_int_start
     csrw mepc, t0
+
+    /* PMP CSR setup
+    _____________________ */
+
+    # Setup PMP Region 0 TOR all rights
+    li t0, PMP_ADDR0
+    srli t0, t0, 2     # Note: addr should be shifted by 2
+    csrw pmpaddr0, t0
+
+    # Setup PMP config 
+    li t0, PMP_CONFIG
+    csrw pmpcfg0, t0
 
     mret
 

@@ -11,10 +11,10 @@ main:
     # ecall                  # Call linux to terminate the program
 
 .section .data
-tab: 
+gigue_jit_data: 
     .incbin "bin/data.bin"
 
-ss_start:
+gigue_ss_start:
     .incbin "bin/ss.bin"
 
-ss_end:
+gigue_ss_end:

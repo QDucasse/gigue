@@ -41,7 +41,7 @@
 # _dom0_data_start = 0x80006000;
 # _dom2_data_start = 0x80007000;
 
-# .global main
+.global main
 # .global umode_setup
 # .global gigue_jit_start
 # .global gigue_int_start
@@ -186,10 +186,6 @@ main:
 
 gigue_int_start:
     .incbin "bin/int.bin"
-
-
-# gigue_call_tramp:
-#     .incbin "bin/call_tramp.bin"
 
 gigue_jit_start:
     .incbin "bin/jit.bin"
