@@ -114,6 +114,7 @@ class Generator:
         self.call_occupation_mean: float = call_occupation_mean
         self.call_occupation_stdev: float = call_occupation_stdev
         self.call_size: int = 3
+        self.interpreter_call_size: int = 3
         # PICs parameters
         self.pics_ratio: float = pics_ratio
         self.pics_mean_case_nb: int = pics_mean_case_nb
@@ -621,8 +622,7 @@ class TrampolineGenerator(Generator):
             output_data_bin_file=output_data_bin_file,
             output_ss_bin_file=output_ss_bin_file,
         )
-        # /!\ The call size is larger when using trampolines
-        self.call_size: int = 6
+        self.interpreter_call_size: int = 5
 
     # Element adding
     # \______________

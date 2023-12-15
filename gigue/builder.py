@@ -396,7 +396,7 @@ class InstructionBuilder:
         # It is composed as follows:
         # 1. Setup the calling address in a temporary register
         # 2. Setup the pic case
-        # 2. Call the "call jit elt" trampoline
+        # 3. Call the "call jit elt" trampoline
         # /!\ The trampoline offset is computed starting from the base address
 
         # 0x00 auipc temp_call_reg, off_high               (JIT elt addr)
@@ -426,7 +426,9 @@ class InstructionBuilder:
             # 1. Setup the calling address in a temporary register
             UInstruction.auipc(CALL_TMP_REG, offset_high_target),
             IInstruction.addi(CALL_TMP_REG, CALL_TMP_REG, offset_low_target),
+            # 2. Setup the pic case
             IInstruction.addi(rd=hit_case_reg, rs1=X0, imm=hit_case),
+            # 3. Call the "call jit elt" trampoline
             UInstruction.auipc(RA, offset_high_tramp),
             IInstruction.jalr(RA, RA, offset_low_tramp),
         ]

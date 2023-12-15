@@ -34,7 +34,6 @@ class MissingCycleException(ParserException):
 
 
 class DumpParser:
-
     # Info filling methods
     # \_____________________
 
@@ -218,7 +217,6 @@ class LogParser:
 
 
 class RocketLogParser(LogParser):
-
     # Core log extraction
     # \______________________
 
@@ -278,7 +276,6 @@ class RocketLogParser(LogParser):
 
 
 class CVA6LogParser(LogParser):
-
     # Core log extraction
     # \______________________
 

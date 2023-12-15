@@ -1,11 +1,17 @@
 from typing import List
 
 from gigue.builder import InstructionBuilder
-from gigue.constants import CALL_TMP_REG, RA
+from gigue.constants import CALL_TMP_REG, RA, SP
 from gigue.exceptions import WrongOffsetException
 from gigue.fixer.fixer_constants import FIXER_CMP_REG
 from gigue.fixer.fixer_instructions import FIXERCustomInstruction
-from gigue.instructions import BInstruction, IInstruction, Instruction, UInstruction
+from gigue.instructions import (
+    BInstruction,
+    IInstruction,
+    Instruction,
+    SInstruction,
+    UInstruction,
+)
 
 
 class FIXERInstructionBuilder(InstructionBuilder):
@@ -96,25 +102,43 @@ class FIXERInstructionBuilder(InstructionBuilder):
 
     @staticmethod
     def build_call_jit_elt_trampoline() -> List[Instruction]:
-        # The call JIT trampoline is used to call a JIT method/PIC (wow).
-        # FIXER saves the RA in coprocessor memory
-        # Note that:
-        #  - The RA should be set by the caller.
-        #  - The callee address is set in a dedicated register.
+        # The call JIT trampoline is used to call a JIT method/PIC (wow) from the
+        # interpreter. It does not do much without isolation solution set up
+        # (see RIMI builder!).
+        # 1. It stores the return address of the interpreter in the call stack
+        # 2. It sets the RA register to the  "return" trampoline
+        # 3. It transfers control-flow to the CALL_TMP_REG
         return [
-            FIXERCustomInstruction.cficall(rd=0, rs1=RA, rs2=0),
+            # 1. Store the return address on the control stack
+            IInstruction.addi(rd=SP, rs1=SP, imm=-8),
+            SInstruction.sd(rs1=SP, rs2=RA, imm=0),
+            # 2. Set RA to the return trampoline (note: should be right after)
+            UInstruction.auipc(rd=RA, imm=0),
+            IInstruction.addi(rd=RA, rs1=RA, imm=0xC),
+            # 3. CF transfer
+            FIXERCustomInstruction.cficall(rd=0, rs1=FIXER_CMP_REG, rs2=0),
             IInstruction.jr(rs1=CALL_TMP_REG),
         ]
 
     @staticmethod
     def build_ret_from_jit_elt_trampoline() -> List[Instruction]:
         # The ret JIT trampoline is used to return from a JIT method/PIC (wow).
-        # FIXER loads the return address it previously loaded in memory
-        # Note that:
-        #  - The RA should be set by the caller (in RA).
-        #  - For now the branch jumps over an ecall instruction if correct
-        #    but it should jump to a dedicated exception trap
+        # It does not do much without isolation solution set up (see RIMI builder!).
+        # 1. It pops the return address from the call stack
+        # 2. Comparison if the return address is JIT/interpreter
+        # 3. Transfer control-flow (with ret or variant)
         return [
+            # 1. Store the return address on the control stack
+            IInstruction.ld(rd=RA, rs1=SP, imm=0),
+            IInstruction.addi(rd=SP, rs1=SP, imm=8),
+            # 2. Compare to PC
+            UInstruction.auipc(rd=CALL_TMP_REG, imm=0),
+            BInstruction.blt(rs1=RA, rs2=CALL_TMP_REG, imm=0x14),
+            # 3. CF transfer (identical in this case)
+            FIXERCustomInstruction.cfiret(rd=FIXER_CMP_REG, rs1=0, rs2=0),
+            BInstruction.beq(rs1=RA, rs2=FIXER_CMP_REG, imm=8),
+            IInstruction.ecall(),
+            IInstruction.ret(),
             FIXERCustomInstruction.cfiret(rd=FIXER_CMP_REG, rs1=0, rs2=0),
             BInstruction.beq(rs1=RA, rs2=FIXER_CMP_REG, imm=8),
             IInstruction.ecall(),

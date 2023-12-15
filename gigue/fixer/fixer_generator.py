@@ -68,3 +68,23 @@ class FIXERTrampolineGenerator(TrampolineGenerator):
         self.registers: List[int] = [
             reg for reg in self.registers if reg != self.fixer_cmp_reg
         ]
+
+    def build_interpreter_prologue(
+        self, used_s_regs: int, local_var_nb: int, contains_call: bool
+    ):
+        # Use the base prologue setup, (using non-duplicated sd)
+        return super(FIXERInstructionBuilder, self.builder).build_prologue(
+            used_s_regs=used_s_regs,
+            local_var_nb=local_var_nb,
+            contains_call=contains_call,
+        )
+
+    def build_interpreter_epilogue(
+        self, used_s_regs: int, local_var_nb: int, contains_call: bool
+    ):
+        # Use the base epilogue (using non-duplicated ld)
+        return super(FIXERInstructionBuilder, self.builder).build_epilogue(
+            used_s_regs=used_s_regs,
+            local_var_nb=local_var_nb,
+            contains_call=contains_call,
+        )

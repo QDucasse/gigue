@@ -154,7 +154,7 @@ def test_fill_jit_code(
 )
 @pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
 def test_fill_interpretation_loop(
-    jit_size, jit_nb_methods, pics_ratio, generator_class
+    jit_size, jit_nb_methods, pics_ratio, generator_class, log_trace
 ):
     generator = generator_class(
         jit_start_address=JIT_START_ADDRESS,
@@ -170,13 +170,12 @@ def test_fill_interpretation_loop(
         pics_ratio=pics_ratio,
     )
     generator.fill_jit_code()
-    # generator.patch_jit_calls()
     generator.fill_interpretation_loop()
     assert (
         len(generator.interpreter_instructions)
-        == (generator.call_size - 1)
+        == (generator.interpreter_call_size - 1)
         * (len(generator.jit_elements) - generator.pic_count)
-        + generator.call_size * generator.pic_count
+        + generator.interpreter_call_size * generator.pic_count
         + Generator.INT_PROLOGUE_SIZE
         + Generator.INT_EPILOGUE_SIZE
     )
@@ -277,9 +276,9 @@ def test_generate_interpreter_machine_code(
     generator.generate_interpreter_machine_code()
     assert (
         len(generator.interpreter_instructions)
-        == (generator.call_size - 1)
+        == (generator.interpreter_call_size - 1)
         * (len(generator.jit_elements) - generator.pic_count)
-        + generator.call_size * generator.pic_count
+        + generator.interpreter_call_size * generator.pic_count
         + Generator.INT_PROLOGUE_SIZE
         + Generator.INT_EPILOGUE_SIZE
     )

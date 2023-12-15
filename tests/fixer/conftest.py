@@ -40,7 +40,6 @@ class FIXERHandler(Handler):
 
 @pytest.fixture
 def fixer_disasm_setup():
-    # FIXME: Merging dicts with the FIXER info first
     disassembler = Disassembler(FIXER_INSTRUCTIONS_INFO | INSTRUCTIONS_INFO)
     return disassembler
 
