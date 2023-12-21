@@ -301,7 +301,7 @@ class Runner:
         # Compile binary
         try:
             subprocess.run(
-                ["make", "dump"],
+                ["make", "dump", "TEMPLATE=rimi"],
                 timeout=10,
                 check=True,
                 stdout=subprocess.DEVNULL,
@@ -427,11 +427,12 @@ class Runner:
             #     src=Runner.BIN_DIR + Runner.DUMP_FILE,
             #     dst=f"{base_name}.dump",
             # )
-            # # Copy exec log
-            # shutil.copy(
-            #     src=Runner.BIN_DIR + Runner.CORE_FILE,
-            #     dst=f"{base_name}.corelog",
-            # )
+            # Copy exec log
+            core = config_data["input_data"]["core"]
+            shutil.copy(
+                src=Runner.BIN_DIR + f"{core}.log",
+                dst=f"{base_name}-{core}.corelog",
+            )
             # TODO: Cleanup is performed when loading the config
             # Cleanup
             # subprocess.run(["make", "clean"], timeout=10, check=True)

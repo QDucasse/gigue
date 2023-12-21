@@ -343,7 +343,8 @@ if __name__ == "__main__":
     instructions_info: Mapping[str, InstructionInfo] = INSTRUCTIONS_INFO
 
     cva6_parser = CVA6LogParser()
-    dump_data: DumpData = cva6_parser.parse_dump(dump_file="bin/out.dump")
+    dump_parser = DumpParser()
+    dump_data: DumpData = dump_parser.parse_dump(dump_file="bin/out.dump")
     cva6_emulation_data: EmulationData = cva6_parser.parse_core_log(
         start_address=dump_data["start_address"],
         ret_address=dump_data["ret_address"],
