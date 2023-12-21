@@ -11,7 +11,7 @@ from gigue.builder import InstructionBuilder
 from gigue.constants import CALL_TMP_REG, HIT_CASE_REG, INSTRUCTION_WEIGHTS, RA, X0
 from gigue.exceptions import WrongOffsetException
 from gigue.helpers import align
-from gigue.instructions import BInstruction, IInstruction, UInstruction
+from gigue.instructions import IInstruction, UInstruction
 from gigue.rimi.rimi_constants import RIMI_SSP_REG
 from gigue.rimi.rimi_instructions import RIMIIInstruction, RIMISInstruction
 
@@ -372,9 +372,9 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
             RIMIIInstruction.lst(rd=RA, rs1=RIMI_SSP_REG, imm=0),
             IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=8),
             # 2. Compare to PC
-            UInstruction.auipc(rd=CALL_TMP_REG, imm=0),
-            BInstruction.blt(rs1=RA, rs2=CALL_TMP_REG, imm=8),
-            # 3. CF transfer (identical in this case)
-            IInstruction.ret(),
+            # UInstruction.auipc(rd=CALL_TMP_REG, imm=0),
+            # BInstruction.blt(rs1=RA, rs2=CALL_TMP_REG, imm=8),
+            # # 3. CF transfer (identical in this case)
+            # IInstruction.ret(),
             RIMIIInstruction.retdom(),
         ]

@@ -232,11 +232,11 @@ class InstructionBuilder:
         registers: List[int], max_offset: int, call_size: int = 3, *args, **kwargs
     ) -> JInstruction:
         # Jump to stay in the method and keep aligment
+        max_offset = 4 if (max_offset >= 0x7F0) else max_offset
         rd: int = random.choice(registers)
-        offset: int = random.choice(
-            InstructionBuilder.size_offset(max_offset, call_size)
-        )
-        return JInstruction.jal(rd, offset)
+        random.choice(InstructionBuilder.size_offset(max_offset, call_size))
+        # FIXME: Offset checking
+        return JInstruction.jal(rd, 4)
 
     @staticmethod
     def build_random_b_instruction(
@@ -252,10 +252,10 @@ class InstructionBuilder:
             [0] + registers, k=2, weights=[50] + [5] * len(registers)
         )
         # Define branch offset
-        offset: int = random.choice(
-            InstructionBuilder.size_offset(max_offset, call_size)
-        )
-        return constr(rs1=rs1, rs2=rs2, imm=offset)
+        random.choice(InstructionBuilder.size_offset(max_offset, call_size))
+        max_offset = 4 if (max_offset >= 0x7F0) else max_offset
+        # FIXME: offset checking
+        return constr(rs1=rs1, rs2=rs2, imm=4)
 
     @staticmethod
     def build_random_instruction(
@@ -582,9 +582,9 @@ class InstructionBuilder:
             IInstruction.ld(rd=RA, rs1=SP, imm=0),
             IInstruction.addi(rd=SP, rs1=SP, imm=8),
             # 2. Compare to PC
-            UInstruction.auipc(rd=CALL_TMP_REG, imm=0),
-            BInstruction.blt(rs1=RA, rs2=CALL_TMP_REG, imm=8),
-            # 3. CF transfer (identical in this case)
-            IInstruction.ret(),
+            # UInstruction.auipc(rd=CALL_TMP_REG, imm=0),
+            # BInstruction.blt(rs1=RA, rs2=CALL_TMP_REG, imm=8),
+            # # 3. CF transfer (identical in this case)
+            # IInstruction.ret(),
             IInstruction.ret(),
         ]

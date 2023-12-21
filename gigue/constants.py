@@ -759,6 +759,15 @@ INSTRUCTIONS_INFO: Dict[str, InstructionInfo] = {
         instr_class="internal",
         cmp_mask=FULL_MASK,
     ),
+    # Debug
+    "unknown": InstructionInfo(
+        name="unknown",
+        opcode=0,
+        funct3=0b000,
+        instr_type="I",
+        instr_class="internal",
+        cmp_mask=FULL_MASK,
+    ),
 }
 
 # Aliases

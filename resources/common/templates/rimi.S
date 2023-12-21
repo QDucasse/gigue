@@ -80,7 +80,7 @@
 #   Locked Domain2 -| L 0 DOM | 
 
 # PMP Region 4: Domain 0 Data pt2 (TOR)
-#define PMP_ADDR4 0xc0000000
+#define PMP_ADDR4 0x800000000000
 # > PMPCFG6: 0x0b or 0b0_00_01_0_1_1
 #  Unocked TOR RW  - | L 00 A  X W R |
 # > DMPCFG6: 0x8 or 0b1_0_00
@@ -111,6 +111,16 @@
 # #define DMP_CONFIG 0x0000000000000000
 
 .section .text
+
+main:
+    la t6, gigue_jit_data  # Load the data address in t6
+    la t3, gigue_ss_end    # Load the shadow stack address in t3 (grows downwards)
+    call umode_setup       # Pass in user mode
+    li a0, 0               # Pass 0 to the exit function
+    call exit              # 
+    
+    # addi    a7, x0, 93     # Set ecall to exit (93) function
+    # ecall                  # Call linux to terminate the program
 
 umode_setup:
     /* Machine mode setup
@@ -172,17 +182,6 @@ umode_setup:
     csrw dmpcfg0, t0
 
     mret
-
-main:
-    la t6, gigue_jit_data  # Load the data address in t6
-    la t3, gigue_ss_end    # Load the shadow stack address in t3 (grows downwards)
-    call umode_setup       # Pass in user mode
-    li a0, 0               # Pass 0 to the exit function
-    call exit              # 
-    
-    # addi    a7, x0, 93     # Set ecall to exit (93) function
-    # ecall                  # Call linux to terminate the program
-
 
 gigue_int_start:
     .incbin "bin/int.bin"

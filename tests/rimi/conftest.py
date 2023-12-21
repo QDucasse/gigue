@@ -59,8 +59,8 @@ UC_RIMI_SSP_REG = UC_RISCV_REG_T3
 #              STACK
 # __________________________________
 
-RIMI_SHADOW_STACK_ADDRESS = STACK_ADDRESS
-RIMI_SHADOW_STACK_MAX_SIZE = 1000 * 8  # 1000 addresses!
+RIMI_SHADOW_STACK_MAX_SIZE = 100 * 8  # 100 addresses!
+RIMI_SHADOW_STACK_ADDRESS = STACK_ADDRESS + RIMI_SHADOW_STACK_MAX_SIZE
 
 MAX_ADDRESS = ADDRESS + UC_TEST_MEM_SIZE
 D0_ADDRESS = INTERPRETER_START_ADDRESS
@@ -381,7 +381,7 @@ class RIMIHandler(Handler):
         current_call_tmp = uc_emul.reg_read(UC_CALL_TMP_REG)
         logger.debug(
             f">>> Tracing registers PC:{hex(current_pc)}, SP:{hex(current_sp)}, SSP:"
-            f" {hex(current_ssp)} RA:{hex(current_ra)}, CTMP: {hex(current_call_tmp)}"
+            f"{hex(current_ssp)}, RA:{hex(current_ra)}, CTMP:{hex(current_call_tmp)}"
         )
 
 
@@ -400,7 +400,7 @@ def rimi_handler_setup(rimi_disasm_setup: Disassembler):
 @pytest.fixture
 def rimi_uc_emul_full_setup(uc_emul_full_setup):
     uc_emul = uc_emul_full_setup
-    # Setup the stack pointer
+    # Setup the shadow stack pointer
     uc_emul.reg_write(UC_RIMI_SSP_REG, RIMI_SHADOW_STACK_ADDRESS)
     return uc_emul
 
@@ -408,6 +408,7 @@ def rimi_uc_emul_full_setup(uc_emul_full_setup):
 def start_resumable_emulation(uc_emul, start_address, end_address):
     new_pc = start_address
     while new_pc != end_address:
+        logger.debug(f">>>>>> NEW PC: {hex(new_pc)} END_ADDRESS: {hex(end_address)}")
         uc_emul.emu_stop()
         uc_emul.emu_start(new_pc, end_address)
         new_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
