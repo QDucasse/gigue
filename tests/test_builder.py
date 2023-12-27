@@ -299,6 +299,7 @@ def test_build_random_instruction_disassembly_smoke(execution_number, cap_disasm
         max_offset=0x7FF,
         data_reg=TEST_DATA_REG,
         data_size=TEST_DATA_SIZE,
+        builder=instr_builder,
     )
     bytes = instr.generate_bytes()
     # Disassembly

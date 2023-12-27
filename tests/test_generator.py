@@ -154,7 +154,7 @@ def test_fill_jit_code(
 )
 @pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
 def test_fill_interpretation_loop(
-    jit_size, jit_nb_methods, pics_ratio, generator_class, log_trace
+    jit_size, jit_nb_methods, pics_ratio, generator_class
 ):
     generator = generator_class(
         jit_start_address=JIT_START_ADDRESS,
@@ -348,14 +348,12 @@ def test_generate_bytes(jit_size, jit_nb_methods, pics_ratio):
 
 
 @pytest.mark.parametrize(
-    (
-        "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev,"
-        " call_occupation_mean, call_occupation_stdev, call_depth_mean"
-    ),
+    "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev,"
+    " call_occupation_mean, call_occupation_stdev, call_depth_mean",
     [
-        (50, 5, 0, 0.2, 0.1, 0.2, 0.1, 1),
-        (200, 10, 0.2, 0.4, 0.2, 0.4, 0.2, 2),
-        (5000, 50, 0.5, 0.5, 0.2, 0.5, 0.2, 3),
+        (50, 5, 0, 0.2, 0.1, 0.2, 0.01, 1),
+        (200, 10, 0.2, 0.4, 0.2, 0.05, 0.2, 2),
+        (10000, 500, 0.5, 0.5, 0.2, 0.1, 0.02, 3),
     ],
 )
 @pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
@@ -372,7 +370,6 @@ def test_execute_generated_binaries(
     cap_disasm_setup,
     handler_setup,
     uc_emul_full_setup,
-    log_trace,
 ):
     generator = generator_class(
         jit_start_address=JIT_START_ADDRESS,
