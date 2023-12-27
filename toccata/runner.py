@@ -108,6 +108,7 @@ class Runner:
         try:
             with open(config_file, "r") as config:
                 config_data: ConfigData = json.load(config)
+                config_data["config_name"] = os.path.basename(config_file).split(".")[0]
         except EnvironmentError as err:
             logger.error(err)
             raise
@@ -285,7 +286,7 @@ class Runner:
         }
         return generation_data, jit_elements_data
 
-    def compile_binary(self) -> CompilationData:
+    def compile_binary(self, isolation: str) -> CompilationData:
         # Error structures
         dump_data: DumpData = {
             "dump_ok": 0,
@@ -300,8 +301,11 @@ class Runner:
         }
         # Compile binary
         try:
+            args = ["make", "dump"]
+            if "rimi" in isolation:
+                args += ["TEMPLATE=rimi"]
             subprocess.run(
-                ["make", "dump", "TEMPLATE=rimi"],
+                args,
                 timeout=10,
                 check=True,
                 stdout=subprocess.DEVNULL,
@@ -354,6 +358,7 @@ class Runner:
                     "make",
                     f"{core}",
                     f"MAX_CYCLES={max_cycles}",
+                    "CONFIG=RIMIConfig-debug",
                 ],
                 # timeout=500,
                 check=True,

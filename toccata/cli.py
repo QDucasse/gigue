@@ -41,13 +41,13 @@ logger.setLevel(logging.INFO)
 
 nbmethods = {
     "low": {
-        "jit_nb_methods": 75,
+        "jit_nb_methods": 100,
     },
     "medium": {
-        "jit_nb_methods": 175,
+        "jit_nb_methods": 140,
     },
     "high": {
-        "jit_nb_methods": 275,
+        "jit_nb_methods": 180,
     },
 }
 
@@ -60,12 +60,12 @@ calloccup = {
     "medium": {
         "call_depth_mean": 2,
         "call_occupation_mean": 0.03,
-        "call_occupation_stdev": 0.03,
+        "call_occupation_stdev": 0.01,
     },
     "high": {
         "call_depth_mean": 3,
-        "call_occupation_mean": 0.1,
-        "call_occupation_stdev": 0.1,
+        "call_occupation_mean": 0.06,
+        "call_occupation_stdev": 0.03,
     },
 }
 
@@ -269,7 +269,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             continue
         # 5.2 Compile binary
         logger.info("Compiling binary...")
-        compilation_data: CompilationData = runner.compile_binary()
+        isolation: str = config_data["input_data"]["isolation_solution"]
+        compilation_data: CompilationData = runner.compile_binary(isolation)
         if not runner.compilation_ok:
             logger.warning("Compilation failed, skipping to next run...")
             continue
