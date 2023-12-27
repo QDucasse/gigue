@@ -263,6 +263,7 @@ class InstructionBuilder:
         max_offset: int,
         data_reg: int,
         data_size: int,
+        builder: InstructionBuilder,
         call_size: int = 3,
         weights: List[int] = INSTRUCTION_WEIGHTS,
     ) -> Instruction:
@@ -278,7 +279,7 @@ class InstructionBuilder:
             ],
             weights,
         )[0]
-        method: Callable = getattr(InstructionBuilder, method_name)
+        method: Callable = getattr(type(builder), method_name)
         instruction: Instruction = method(
             registers=registers,
             max_offset=max_offset,

@@ -159,3 +159,68 @@ class RIMIFullTrampolineGenerator(RIMIShadowStackTrampolineGenerator):
             output_ss_bin_file=output_ss_bin_file,
         )
         self.builder: RIMIFullInstructionBuilder = RIMIFullInstructionBuilder()
+
+    # def patch_method(self, method: Method):
+    #     replacement = {
+    #         "lb": RIMIIInstruction.lb1,
+    #         "lbu": RIMIIInstruction.lbu1,
+    #         "lh": RIMIIInstruction.lh1,
+    #         "lhu": RIMIIInstruction.lhu1,
+    #         "lw": RIMIIInstruction.lw1,
+    #         "lwu": RIMIIInstruction.lwu1,
+    #         "ld": RIMIIInstruction.ld1,
+    #         "sb": RIMISInstruction.sb1,
+    #         "sh": RIMISInstruction.sh1,
+    #         "sw": RIMISInstruction.sw1,
+    #         "sd": RIMISInstruction.sd1,
+    #     }
+    #     new_instructions: List[Instruction] = []
+    #     for i, instruction in enumerate(method.instructions):
+    #         if (
+    #             isinstance(instruction, SInstruction)
+    #             and instruction.name == "sd"
+    #             and instruction.rs2 == 1
+    #         ):
+    #             new_instructions.append(
+    #                 IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=-8)
+    #             )
+    #             new_instructions.append(
+    #                 RIMISInstruction.sst(rs1=instruction.rs1, rs2=RIMI_SSP_REG, imm=0),
+    #             )
+    #         elif (
+    #             isinstance(instruction, IInstruction)
+    #             and instruction.name == "ld"
+    #             and instruction.rd == 1
+    #         ):
+    #             new_instructions.append(
+    #                 RIMIIInstruction.lst(rd=instruction.rd, rs1=RIMI_SSP_REG, imm=0),
+    #             )
+    #             new_instructions.append(
+    #                 IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=8)
+    #             )
+    #         elif instruction.name in list(replacement.keys()):
+    #             if isinstance(instruction, IInstruction):
+    #                 new_instructions.append(
+    #                     replacement[instruction.name](
+    #                         rd=instruction.rd, rs1=instruction.rs1, imm=instruction.imm
+    #                     )
+    #                 )
+    #             if isinstance(instruction, SInstruction):
+    #                 new_instructions.append(
+    #                     replacement[instruction.name](
+    #                         rs1=instruction.rs1,
+    #                         rs2=instruction.rs2,
+    #                         imm=instruction.imm,
+    #                     )
+    #                 )
+    #         else:
+    #             new_instructions.append(instruction)
+    #     method.instructions = new_instructions.copy()
+
+    # def patch_jit_rimi(self):
+    #     for i, elt in enumerate(self.jit_elements):
+    #         if isinstance(elt, PIC):
+    #             for method in elt.methods:
+    #                 self.patch_method(method)
+    #         elif isinstance(elt, Method):
+    #             self.patch_method(elt)

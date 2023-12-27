@@ -114,6 +114,7 @@ class Method:
                 data_size=data_size,
                 weights=weights,
                 call_size=call_size,
+                builder=self.builder,
             )
             self.instructions.append(instruction)
 
