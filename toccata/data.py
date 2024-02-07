@@ -206,3 +206,29 @@ class MemoryApplicationClassData(GigueData):
     mem_accesses: List[float]
     nb_cycles: List[int]
     cpis: List[float]
+
+
+class OverheadCallComparisonData(GigueData):
+    name_1: str
+    name_2: str
+    nb_methods_qualif: str
+    call_occupations_qualif: str
+    cycle_overhead: List[int]
+    cycle_overhead_percent: List[float]
+    geomean_cycle_overhead: float
+    cpi_overhead: List[float]
+    cpi_overhead_percent: List[float]
+    geomean_cpi_overhead: float
+
+
+class OverheadMemoryComparisonData(GigueData):
+    name_1: str
+    name_2: str
+    nb_methods_qualif: str
+    mem_accesses_qualif: str
+    cycle_overhead: List[int]
+    cycle_overhead_percent: List[float]
+    geomean_cycle_overhead: float
+    cpi_overhead: List[float]
+    cpi_overhead_percent: List[float]
+    geomean_cpi_overhead: float
