@@ -7,6 +7,23 @@ class GigueData(TypedDict):
     pass
 
 
+# PARSER DATA
+# \_______________
+
+
+class DumpParsingData(GigueData):
+    start_address: int
+    ret_address: int
+    end_address: int
+
+
+class LogParsingData(GigueData):
+    sim_seed: int
+    start_cycle: int
+    end_cycle: int
+    executed_instrs: List[str]
+
+
 # RUNNER DATA
 # \_____________
 
@@ -51,6 +68,7 @@ class InputData(GigueData):
 
 
 class MethodData(GigueData):
+    id: int
     address: int
     full_size: int
     call_number: int
@@ -60,6 +78,7 @@ class MethodData(GigueData):
 
 
 class PICData(GigueData):
+    id: int
     address: int
     full_size: int
     case_number: int

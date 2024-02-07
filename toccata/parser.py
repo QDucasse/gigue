@@ -2,14 +2,16 @@ import logging
 import re
 from abc import abstractmethod
 from collections import Counter
-from typing import List, Mapping, Tuple
+from typing import List, Mapping
 
 from gigue.constants import InstructionInfo
 from toccata.data import (
     DumpData,
+    DumpParsingData,
     EmulationData,
     InstrClassData,
     InstrTypeData,
+    LogParsingData,
     TracingData,
     default_instr_class_data,
     default_instr_type_data,
@@ -43,10 +45,9 @@ class DumpParser:
         # Default values
         start_address: int = 0
         end_address: int = 0
-        ret_address: int = 0
         try:
             # Extract info
-            start_address, ret_address, end_address = self.extract_from_dump(dump_file)
+            dump_parsed_data: DumpParsingData = self.extract_from_dump(dump_file)
             dump_ok = 1
         except (
             MissingAddressException,
@@ -58,15 +59,15 @@ class DumpParser:
         # Format output data
         dump_info: DumpData = {
             "dump_ok": dump_ok,
-            "start_address": start_address,
-            "end_address": end_address,
-            "ret_address": ret_address,
+            "start_address": dump_parsed_data["start_address"],
+            "end_address": dump_parsed_data["end_address"],
+            "ret_address": dump_parsed_data["ret_address"],
             "bin_size": end_address - start_address,
         }
         return dump_info
 
     @staticmethod
-    def extract_from_dump(dump_file: str) -> Tuple[int, int, int]:
+    def extract_from_dump(dump_file: str) -> DumpParsingData:
         # 0000000080002a24 <gigue_start>:
         # 00000000800102e4 <gigue_end>:
         start_regex = r"(\w*) <gigue_int_start>:"
@@ -103,8 +104,12 @@ class DumpParser:
         except EnvironmentError as err:
             logger.error(err)
             raise
-        # TODO: Use a data structure
-        return start_address, ret_address, end_address
+        dump_parsing_data: DumpParsingData = {
+            "start_address": start_address,
+            "ret_address": ret_address,
+            "end_address": end_address,
+        }
+        return dump_parsing_data
 
 
 class LogParser:
@@ -119,22 +124,12 @@ class LogParser:
         # Correctness flag
         emulation_ok: int = 0
         tracing_ok: int = 0
-        # Default values
-        seed: int = 0
-        start_cycle: int = 0
-        end_cycle: int = 0
         # Tracing data
-        executed_instructions: List[str] = []
         instrs_class: InstrClassData = default_instr_class_data()
         instrs_type: InstrTypeData = default_instr_type_data()
         try:
             # Extract info
-            (
-                seed,
-                start_cycle,
-                end_cycle,
-                executed_instructions,
-            ) = self.extract_from_core_log(
+            rocket_parsed_data: LogParsingData = self.extract_from_core_log(
                 start_address=start_address,
                 ret_address=ret_address,
                 core_log_file=log_file,
@@ -149,6 +144,7 @@ class LogParser:
             emulation_ok = 0
 
         if emulation_ok == 1:
+            executed_instructions: List[str] = rocket_parsed_data["executed_instrs"]
             # Instr type
             executed_instrs_type: List[str] = [
                 instructions_info[instr].instr_type for instr in executed_instructions
@@ -200,10 +196,11 @@ class LogParser:
         # Format output data
         emulation_info: EmulationData = {
             "emulation_ok": emulation_ok,
-            "verilator_seed": seed,
-            "start_cycle": start_cycle,
-            "end_cycle": end_cycle,
-            "nb_cycles": end_cycle - start_cycle,
+            "verilator_seed": rocket_parsed_data["sim_seed"],
+            "start_cycle": rocket_parsed_data["start_cycle"],
+            "end_cycle": rocket_parsed_data["end_cycle"],
+            "nb_cycles": rocket_parsed_data["end_cycle"]
+            - rocket_parsed_data["start_cycle"],
             "tracing_data": tracing_info,
         }
         return emulation_info
@@ -212,7 +209,7 @@ class LogParser:
     @abstractmethod
     def extract_from_core_log(
         start_address: int, ret_address: int, core_log_file: str
-    ) -> Tuple[int, int, int, List[str]]:
+    ) -> LogParsingData:
         pass
 
 
@@ -223,7 +220,7 @@ class RocketLogParser(LogParser):
     @staticmethod
     def extract_from_core_log(
         start_address: int, ret_address: int, core_log_file: str
-    ) -> Tuple[int, int, int, List[str]]:
+    ) -> LogParsingData:
         # using random seed 1681861037
         # ...
         # C0:    1114705 [1]
@@ -271,8 +268,13 @@ class RocketLogParser(LogParser):
         except EnvironmentError as err:
             logger.error(err)
             raise
-        # TODO: Use a data structure
-        return seed, start_cycle, end_cycle, executed_instructions
+        rocket_parsed_data: LogParsingData = {
+            "sim_seed": seed,
+            "start_cycle": start_cycle,
+            "end_cycle": end_cycle,
+            "executed_instrs": executed_instructions,
+        }
+        return rocket_parsed_data
 
 
 class CVA6LogParser(LogParser):
@@ -282,7 +284,7 @@ class CVA6LogParser(LogParser):
     @staticmethod
     def extract_from_core_log(
         start_address: int, ret_address: int, core_log_file: str
-    ) -> Tuple[int, int, int, List[str]]:
+    ) -> LogParsingData:
         # This emulator compiled with JTAG Remote
         # Bitbang client. To enable, use +jtag_rbb_enable=1.
         # Listening on port 35955
@@ -331,9 +333,14 @@ class CVA6LogParser(LogParser):
         except EnvironmentError as err:
             logger.error(err)
             raise
-        # TODO: Use a data structure
         # Note: CVA6 does not have this seed input
-        return 0, start_cycle, end_cycle, executed_instructions
+        cva6_parsed_data: LogParsingData = {
+            "sim_seed": 0,
+            "start_cycle": start_cycle,
+            "end_cycle": end_cycle,
+            "executed_instrs": executed_instructions,
+        }
+        return cva6_parsed_data
 
 
 if __name__ == "__main__":

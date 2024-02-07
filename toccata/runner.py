@@ -4,6 +4,7 @@ import logging
 import os
 import random
 import shutil
+import string
 import subprocess
 import sys
 from typing import List, Mapping, Tuple, Type
@@ -74,6 +75,11 @@ class Runner:
         self.compilation_ok: int = 0
         self.dump_ok: int = 0
         self.execution_ok: int = 0
+
+    @staticmethod
+    def gen_id():
+        alphanumeric_chars = string.ascii_letters + string.digits
+        return "".join(random.choice(alphanumeric_chars) for _ in range(8))
 
     def check_envs(self) -> None:
         if "RISCV" not in os.environ:
@@ -233,6 +239,7 @@ class Runner:
         for elt in generator.jit_elements:
             if isinstance(elt, Method):
                 method_data: MethodData = {
+                    "id": self.gen_id(),
                     "address": elt.address,
                     "full_size": elt.total_size(),
                     "call_number": elt.call_number,
@@ -249,6 +256,7 @@ class Runner:
                 pic_methods_info: List[MethodData] = []
                 for method in elt.methods:
                     pic_method_data: MethodData = {
+                        "id": self.gen_id(),
                         "address": method.address,
                         "full_size": method.total_size(),
                         "call_number": method.call_number,
@@ -259,9 +267,9 @@ class Runner:
                     methods_size.append(method.total_size())
                     methods_call_occupation.append(method.call_occupation())
                     methods_call_depth.append(method.call_depth)
-                    # TODO: Should attribute an ID and use it rather than this
                     pic_methods_info.append(pic_method_data)
                 pic_data: PICData = {
+                    "id": self.gen_id(),
                     "address": elt.address,
                     "full_size": elt.total_size(),
                     "case_number": elt.case_number,
@@ -396,6 +404,7 @@ class Runner:
         run_number: int,
         jit_elements_data: JITElementsData,
         config_data: ConfigData,
+        dump: bool = False,
     ) -> ConsolidationData:
         try:
             # Create results directory
@@ -426,21 +435,18 @@ class Runner:
                 src=Runner.BIN_DIR + Runner.ELF_FILE,
                 dst=f"{base_name}.elf",
             )
-            # TODO: TOO BIG!!
             # # Copy dump
-            # shutil.copy(
-            #     src=Runner.BIN_DIR + Runner.DUMP_FILE,
-            #     dst=f"{base_name}.dump",
-            # )
+            if dump:
+                shutil.copy(
+                    src=Runner.BIN_DIR + Runner.DUMP_FILE,
+                    dst=f"{base_name}.dump",
+                )
             # Copy exec log
             core = config_data["input_data"]["core"]
             shutil.copy(
                 src=Runner.BIN_DIR + f"{core}.log",
                 dst=f"{base_name}-{core}.corelog",
             )
-            # TODO: Cleanup is performed when loading the config
-            # Cleanup
-            # subprocess.run(["make", "clean"], timeout=10, check=True)
             consolidation_ok = 1
         except (
             FileNotFoundError,
