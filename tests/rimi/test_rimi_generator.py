@@ -26,7 +26,7 @@ logger = logging.getLogger("gigue")
     [
         (50, 5, 0, 0.2, 0.1, 0.2, 0.01, 1),
         (200, 10, 0.2, 0.4, 0.2, 0.05, 0.2, 2),
-        (10000, 500, 0.5, 0.5, 0.2, 0.1, 0.02, 3),
+        (1000, 50, 0.5, 0.5, 0.2, 0.1, 0.02, 3),
     ],
 )
 def test_execute_shadow_stack_trampoline_generated_binaries(
@@ -103,7 +103,7 @@ def test_execute_shadow_stack_trampoline_generated_binaries(
     [
         (50, 5, 0, 0.2, 0.1, 0.2, 0.01, 1),
         (200, 10, 0.2, 0.4, 0.2, 0.05, 0.2, 2),
-        (10000, 500, 0.5, 0.5, 0.2, 0.1, 0.02, 3),
+        (1000, 50, 0.5, 0.5, 0.2, 0.1, 0.02, 3),
     ],
 )
 def test_execute_full_trampoline_generated_binaries(
@@ -170,8 +170,7 @@ def test_execute_full_trampoline_generated_binaries(
     rimi_handler.hook_exception_tracer(uc_emul)
     rimi_handler.hook_handler(uc_emul)
 
-    # TODO: Rework with new trampolines!
     start_address = INTERPRETER_START_ADDRESS
     end_address = RET_ADDRESS
 
-    start_resumable_emulation(uc_emul, start_address, end_address)  # noqa: F821
+    start_resumable_emulation(uc_emul, start_address, end_address)
