@@ -24,9 +24,9 @@ logger = logging.getLogger("gigue")
     "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev,"
     " call_occupation_mean, call_occupation_stdev, call_depth_mean",
     [
-        (50, 5, 0, 0.2, 0.1, 0.1, 0.1, 1),
-        (200, 10, 0.2, 0.4, 0.2, 0.1, 0.2, 2),
-        (5000, 50, 0.5, 0.5, 0.2, 0.1, 0.2, 3),
+        (50, 5, 0, 0.2, 0.1, 0.2, 0.01, 1),
+        (200, 10, 0.2, 0.4, 0.2, 0.05, 0.2, 2),
+        (10000, 500, 0.5, 0.5, 0.2, 0.1, 0.02, 3),
     ],
 )
 def test_execute_shadow_stack_trampoline_generated_binaries(
@@ -91,7 +91,6 @@ def test_execute_shadow_stack_trampoline_generated_binaries(
     rimi_handler.hook_instr_tracer(uc_emul)
     rimi_handler.hook_handler(uc_emul)
 
-    # TODO: Rework with new trampolines!
     start_address = INTERPRETER_START_ADDRESS
     end_address = RET_ADDRESS
 
@@ -102,9 +101,9 @@ def test_execute_shadow_stack_trampoline_generated_binaries(
     "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev,"
     " call_occupation_mean, call_occupation_stdev, call_depth_mean",
     [
-        (50, 2, 0, 0.2, 0.1, 0.3, 0.1, 1),
-        # (200, 10, 0.2, 0.4, 0.2, 0.1, 0.2, 2),
-        # (5000, 50, 0.5, 0.5, 0.2, 0.1, 0.2, 3),
+        (50, 5, 0, 0.2, 0.1, 0.2, 0.01, 1),
+        (200, 10, 0.2, 0.4, 0.2, 0.05, 0.2, 2),
+        (10000, 500, 0.5, 0.5, 0.2, 0.1, 0.02, 3),
     ],
 )
 def test_execute_full_trampoline_generated_binaries(
