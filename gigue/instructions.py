@@ -3,10 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Dict, List
 
-from gigue.constants import (
-    INSTRUCTIONS_INFO,
-    RoCCCustomInstructionInfo,
-)
+from gigue.constants import INSTRUCTIONS_INFO, RoCCCustomInstructionInfo
 from gigue.helpers import format_to, format_to_aligned, int_to_bytes32, to_unsigned
 
 # Note: Annotate with current typesss
@@ -15,7 +12,6 @@ from gigue.helpers import format_to, format_to_aligned, int_to_bytes32, to_unsig
 logger = logging.getLogger("gigue")
 
 
-# TODO: Doc
 class Instruction:
     def __init__(self, name: str, opcode: int, funct7: int = 0):
         self.name: str = name
@@ -43,7 +39,6 @@ class Instruction:
         raise NotImplementedError("Please Implement this method")
 
 
-# TODO: Doc
 class RInstruction(Instruction):
     def __init__(
         self,
@@ -85,7 +80,6 @@ class RInstruction(Instruction):
             funct7=INSTRUCTIONS_INFO[name].funct7,
         )
 
-    # TODO: Autogenerate?
     @classmethod
     def add(cls, rd: int, rs1: int, rs2: int) -> RInstruction:
         return cls.r_instr("add", rd, rs1, rs2)
@@ -205,7 +199,6 @@ class RoCCCustomInstruction(RInstruction):
         )
 
 
-# TODO: Doc
 class IInstruction(Instruction):
     def __init__(
         self,
@@ -244,7 +237,6 @@ class IInstruction(Instruction):
             funct7=INSTRUCTIONS_INFO[name].funct7,
         )
 
-    # TODO: Autogenerate
     @classmethod
     def addi(cls, rd: int, rs1: int, imm: int) -> IInstruction:
         return cls.i_instr("addi", rd, rs1, imm)
@@ -358,7 +350,6 @@ class IInstruction(Instruction):
         return cls.i_instr("ecall", 0, 0, 0)
 
 
-# TODO: Doc
 class UInstruction(Instruction):
     def __init__(self, name: str, opcode: int, rd: int, imm: int):
         super().__init__(name, opcode)
@@ -375,7 +366,6 @@ class UInstruction(Instruction):
     def u_instr(cls, name: str, rd: int, imm: int) -> UInstruction:
         return cls(name=name, opcode=INSTRUCTIONS_INFO[name].opcode, rd=rd, imm=imm)
 
-    # TODO: Autogenerate
     @classmethod
     def auipc(cls, rd: int, imm: int) -> UInstruction:
         return cls.u_instr("auipc", rd, imm)
@@ -385,7 +375,6 @@ class UInstruction(Instruction):
         return cls.u_instr("lui", rd, imm)
 
 
-# TODO: Doc
 class JInstruction(Instruction):
     def __init__(self, name: str, opcode: int, rd: int, imm: int):
         super().__init__(name, opcode)
@@ -410,7 +399,6 @@ class JInstruction(Instruction):
     def j_instr(cls, name: str, rd: int, imm: int) -> JInstruction:
         return cls(name, INSTRUCTIONS_INFO[name].opcode, rd, imm)
 
-    # TODO: Autogenerate
     @classmethod
     def jal(cls, rd: int, imm: int) -> JInstruction:
         return cls.j_instr("jal", rd, imm)
@@ -420,7 +408,6 @@ class JInstruction(Instruction):
         return cls.j_instr("jal", 0, imm)
 
 
-# TODO: Doc
 class SInstruction(Instruction):
     def __init__(
         self, name: str, opcode: int, funct3: int, rs1: int, rs2: int, imm: int
@@ -461,7 +448,6 @@ class SInstruction(Instruction):
             imm,
         )
 
-    # TODO: Autogenerate
     @classmethod
     def sb(cls, rs1: int, rs2: int, imm: int) -> SInstruction:
         return cls.s_instr("sb", rs1, rs2, imm)
@@ -479,7 +465,6 @@ class SInstruction(Instruction):
         return cls.s_instr("sd", rs1, rs2, imm)
 
 
-# TODO: Doc
 class BInstruction(Instruction):
     def __init__(
         self, name: str, opcode: int, funct3: int, rs1: int, rs2: int, imm: int

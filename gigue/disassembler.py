@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from gigue.constants import InstructionInfo
 
 
-# TODO: Doc
 class Disassembler:
     DEFAULT_SIGN_EXTENSION: bool = False
 
