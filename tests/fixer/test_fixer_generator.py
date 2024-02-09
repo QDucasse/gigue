@@ -21,7 +21,7 @@ from tests.fixer.conftest import TEST_FIXER_CMP_REG
     [
         (50, 5, 0, 0.2, 0.1, 0.2, 0.1, 1),
         (200, 10, 0.2, 0.4, 0.2, 0.4, 0.2, 2),
-        (5000, 50, 0.5, 0.5, 0.2, 0.5, 0.2, 3),
+        (10000, 500, 0.5, 0.5, 0.2, 0.5, 0.2, 3),
     ],
 )
 def test_execute_trampoline_generated_binaries(

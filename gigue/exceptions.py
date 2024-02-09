@@ -40,14 +40,6 @@ class MethodException(Exception):
     pass
 
 
-class EmptySectionException(MethodException):
-    """
-    Raise if epilogue or prologue is not filled.
-    """
-
-    pass
-
-
 class CallNumberException(MethodException):
     """
     Raised when the required call number does not fit in the method.

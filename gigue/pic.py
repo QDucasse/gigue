@@ -1,16 +1,11 @@
 import logging
 import random
-from math import ceil, trunc
 from typing import List
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CMP_REG, HIT_CASE_REG
-from gigue.exceptions import (
-    BuilderException,
-    CallNumberException,
-    EmptySectionException,
-)
-from gigue.helpers import flatten_list, generate_poisson, generate_trunc_norm
+from gigue.exceptions import BuilderException
+from gigue.helpers import flatten_list
 from gigue.instructions import Instruction
 from gigue.method import Method
 
@@ -22,26 +17,12 @@ class PIC:
         self,
         address: int,
         case_number: int,
-        method_size: int,
-        method_variation_mean: float,
-        method_variation_stdev: float,
-        method_call_occupation_mean: float,
-        method_call_occupation_stdev: float,
-        method_call_depth_mean: int,
         builder: InstructionBuilder,
-        call_size: int = 3,
         hit_case_reg: int = HIT_CASE_REG,
         cmp_reg: int = CMP_REG,
     ):
         self.case_number: int = case_number
         self.address: int = address
-        self.call_size: int = call_size
-        self.method_size: int = method_size
-        self.method_variation_mean = method_variation_mean
-        self.method_variation_stdev = method_variation_stdev
-        self.method_call_occupation_mean: float = method_call_occupation_mean
-        self.method_call_occupation_stdev: float = method_call_occupation_stdev
-        self.method_call_depth_mean: int = method_call_depth_mean
         # hit_case_reg: register in which the case_nb that should be ran is loaded
         # cmp_reg: register in which the running case nb is stored before comparison
         # Comparison and current registers
@@ -77,13 +58,9 @@ class PIC:
         return 3 * self.case_number + 1
 
     def total_size(self):
-        try:
-            total_size = self.get_switch_size() + sum(
-                [method.total_size() for method in self.methods]
-            )
-        except EmptySectionException as err:
-            logger.exception(err)
-            raise
+        total_size = self.get_switch_size() + sum(
+            [method.total_size() for method in self.methods]
+        )
         return total_size
 
     def method_nb(self):
@@ -119,66 +96,70 @@ class PIC:
     # Case/Switch Filling
     # \___________________
 
-    def add_case_methods(
-        self, registers: List[int], data_reg: int, data_size: int, weights: List[int]
-    ) -> None:
-        logger.debug(f"{self.log_prefix()} Adding case methods.")
-        method_address: int = self.address + self.get_switch_size() * 4
-        for _ in range(self.case_number):
-            # TODO: Probably should refactor with generator's add_method
-            # body size = method size (bin size / nb of methods) * (1 +- size variation)
-            # note: the +- is defined as a one ot of two chance
-            size_variation: float = generate_trunc_norm(
-                variance=self.method_variation_mean,
-                std_dev=self.method_variation_stdev,
-                lower_bound=0,
-                higher_bound=1.0,
-            )
-            variation_sign: int = 1 if random.random() > 0.5 else -1
-            body_size: int = ceil(
-                self.method_size * (1 + variation_sign * size_variation)
-            )
-            # call number is derived from call occupation:
-            # max call nb = body size / call size
-            # call nb = call occupation * max call nb
-            call_occupation: float = generate_trunc_norm(
-                variance=self.method_call_occupation_mean,
-                std_dev=self.method_call_occupation_stdev,
-                lower_bound=0,
-                higher_bound=1.0,
-            )
-            max_call_nb: int = body_size // self.call_size
-            call_nb: int = trunc(call_occupation * max_call_nb)
-            # call depth follows a Poisson distribution with lambda = mean
-            call_depth: int = generate_poisson(self.method_call_depth_mean)
-            try:
-                case_method: Method = Method(
-                    address=method_address,
-                    body_size=body_size,
-                    call_number=call_nb,
-                    call_depth=call_depth,
-                    builder=self.builder,
-                )
-                case_method.fill_with_instructions(
-                    registers=registers,
-                    data_reg=data_reg,
-                    data_size=data_size,
-                    weights=weights,
-                )
-                self.methods.append(case_method)
-                method_address += case_method.total_size() * 4
-            except CallNumberException as err:
-                logger.exception(err)
-                raise
-            except EmptySectionException as err:
-                logger.exception(err)
-                raise
-            logger.debug(
-                f"{self.log_prefix()} {case_method.log_prefix()} Case method added"
-                f" with size ({body_size}), call nb ({call_nb} => call occupation"
-                f" {call_occupation}) and call depth ({call_depth})"
-            )
-        logger.debug(f"{self.log_prefix()} Case methods added.")
+    def add_method(self, method: Method):
+        self.methods.append(method)
+        logger.debug(
+            f"{self.log_prefix()} {method.log_prefix()} Case method added"
+            f" with size ({method.body_size}), call nb ({method.call_number} => call"
+            f" occupation {method.call_occupation}) and call depth ({method.call_depth})"
+        )
+
+    # def add_case_methods(
+    #     self, registers: List[int], data_reg: int, data_size: int, weights: List[int]
+    # ) -> None:
+    #     logger.debug(f"{self.log_prefix()} Adding case methods.")
+    #     method_address: int = self.address + self.get_switch_size() * 4
+    #     for _ in range(self.case_number):
+    #         # TODO: Probably should refactor with generator's add_method
+    #         # body size = method size (bin size / nb of methods) * (1 +- size variation)
+    #         # note: the +- is defined as a one ot of two chance
+    #         size_variation: float = generate_trunc_norm(
+    #             variance=self.method_variation_mean,
+    #             std_dev=self.method_variation_stdev,
+    #             lower_bound=0,
+    #             higher_bound=1.0,
+    #         )
+    #         variation_sign: int = 1 if random.random() > 0.5 else -1
+    #         body_size: int = ceil(
+    #             self.method_size * (1 + variation_sign * size_variation)
+    #         )
+    #         # call number is derived from call occupation:
+    #         # max call nb = body size / call size
+    #         # call nb = call occupation * max call nb
+    #         call_occupation: float = generate_trunc_norm(
+    #             variance=self.method_call_occupation_mean,
+    #             std_dev=self.method_call_occupation_stdev,
+    #             lower_bound=0,
+    #             higher_bound=1.0,
+    #         )
+    #         max_call_nb: int = body_size // self.call_size
+    #         call_nb: int = trunc(call_occupation * max_call_nb)
+    #         # call depth follows a Poisson distribution with lambda = mean
+    #         call_depth: int = generate_poisson(self.method_call_depth_mean)
+    #         try:
+    #             case_method: Method = Method(
+    #                 address=method_address,
+    #                 body_size=body_size,
+    #                 call_number=call_nb,
+    #                 call_depth=call_depth,
+    #                 builder=self.builder,
+    #             )
+    #             case_method.fill_with_instructions(
+    #                 registers=registers,
+    #                 data_reg=data_reg,
+    #                 data_size=data_size,
+    #                 weights=weights,
+    #             )
+    #             self.methods.append(case_method)
+    #             method_address += case_method.total_size() * 4
+    #         except CallNumberException as err:
+    #             logger.exception(err)
+    #             raise
+    #         except EmptySectionException as err:
+    #             logger.exception(err)
+    #             raise
+
+    #     logger.debug(f"{self.log_prefix()} Case methods added.")
 
     def add_switch_instructions(self) -> None:
         # WARNING!!!! hit case starts at 1
@@ -205,9 +186,13 @@ class PIC:
 
     def fill_with_instructions(self, registers, data_reg, data_size, weights):
         logger.debug(f"{self.log_prefix()} Filling PIC (case methods and switch).")
-        self.add_case_methods(
-            registers=registers, data_reg=data_reg, data_size=data_size, weights=weights
-        )
+        for case_method in self.methods:
+            case_method.fill_with_instructions(
+                registers=registers,
+                data_reg=data_reg,
+                data_size=data_size,
+                weights=weights,
+            )
         self.add_switch_instructions()
         logger.debug(f"{self.log_prefix()} PIC filled.")
 

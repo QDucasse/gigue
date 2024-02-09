@@ -75,11 +75,11 @@ def check_method_bounds(
 
 
 @pytest.mark.parametrize(
-    "jit_size, jit_nb_methods,pics_ratio",
+    "jit_size, jit_nb_methods, pics_ratio",
     [
         (100, 10, 0),
         (200, 10, 0.2),
-        (1000, 50, 0.5),
+        (10000, 500, 0.5),
     ],
 )
 @pytest.mark.parametrize("call_depth_mean", [1, 2])
@@ -149,7 +149,7 @@ def test_fill_jit_code(
     [
         (100, 10, 0),
         (200, 10, 0.2),
-        (1000, 50, 0.5),
+        (10000, 500, 0.5),
     ],
 )
 @pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
@@ -249,7 +249,7 @@ def test_fill_interpretation_loop(
     [
         (100, 10, 0),
         (200, 10, 0.2),
-        (1000, 50, 0.5),
+        (10000, 500, 0.5),
     ],
 )
 @pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
@@ -314,7 +314,7 @@ def test_generate_interpreter_machine_code(
     [
         (100, 10, 0),
         (200, 10, 0.2),
-        (1000, 50, 0.5),
+        (10000, 500, 0.5),
     ],
 )
 def test_generate_bytes(jit_size, jit_nb_methods, pics_ratio):

@@ -18,7 +18,6 @@ from gigue.constants import (
 from gigue.dataminer import Dataminer
 from gigue.exceptions import (
     CallNumberException,
-    EmptySectionException,
     MutualCallException,
     RecursiveCallException,
     WrongAddressException,
@@ -176,7 +175,21 @@ class Generator:
     #  JIT element generation
     # \______________________
 
-    def add_method(self, address: int, *args, **kwargs) -> Method:
+    def register_element(self, elt: Union[Method, PIC]):
+        if isinstance(elt, Method):
+            method: Method = elt
+            self.jit_elements.append(method)
+            self.call_depth_dict[method.call_depth].append(method)
+            self.method_count += 1
+        elif isinstance(elt, PIC):
+            pic: PIC = elt
+            self.jit_elements.append(pic)
+            for case_method in pic.methods:
+                self.call_depth_dict[case_method.call_depth].append(case_method)
+            self.pic_count += 1
+            self.method_count += pic.method_nb()
+
+    def generate_method(self, address: int, *args, **kwargs) -> Method:
         # body size = jit method size (bin size / nb of methods) * (1 +- size variation)
         # note: the +- is defined as a one ot of two chance
         size_variation: float = generate_trunc_norm(
@@ -223,12 +236,9 @@ class Generator:
         except CallNumberException as err:
             logger.exception(err)
             raise
-        self.jit_elements.append(method)
-        self.call_depth_dict[call_depth].append(method)
-        self.method_count += 1
         return method
 
-    def add_leaf_method(self, address: int) -> Method:
+    def generate_leaf_method(self, address: int) -> Method:
         size_variation: float = generate_trunc_norm(
             variance=self.method_variation_mean,
             std_dev=self.method_variation_stdev,
@@ -255,12 +265,9 @@ class Generator:
         except CallNumberException as err:
             logger.exception(err)
             raise
-        self.jit_elements.append(method)
-        self.call_depth_dict[0].append(method)
-        self.method_count += 1
         return method
 
-    def add_pic(self, address: int, remaining_methods: int) -> PIC:
+    def generate_pic(self, address: int, remaining_methods: int) -> PIC:
         cases_nb: int = min(
             generate_zero_truncated_poisson(self.pics_mean_case_nb),
             remaining_methods,
@@ -268,26 +275,21 @@ class Generator:
         pic: PIC = PIC(
             address=address,
             case_number=cases_nb,
-            method_size=self.jit_method_size,
-            method_variation_mean=self.method_variation_mean,
-            method_variation_stdev=self.method_variation_stdev,
-            method_call_occupation_mean=self.call_occupation_mean,
-            method_call_occupation_stdev=self.call_occupation_stdev,
-            method_call_depth_mean=self.call_depth_mean,
             hit_case_reg=self.pics_hit_case_reg,
             cmp_reg=self.pics_cmp_reg,
-            call_size=self.call_size,
             builder=self.builder,
         )
+        method_address: int = pic.address + pic.get_switch_size() * 4
+        for _ in range(pic.case_number):
+            case_method = self.generate_method(method_address)
+            pic.add_method(case_method)
+            method_address += case_method.total_size() * 4
+
+            # Note: Do not register the methods here, register the PIC directly
         logger.debug(
             f"{self.log_jit_prefix()} {pic.log_prefix()} PIC added with"
             f" {cases_nb} cases"
         )
-        self.jit_elements.append(pic)
-        for method in pic.methods:
-            self.call_depth_dict[method.call_depth].append(method)
-        self.pic_count += 1
-        self.method_count += pic.method_nb()
         return pic
 
     #  JIT filling and patching
@@ -301,25 +303,22 @@ class Generator:
         current_address: int = start_address
         current_method_count: int = 0
         # Add a first leaf method
-        leaf_method: Method = self.add_leaf_method(current_address)
+        leaf_method: Method = self.generate_leaf_method(current_address)
         leaf_method.fill_with_instructions(
             registers=self.registers,
             data_reg=self.data_reg,
             data_size=self.data_size,
             weights=self.weights,
         )
-        try:
-            current_address += leaf_method.total_size() * 4
-            current_method_count += 1
-        except EmptySectionException as err:
-            logger.exception(err)
-            raise
+        self.register_element(leaf_method)
+        current_address += leaf_method.total_size() * 4
+        current_method_count += 1
         # Add other methods
         while current_method_count < self.jit_nb_methods:
             code_type: str = random.choices(
                 ["method", "pic"], [1 - self.pics_ratio, self.pics_ratio]
             )[0]
-            adder_function: Callable = getattr(Generator, "add_" + code_type)
+            adder_function: Callable = getattr(Generator, "generate_" + code_type)
             current_element: Union[PIC, Method] = adder_function(
                 self, current_address, self.jit_nb_methods - current_method_count
             )
@@ -329,24 +328,19 @@ class Generator:
                 data_size=self.data_size,
                 weights=self.weights,
             )
-            try:
-                current_address += current_element.total_size() * 4
-                current_method_count += current_element.method_nb()
-            except EmptySectionException as err:
-                logger.exception(err)
-                raise
+            self.register_element(current_element)
+            current_address += current_element.total_size() * 4
+            current_method_count += current_element.method_nb()
         logger.debug("Phase 1: JIT code elements filled!")
 
     def extract_callees(self, call_depth: int, nb: int) -> List[Union[Method, PIC]]:
         # Possible nb callees given a call_depth
         # -> selects callees with smaller call_depth degree
-        possible_callees: List[Union[Method, PIC]] = flatten_list(
-            [
-                self.call_depth_dict[i]
-                for i in self.call_depth_dict.keys()
-                if i < call_depth
-            ]
-        )
+        possible_callees: List[Union[Method, PIC]] = flatten_list([
+            self.call_depth_dict[i]
+            for i in self.call_depth_dict.keys()
+            if i < call_depth
+        ])
         return random.choices(possible_callees, k=nb)
 
     def patch_jit_calls(self) -> None:
