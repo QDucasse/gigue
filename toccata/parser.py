@@ -199,8 +199,9 @@ class LogParser:
             "verilator_seed": rocket_parsed_data["sim_seed"],
             "start_cycle": rocket_parsed_data["start_cycle"],
             "end_cycle": rocket_parsed_data["end_cycle"],
-            "nb_cycles": rocket_parsed_data["end_cycle"]
-            - rocket_parsed_data["start_cycle"],
+            "nb_cycles": (
+                rocket_parsed_data["end_cycle"] - rocket_parsed_data["start_cycle"]
+            ),
             "tracing_data": tracing_info,
         }
         return emulation_info

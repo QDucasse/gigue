@@ -20,8 +20,10 @@ logger = logging.getLogger("gigue")
 
 
 @pytest.mark.parametrize(
-    "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev,"
-    " call_occupation_mean, call_occupation_stdev, call_depth_mean",
+    (
+        "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev,"
+        " call_occupation_mean, call_occupation_stdev, call_depth_mean"
+    ),
     [
         (50, 5, 0, 0.2, 0.1, 0.2, 0.01, 1),
         (200, 10, 0.2, 0.4, 0.2, 0.05, 0.2, 2),
@@ -97,8 +99,10 @@ def test_execute_shadow_stack_trampoline_generated_binaries(
 
 
 @pytest.mark.parametrize(
-    "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev,"
-    " call_occupation_mean, call_occupation_stdev, call_depth_mean",
+    (
+        "jit_size, jit_nb_methods, pics_ratio, meth_var_mean, meth_var_stdev,"
+        " call_occupation_mean, call_occupation_stdev, call_depth_mean"
+    ),
     [
         (50, 5, 0, 0.2, 0.1, 0.2, 0.01, 1),
         (200, 10, 0.2, 0.4, 0.2, 0.05, 0.2, 2),

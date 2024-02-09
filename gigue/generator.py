@@ -336,11 +336,13 @@ class Generator:
     def extract_callees(self, call_depth: int, nb: int) -> List[Union[Method, PIC]]:
         # Possible nb callees given a call_depth
         # -> selects callees with smaller call_depth degree
-        possible_callees: List[Union[Method, PIC]] = flatten_list([
-            self.call_depth_dict[i]
-            for i in self.call_depth_dict.keys()
-            if i < call_depth
-        ])
+        possible_callees: List[Union[Method, PIC]] = flatten_list(
+            [
+                self.call_depth_dict[i]
+                for i in self.call_depth_dict.keys()
+                if i < call_depth
+            ]
+        )
         return random.choices(possible_callees, k=nb)
 
     def patch_jit_calls(self) -> None:

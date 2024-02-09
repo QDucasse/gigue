@@ -99,67 +99,10 @@ class PIC:
     def add_method(self, method: Method):
         self.methods.append(method)
         logger.debug(
-            f"{self.log_prefix()} {method.log_prefix()} Case method added"
-            f" with size ({method.body_size}), call nb ({method.call_number} => call"
-            f" occupation {method.call_occupation}) and call depth ({method.call_depth})"
+            f"{self.log_prefix()} {method.log_prefix()} Case method added with size"
+            f" ({method.body_size}), call nb ({method.call_number} => call occupation"
+            f" {method.call_occupation}) and call depth ({method.call_depth})"
         )
-
-    # def add_case_methods(
-    #     self, registers: List[int], data_reg: int, data_size: int, weights: List[int]
-    # ) -> None:
-    #     logger.debug(f"{self.log_prefix()} Adding case methods.")
-    #     method_address: int = self.address + self.get_switch_size() * 4
-    #     for _ in range(self.case_number):
-    #         # TODO: Probably should refactor with generator's add_method
-    #         # body size = method size (bin size / nb of methods) * (1 +- size variation)
-    #         # note: the +- is defined as a one ot of two chance
-    #         size_variation: float = generate_trunc_norm(
-    #             variance=self.method_variation_mean,
-    #             std_dev=self.method_variation_stdev,
-    #             lower_bound=0,
-    #             higher_bound=1.0,
-    #         )
-    #         variation_sign: int = 1 if random.random() > 0.5 else -1
-    #         body_size: int = ceil(
-    #             self.method_size * (1 + variation_sign * size_variation)
-    #         )
-    #         # call number is derived from call occupation:
-    #         # max call nb = body size / call size
-    #         # call nb = call occupation * max call nb
-    #         call_occupation: float = generate_trunc_norm(
-    #             variance=self.method_call_occupation_mean,
-    #             std_dev=self.method_call_occupation_stdev,
-    #             lower_bound=0,
-    #             higher_bound=1.0,
-    #         )
-    #         max_call_nb: int = body_size // self.call_size
-    #         call_nb: int = trunc(call_occupation * max_call_nb)
-    #         # call depth follows a Poisson distribution with lambda = mean
-    #         call_depth: int = generate_poisson(self.method_call_depth_mean)
-    #         try:
-    #             case_method: Method = Method(
-    #                 address=method_address,
-    #                 body_size=body_size,
-    #                 call_number=call_nb,
-    #                 call_depth=call_depth,
-    #                 builder=self.builder,
-    #             )
-    #             case_method.fill_with_instructions(
-    #                 registers=registers,
-    #                 data_reg=data_reg,
-    #                 data_size=data_size,
-    #                 weights=weights,
-    #             )
-    #             self.methods.append(case_method)
-    #             method_address += case_method.total_size() * 4
-    #         except CallNumberException as err:
-    #             logger.exception(err)
-    #             raise
-    #         except EmptySectionException as err:
-    #             logger.exception(err)
-    #             raise
-
-    #     logger.debug(f"{self.log_prefix()} Case methods added.")
 
     def add_switch_instructions(self) -> None:
         # WARNING!!!! hit case starts at 1
