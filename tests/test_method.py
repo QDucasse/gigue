@@ -7,7 +7,6 @@ from gigue.builder import InstructionBuilder
 from gigue.constants import DATA_REG, DATA_SIZE, INSTRUCTION_WEIGHTS
 from gigue.exceptions import (
     CallNumberException,
-    EmptySectionException,
     MutualCallException,
     RecursiveCallException,
 )
@@ -118,12 +117,23 @@ def test_error_initialization(default_builder_setup):
         )
 
 
-def test_error_total_size_while_empty(default_builder_setup):
-    m = Method(
-        address=ADDRESS, body_size=30, call_number=5, builder=default_builder_setup
+@pytest.mark.parametrize("used_s_regs", range(8))
+@pytest.mark.parametrize("call_number", [0, 1])
+@pytest.mark.parametrize("body_size", [10, 50])
+def test_total_size(body_size, call_number, used_s_regs, default_builder_setup):
+    method = Method(
+        address=ADDRESS,
+        body_size=body_size,
+        call_number=call_number,
+        builder=default_builder_setup,
+        used_s_regs=used_s_regs,
     )
-    with pytest.raises(EmptySectionException):
-        m.total_size()
+    assert method.prologue_size == used_s_regs + 1 + (0 if method.is_leaf else 1)
+    assert method.epilogue_size == used_s_regs + 2 + (0 if method.is_leaf else 1)
+    assert (
+        method.total_size()
+        == 2 * used_s_regs + 3 + (0 if method.is_leaf else 2) + body_size
+    )
 
 
 def test_fill_with_nops(default_builder_setup, cap_disasm_setup):

@@ -6,7 +6,6 @@ from gigue.builder import InstructionBuilder
 from gigue.exceptions import (
     BuilderException,
     CallNumberException,
-    EmptySectionException,
     MutualCallException,
     RecursiveCallException,
 )
@@ -46,8 +45,18 @@ class Method:
         self.call_number: int = call_number
 
         self.is_leaf: bool = self.call_number == 0
-        self.prologue_size: int = 0
-        self.epilogue_size: int = 0
+        self.prologue_size: int = (
+            # stack space + register saving + ra saving
+            1
+            + self.used_s_regs
+            + (1 if not self.is_leaf else 0)
+        )
+        self.epilogue_size: int = (
+            # register restoring + ra restoring + stack space + ret
+            self.used_s_regs
+            + (1 if not self.is_leaf else 0)
+            + 2
+        )
 
         self.builder: InstructionBuilder = builder
         self.instructions: List[Instruction] = []
@@ -74,8 +83,6 @@ class Method:
         return self.callees
 
     def total_size(self):
-        if self.prologue_size == 0 or self.epilogue_size == 0:
-            raise EmptySectionException("Prologue or epilogue has not been set.")
         return self.body_size + self.prologue_size + self.epilogue_size
 
     def call_occupation(self):
@@ -98,7 +105,6 @@ class Method:
             contains_call=not self.is_leaf,
         )
         self.instructions += prologue_instructions
-        self.prologue_size = len(prologue_instructions)
 
     def fill_body(self, registers, data_reg, data_size, call_size, weights):
         for _ in range(self.body_size):
@@ -123,7 +129,6 @@ class Method:
             self.used_s_regs, self.local_vars_nb, not self.is_leaf
         )
         self.instructions += epilogue_instructions
-        self.epilogue_size = len(epilogue_instructions)
 
     def fill_with_instructions(self, registers, data_reg, data_size, weights):
         logger.debug(f"{self.log_prefix()} Filling method.")
