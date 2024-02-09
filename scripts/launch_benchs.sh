@@ -37,23 +37,23 @@ CORE=${1:-"cva6"}
 RUN=${2:-10}
 ISOLATION=${3:-"none"}
 CONFIG="toccata/config/manuscript_jitdomain_config_reduced.json"
-BASE_DIR="toccata/results/manuscript-no-isolation"
+BASE_DIR="toccata/results/manuscript-none-cva6jitdom-2"
 
 msg "Starting benchmarks!" 
 for meth_val in $values; do
     for call_val in $values; do
         msg "${GREEN}$meth_val methods${NOFORMAT} / ${ORANGE} $call_val call occupation${NOFORMAT}"
-        # DATA_FILE=$(find ${BASE_DIR} -type f -wholename "*_${meth_val}_nbmethods_${call_val}_calloccup/data.json")
-        # SEEDS=$(python scripts/get_seeds.py ${DATA_FILE})
-        python -m toccata -f ${CONFIG} -i ${ISOLATION} -n $meth_val -c $call_val -r ${RUN} -e ${CORE} #-s ${SEEDS}
+        DATA_FILE=$(find ${BASE_DIR} -type f -wholename "*_${meth_val}_nbmethods_${call_val}_calloccup/data.json")
+        SEEDS=$(python scripts/get_seeds.py ${DATA_FILE})
+        python -m toccata -f ${CONFIG} -i ${ISOLATION} -n $meth_val -c $call_val -r ${RUN} -e ${CORE} -s ${SEEDS}
     done
 done
 
 for meth_val in $values; do
     for mem_val in $values; do
         msg "${GREEN}$meth_val methods${NOFORMAT} / ${ORANGE} $mem_val memory access${NOFORMAT}" 
-        # DATA_FILE=$(find ${BASE_DIR} -type f -wholename "*_${meth_val}_nbmethods_${mem_val}_memaccess/data.json")
-        # SEEDS=$(python scripts/get_seeds.py ${DATA_FILE})
-        python -m toccata -f ${CONFIG} -i ${ISOLATION} -n $meth_val -m $mem_val -r ${RUN} -e ${CORE} # -s ${SEEDS}
+        DATA_FILE=$(find ${BASE_DIR} -type f -wholename "*_${meth_val}_nbmethods_${mem_val}_memaccess/data.json")
+        SEEDS=$(python scripts/get_seeds.py ${DATA_FILE})
+        python -m toccata -f ${CONFIG} -i ${ISOLATION} -n $meth_val -m $mem_val -r ${RUN} -e ${CORE} -s ${SEEDS}
     done
 done
