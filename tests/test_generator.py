@@ -203,6 +203,79 @@ def test_fill_interpretation_loop(jit_size, jit_nb_methods, pics_ratio, disasm_s
     assert elt_addresses == []
 
 
+@pytest.mark.parametrize(
+    "jit_size, jit_nb_methods,pics_ratio",
+    [
+        (100, 10, 0),
+        (200, 10, 0.2),
+        (10000, 500, 0.5),
+    ],
+)
+def test_trampoline_fill_interpretation_loop(
+    jit_size, jit_nb_methods, pics_ratio, disasm_setup
+):
+    generator = TrampolineGenerator(
+        jit_start_address=JIT_START_ADDRESS,
+        interpreter_start_address=INTERPRETER_START_ADDRESS,
+        jit_size=jit_size,
+        jit_nb_methods=jit_nb_methods,
+        method_variation_mean=0.2,
+        method_variation_stdev=0.1,
+        call_occupation_mean=0.2,
+        call_occupation_stdev=0.1,
+        call_depth_mean=2,
+        pics_mean_case_nb=2,
+        pics_ratio=pics_ratio,
+    )
+    generator.fill_jit_code()
+    generator.fill_interpretation_loop()
+    assert (
+        len(generator.interpreter_instructions)
+        == (generator.interpreter_call_size - 1)
+        * (len(generator.jit_elements) - generator.pic_count)
+        + generator.interpreter_call_size * generator.pic_count
+        + Generator.INT_PROLOGUE_SIZE
+        + Generator.INT_EPILOGUE_SIZE
+    )
+
+    # Monitor calls
+    disasm = disasm_setup
+    call_trampoline_address = list(
+        filter(lambda tramp: tramp.name == "call_jit_elt", generator.trampolines)
+    )[0].address
+    elt_addresses = [elt.address for elt in generator.jit_elements]
+    mc_code = generator.generate_interpreter_machine_code()
+    print(elt_addresses)
+    for i, instr_list in enumerate(
+        window(
+            mc_code[Generator.INT_PROLOGUE_SIZE : -Generator.INT_EPILOGUE_SIZE],
+            2,
+        )
+    ):
+        current_address = (
+            INTERPRETER_START_ADDRESS + (generator.interpreter_prologue_size + i) * 4
+        )
+        # Register save of the real called address
+        if [disasm.get_instruction_name(instr) for instr in instr_list] == [
+            "auipc",
+            "addi",
+        ]:
+            pc_offset = disasm.extract_pc_relative_offset(instr_list)
+            called_address = current_address + pc_offset
+            assert called_address in elt_addresses
+            elt_addresses.remove(called_address)
+        # Address of the call trampoline
+        if [disasm.get_instruction_name(instr) for instr in instr_list] == [
+            "auipc",
+            "jalr",
+        ]:
+            pc_offset = disasm.extract_pc_relative_offset(instr_list)
+            called_address = current_address + pc_offset
+            assert called_address == call_trampoline_address
+    # All elements have been called
+    assert elt_addresses == []
+
+
 # =================================
 #         Generation tests
 # =================================
