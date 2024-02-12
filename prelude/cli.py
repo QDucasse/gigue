@@ -15,7 +15,6 @@ there's no ``gigue.__main__`` in ``sys.modules``.
 Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 
-
 import argparse
 import logging
 import os

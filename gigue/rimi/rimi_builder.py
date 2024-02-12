@@ -145,53 +145,6 @@ class RIMIFullInstructionBuilder(RIMIShadowStackInstructionBuilder):
             rd=linstruction.rd, rs1=linstruction.rs1, imm=linstruction.imm
         )
 
-    # @staticmethod
-    # def build_random_l_instruction(
-    #     registers: List[int], data_reg: int, data_size: int, *args, **kwargs
-    # ) -> RIMIIInstruction:
-    #     name: str = random.choice(RIMIFullInstructionBuilder.RIMI_I_INSTRUCTIONS_LOAD)
-    #     constr: Callable = getattr(RIMIIInstruction, name)
-    #     # Note: ld, rd, off(rs1) loads the value at the address
-    #     # stored in rs1 + off in rd
-    #     rd: int = random.choice(registers)
-    #     rs1: int = data_reg
-    #     alignment: int = InstructionBuilder.define_memory_access_alignment(name[:-1])
-    #     # Note: remove suffix 1 to determine alignment
-    #     imm: int = align(random.randint(0, min(data_size - 8, 0x7FF)), alignment)
-    #     return constr(rd=rd, rs1=rs1, imm=imm)
-
-    # TODO: Should be better than copy pasted with a changed class but eh
-    # @staticmethod
-    # def build_random_instruction(
-    #     registers: List[int],
-    #     max_offset: int,
-    #     data_reg: int,
-    #     data_size: int,
-    #     call_size: int = 3,
-    #     weights: List[int] = INSTRUCTION_WEIGHTS,
-    # ) -> Instruction:
-    #     method_name: str = random.choices(
-    #         [
-    #             "build_random_r_instruction",
-    #             "build_random_i_instruction",
-    #             "build_random_u_instruction",
-    #             "build_random_j_instruction",
-    #             "build_random_b_instruction",
-    #             "build_random_s_instruction",
-    #             "build_random_l_instruction",
-    #         ],
-    #         weights,
-    #     )[0]
-    #     method: Callable = getattr(RIMIFullInstructionBuilder, method_name)
-    #     instruction: Instruction = method(
-    #         registers=registers,
-    #         max_offset=max_offset,
-    #         data_reg=data_reg,
-    #         data_size=data_size,
-    #         call_size=call_size,
-    #     )
-    #     return instruction
-
     # Interpreter calls
     # \___________________
 
