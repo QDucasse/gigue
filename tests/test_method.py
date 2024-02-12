@@ -309,6 +309,8 @@ def test_patch_base_calls_pics(
     )
     callee1, callee2, callee3 = callees_pic_setup
     for elt in [method, callee1, callee2, callee3]:
+        # Note: PICs are empty without methods
+        # but should not affect the call depth
         elt.fill_with_instructions(
             registers=TEST_CALLER_SAVED_REG,
             data_reg=DATA_REG,

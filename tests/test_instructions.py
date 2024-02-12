@@ -38,7 +38,6 @@ def imm_str(immediate):
 # =================================
 
 
-# TODO: Add more examples!
 @pytest.mark.parametrize(
     "value,size,expected",
     [
@@ -81,7 +80,6 @@ def test_instruction_superclass():
 # =================================
 
 
-# TODO: Check
 @pytest.mark.parametrize(
     "name",
     [
@@ -214,7 +212,6 @@ def test_unicorn_smoke_rinstr(name, cap_disasm_setup, uc_emul_setup, handler_set
 # =================================
 
 
-# TODO: Check
 @pytest.mark.parametrize(
     "name",
     [
@@ -251,7 +248,6 @@ def test_correct_encoding_iinstr(name, imm, disasm_setup):
     assert instr.imm == disasm.extract_imm_i(mc_instr)
 
 
-# TODO: Check
 @pytest.mark.parametrize("name", ["slli", "slliw", "srai", "sraiw", "srli", "srliw"])
 @pytest.mark.parametrize(
     "imm", [0x00, 0x01, 0x1C, 0xFF, 0x7FF, -0x01, -0x1C, -0xFF, -0x7FF]
@@ -422,7 +418,6 @@ def test_unicorn_iinstr_loads_smoke(
 # =================================
 
 
-# TODO: Check
 @pytest.mark.parametrize("name", ["auipc", "lui"])
 @pytest.mark.parametrize(
     "imm", [0x00001FFF, 0x7FFFF000, 0x7FFFFFFF, -0x00001FFF, -0x7FFFF000, -0x7FFFFFFF]
@@ -474,7 +469,6 @@ def test_immediate_shuffle(imm, res):
     assert shuffle == res
 
 
-# TODO: Check
 @pytest.mark.parametrize("name", ["jal"])
 @pytest.mark.parametrize(
     "imm",
@@ -540,7 +534,6 @@ def test_capstone_jinstr(name, imm, cap_disasm_setup):
 # =================================
 
 
-# TODO: Check
 @pytest.mark.parametrize("name", ["sb", "sd", "sh", "sw"])
 @pytest.mark.parametrize("imm", [0x0, 0x1, 0x1F, 0x7FF, -0x0, -0x1, -0x1F, -0x7FF])
 def test_correct_encoding_sinstr(name, imm, disasm_setup):

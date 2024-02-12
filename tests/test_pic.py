@@ -43,6 +43,12 @@ def methods_setup(default_builder_setup):
     return methods
 
 
+def pic_add_methods(pic, methods):
+    for method in methods:
+        method.address += pic.get_switch_size() * 4
+        pic.add_method(method)
+
+
 # =================================
 #            Size Tests
 # =================================
@@ -55,9 +61,7 @@ def test_switch_size(default_builder_setup, methods_setup, case_nb):
         address=ADDRESS,
         builder=default_builder_setup,
     )
-    for method in methods_setup[:case_nb]:
-        method.address += pic.get_switch_size() * 4
-        pic.add_method(method)
+    pic_add_methods(pic, methods_setup[:case_nb])
     pic.fill_with_instructions(
         registers=TEST_CALLER_SAVED_REG,
         data_reg=TEST_DATA_REG,
@@ -76,9 +80,7 @@ def test_total_size(default_builder_setup, methods_setup, case_nb):
         address=ADDRESS,
         builder=default_builder_setup,
     )
-    for method in methods_setup[:case_nb]:
-        method.address += pic.get_switch_size()
-        pic.add_method(method)
+    pic_add_methods(pic, methods_setup[:case_nb])
     pic.fill_with_instructions(
         registers=TEST_CALLER_SAVED_REG,
         data_reg=TEST_DATA_REG,
@@ -108,9 +110,7 @@ def test_switch_instructions_adding(
         address=ADDRESS,
         builder=default_builder_setup,
     )
-    for method in methods_setup[:case_nb]:
-        method.address += pic.get_switch_size() * 4
-        pic.add_method(method)
+    pic_add_methods(pic, methods_setup[:case_nb])
     pic.add_switch_instructions()
     # Switch instructions should hold the different switch cases and a final ret
     assert len(pic.switch_instructions) == case_nb + 1
@@ -161,9 +161,7 @@ def test_disassembly_execution(
         cmp_reg=5,
         builder=default_builder_setup,
     )
-    for method in methods_setup[:case_nb]:
-        method.address += pic.get_switch_size() * 4
-        pic.add_method(method)
+    pic_add_methods(pic, methods_setup[:case_nb])
     pic.fill_with_instructions(
         registers=TEST_CALLER_SAVED_REG,
         data_reg=TEST_DATA_REG,
@@ -176,16 +174,12 @@ def test_disassembly_execution(
     cap_disasm = cap_disasm_setup
     cap_disasm_bytes(cap_disasm, pic_bytes, ADDRESS)
     # Handler
-    handler = handler_setup
     # Emulation
     uc_emul = uc_emul_full_setup
     uc_emul.reg_write(UC_RISCV_REG_RA, RET_ADDRESS)
     uc_emul.reg_write(UC_RISCV_REG_T1, hit_case)
     uc_emul.mem_write(ADDRESS, pic_bytes)
     # Start emulation
-    handler.hook_instr_tracer(uc_emul)
-    handler.hook_reg_tracer(uc_emul)
-    handler.hook_exception_tracer(uc_emul)
     uc_emul.emu_start(ADDRESS, RET_ADDRESS)
     uc_emul.emu_stop()
 

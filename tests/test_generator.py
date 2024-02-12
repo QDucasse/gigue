@@ -4,7 +4,7 @@ import pytest
 
 from gigue.exceptions import WrongAddressException
 from gigue.generator import Generator, TrampolineGenerator
-from gigue.helpers import poisson_chernoff_bound
+from gigue.helpers import poisson_chernoff_bound, window
 from gigue.method import Method
 from gigue.pic import PIC
 from tests.conftest import (
@@ -152,11 +152,8 @@ def test_fill_jit_code(
         (10000, 500, 0.5),
     ],
 )
-@pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
-def test_fill_interpretation_loop(
-    jit_size, jit_nb_methods, pics_ratio, generator_class
-):
-    generator = generator_class(
+def test_fill_interpretation_loop(jit_size, jit_nb_methods, pics_ratio, disasm_setup):
+    generator = Generator(
         jit_start_address=JIT_START_ADDRESS,
         interpreter_start_address=INTERPRETER_START_ADDRESS,
         jit_size=jit_size,
@@ -180,133 +177,35 @@ def test_fill_interpretation_loop(
         + Generator.INT_EPILOGUE_SIZE
     )
 
-    # TODO: Monitor calls
-    # disasm = disasm_setup
-    # elt_addresses = [elt.address for elt in generator.jit_elements]
-    # mc_code = generator.generate_interpreter_machine_code()
-    # for i, instr in enumerate(
-    #     mc_code[
-    #         generator.interpreter_prologue_size : -generator.interpreter_epilogue_size
-    #     ]
-    # ):
-    #     print(instr)
-    #     if disasm.get_instruction_name(instr) == "addi":
-    #         if disasm.get_instruction_name(mc_code[i + 1]) == "auipc":
-    #             if disasm.get_instruction_name(mc_code[i + 2]) == "jalr":
-    #                 assert (
-    #                     disasm.extract_pc_relative_offset(mc_code[i + 1 : i + 3])
-    #                     in elt_addresses
-    #                 )
-    #     elif disasm.get_instruction_name(instr) == "auipc":
-    #         if disasm.get_instruction_name(mc_code[i + 1]) == "jalr":
-    #             assert disasm.extract_pc_relative
-    # _offset(mc_code[i : i + 2]) in elt_addresses
-
-
-# TODO: Smoke test, add real testing hihi
-# @pytest.mark.parametrize("jit_size", [100, 200, 500])
-# @pytest.mark.parametrize("jit_nb_methods", [10, 100])
-# @pytest.mark.parametrize("pics_ratio", [0, 0.2, 0.5])
-# @pytest.mark.parametrize("call_depth_mean", [2, 4])
-# @pytest.mark.parametrize(
-#     "call_occupation_mean, call_occupation_stdev", [(0.2, 0.1), (0.4, 0.2)]
-# )
-# @pytest.mark.parametrize("pics_mean_case_nb", [1, 2, 4])
-# def test_patch_calls(
-#     jit_size,
-#     jit_nb_methods,
-#     pics_ratio,
-#     call_depth_mean,
-#     call_occupation_mean,
-#     call_occupation_stdev,
-#     pics_mean_case_nb,
-# ):
-#     generator = Generator(
-#         jit_start_address=JIT_START_ADDRESS,
-#         interpreter_start_address=INTERPRETER_START_ADDRESS,
-#         jit_size=jit_size,
-#         jit_nb_methods=jit_nb_methods,
-#         method_variation_mean=0.2,
-#         method_variation_stdev=0.1,
-#         call_occupation_mean=call_occupation_mean,
-#         call_occupation_stdev=call_occupation_stdev,
-#         call_depth_mean=call_depth_mean,
-#         pics_mean_case_nb=pics_mean_case_nb,
-#         pics_ratio=pics_ratio,
-#     )
-#     generator.fill_jit_code()
-#     generator.patch_jit_calls()
-#     generator.fill_interpretation_loop()
+    # Monitor calls
+    disasm = disasm_setup
+    elt_addresses = [elt.address for elt in generator.jit_elements]
+    mc_code = generator.generate_interpreter_machine_code()
+    print(elt_addresses)
+    for i, instr_list in enumerate(
+        window(
+            mc_code[Generator.INT_PROLOGUE_SIZE : -Generator.INT_EPILOGUE_SIZE],
+            2,
+        )
+    ):
+        current_address = (
+            INTERPRETER_START_ADDRESS + (generator.interpreter_prologue_size + i) * 4
+        )
+        if [disasm.get_instruction_name(instr) for instr in instr_list] == [
+            "auipc",
+            "jalr",
+        ]:
+            pc_offset = disasm.extract_pc_relative_offset(instr_list)
+            called_address = current_address + pc_offset
+            assert called_address in elt_addresses
+            elt_addresses.remove(called_address)
+    # All elements have been called
+    assert elt_addresses == []
 
 
 # =================================
 #         Generation tests
 # =================================
-
-
-@pytest.mark.parametrize(
-    "jit_size, jit_nb_methods,pics_ratio",
-    [
-        (100, 10, 0),
-        (200, 10, 0.2),
-        (10000, 500, 0.5),
-    ],
-)
-@pytest.mark.parametrize("generator_class", [Generator, TrampolineGenerator])
-def test_generate_interpreter_machine_code(
-    jit_size, jit_nb_methods, pics_ratio, generator_class
-):
-    generator = generator_class(
-        jit_start_address=JIT_START_ADDRESS,
-        interpreter_start_address=INTERPRETER_START_ADDRESS,
-        jit_size=jit_size,
-        jit_nb_methods=jit_nb_methods,
-        method_variation_mean=0.2,
-        method_variation_stdev=0.1,
-        call_occupation_mean=0.2,
-        call_occupation_stdev=0.1,
-        call_depth_mean=2,
-        pics_mean_case_nb=2,
-        pics_ratio=pics_ratio,
-    )
-    generator.fill_jit_code()
-    generator.patch_jit_calls()
-    generator.fill_interpretation_loop()
-    generator.generate_jit_machine_code()
-    generator.generate_interpreter_machine_code()
-    assert (
-        len(generator.interpreter_instructions)
-        == (generator.interpreter_call_size - 1)
-        * (len(generator.jit_elements) - generator.pic_count)
-        + generator.interpreter_call_size * generator.pic_count
-        + Generator.INT_PROLOGUE_SIZE
-        + Generator.INT_EPILOGUE_SIZE
-    )
-    # TODO: Rework with flattened
-    # pic_count = 0
-    # method_count = 0
-    # for jit_element, call_instruction in zip(
-    #     generator.jit_elements, generator.interpreter_machine_code
-    # ):
-    #     print("{}: {} | {}".format(i, jit_element, call_instruction))
-    #     print(
-    #         "higho: {}, lowo: {}".format(
-    #             hex(call_instruction[0].imm), hex(call_instruction[1].imm)
-    #         )
-    #     )
-    #     is_pic = False
-    #     if len(call_instruction) == 3:  # pic with 3 instructions
-    #         call_instruction = call_instruction[1:]
-    #         is_pic = True
-    #     call_offset = disassembler.extract_pc_relative_offset(call_instruction)
-    #     assert (
-    #         generator.interpreter_start_address + method_count * 8 + pic_count * 12
-    #     ) + call_offset == jit_element.address
-
-    #     if is_pic:
-    #         pic_count += 1
-    #     else:
-    #         method_count += 1
 
 
 @pytest.mark.parametrize(

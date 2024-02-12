@@ -19,6 +19,7 @@ from unicorn.riscv_const import (
 
 from gigue.builder import InstructionBuilder
 from gigue.constants import CMP_REG, HIT_CASE_REG, RA, SP
+from gigue.exceptions import InstructionAlignmentNotDefined, WrongOffsetException
 from gigue.helpers import bytes_to_int, int_to_bytes64
 from tests.conftest import (
     ADDRESS,
@@ -29,6 +30,47 @@ from tests.conftest import (
     TEST_DATA_SIZE,
     cap_disasm_bytes,
 )
+
+# =================================
+#           Exceptions
+# =================================
+
+
+# Offset too small
+@pytest.mark.parametrize(
+    "build_method, args",
+    [
+        ("split_offset", {"offset": 4}),
+        ("build_method_base_call", {"offset": 4}),
+        ("build_pic_base_call", {"offset": 4, "hit_case": 1}),
+        (
+            "build_interpreter_trampoline_method_call",
+            {"offset": 4, "call_trampoline_offset": 0},
+        ),
+        (
+            "build_interpreter_trampoline_pic_call",
+            {"offset": 4, "call_trampoline_offset": 0, "hit_case": 1},
+        ),
+        (
+            "build_interpreter_trampoline_pic_call",
+            {"offset": 4, "call_trampoline_offset": 0, "hit_case": 1},
+        ),
+        ("build_pc_relative_reg_save", {"offset": 4, "register": 5}),
+    ],
+)
+def test_call_split_offset_exception(build_method, args):
+    instr_builder = InstructionBuilder()
+    with pytest.raises(WrongOffsetException):
+        build_method = getattr(instr_builder, build_method)
+        build_method(**args)
+
+
+# Alignment not defined
+def test_alignment_exception():
+    instr_builder = InstructionBuilder()
+    with pytest.raises(InstructionAlignmentNotDefined):
+        instr_builder.define_memory_access_alignment("addi")
+
 
 # =================================
 #        Random instructions
