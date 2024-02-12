@@ -99,9 +99,11 @@ class PIC:
     def add_method(self, method: Method):
         self.methods.append(method)
         logger.debug(
-            f"{self.log_prefix()} {method.log_prefix()} Case method added with size"
-            f" ({method.body_size}), call nb ({method.call_number} => call occupation"
-            f" {method.call_occupation}) and call depth ({method.call_depth})"
+            f"{self.log_prefix()} {method.log_prefix()} Case method added at"
+            f" address {hex(method.address)} with size({method.body_size}),"
+            f" call nb ({method.call_number} =>"
+            f" call occupation {method.call_occupation()}) and"
+            f" call depth ({method.call_depth})"
         )
 
     def add_switch_instructions(self) -> None:

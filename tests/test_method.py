@@ -13,9 +13,16 @@ from gigue.exceptions import (
 from gigue.helpers import window
 from gigue.method import Method
 from gigue.pic import PIC
-from tests.conftest import ADDRESS, RET_ADDRESS, TEST_CALLER_SAVED_REG, cap_disasm_bytes
+from tests.conftest import (
+    ADDRESS,
+    RET_ADDRESS,
+    TEST_CALLER_SAVED_REG,
+    TEST_DATA_REG,
+    TEST_DATA_SIZE,
+    cap_disasm_bytes,
+)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gigue")
 
 
 @pytest.fixture
@@ -110,12 +117,22 @@ def test_total_size(body_size, call_number, used_s_regs, default_builder_setup):
         builder=default_builder_setup,
         used_s_regs=used_s_regs,
     )
+    # Check base computation
     assert method.prologue_size == used_s_regs + 1 + (0 if method.is_leaf else 1)
     assert method.epilogue_size == used_s_regs + 2 + (0 if method.is_leaf else 1)
     assert (
         method.total_size()
         == 2 * used_s_regs + 3 + (0 if method.is_leaf else 2) + body_size
     )
+    # Check after generation
+    method.fill_with_instructions(
+        registers=TEST_CALLER_SAVED_REG,
+        data_reg=TEST_DATA_REG,
+        data_size=TEST_DATA_SIZE,
+        weights=INSTRUCTION_WEIGHTS,
+    )
+    method_bytes = method.generate_bytes()
+    assert method.total_size() == len(method_bytes) // 4
 
 
 def test_fill_with_nops(default_builder_setup, cap_disasm_setup):

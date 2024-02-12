@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import pytest
@@ -16,6 +17,8 @@ from tests.conftest import (
     TEST_DATA_SIZE,
     cap_disasm_bytes,
 )
+
+logger = logging.getLogger("gigue")
 
 
 @pytest.fixture
@@ -53,7 +56,7 @@ def test_switch_size(default_builder_setup, methods_setup, case_nb):
         builder=default_builder_setup,
     )
     for method in methods_setup[:case_nb]:
-        method.address += pic.get_switch_size()
+        method.address += pic.get_switch_size() * 4
         pic.add_method(method)
     pic.fill_with_instructions(
         registers=TEST_CALLER_SAVED_REG,
@@ -95,7 +98,10 @@ def test_total_size(default_builder_setup, methods_setup, case_nb):
 
 @pytest.mark.parametrize("case_nb", range(1, 5))
 def test_switch_instructions_adding(
-    default_builder_setup, methods_setup, case_nb, disasm_setup
+    default_builder_setup,
+    methods_setup,
+    case_nb,
+    disasm_setup,
 ):
     pic = PIC(
         case_number=case_nb,
@@ -116,19 +122,19 @@ def test_switch_instructions_adding(
     ):
         current_address = ADDRESS + (case_nb * 3 + 2) * 4
         call_offset = disasm.extract_imm_j(case[2].generate())
-        # print(
-        #     "{}: address {}/{} + offset {}/{} = {}/{} | method {}/{}".format(
-        #         case_nb,
-        #         current_address,
-        #         hex(current_address),
-        #         call_offset,
-        #         hex(call_offset),
-        #         current_address + call_offset,
-        #         hex(current_address + call_offset),
-        #         method.address,
-        #         hex(method.address),
-        #     )
-        # )
+        logger.debug(
+            "{}: address {}/{} + offset {}/{} = {}/{} | method {}/{}".format(
+                case_nb,
+                current_address,
+                hex(current_address),
+                call_offset,
+                hex(call_offset),
+                current_address + call_offset,
+                hex(current_address + call_offset),
+                method.address,
+                hex(method.address),
+            )
+        )
         assert current_address + call_offset == method.address
 
 
@@ -156,7 +162,7 @@ def test_disassembly_execution(
         builder=default_builder_setup,
     )
     for method in methods_setup[:case_nb]:
-        method.address += pic.get_switch_size()
+        method.address += pic.get_switch_size() * 4
         pic.add_method(method)
     pic.fill_with_instructions(
         registers=TEST_CALLER_SAVED_REG,
@@ -178,8 +184,10 @@ def test_disassembly_execution(
     uc_emul.mem_write(ADDRESS, pic_bytes)
     # Start emulation
     handler.hook_instr_tracer(uc_emul)
-    # uc_emul.emu_start(ADDRESS, RET_ADDRESS)
-    # uc_emul.emu_stop()
+    handler.hook_reg_tracer(uc_emul)
+    handler.hook_exception_tracer(uc_emul)
+    uc_emul.emu_start(ADDRESS, RET_ADDRESS)
+    uc_emul.emu_stop()
 
 
 # TODO: Interpreter call > trampoline > pic > return trampoline > return
