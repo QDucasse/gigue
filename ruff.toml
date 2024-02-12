@@ -1,4 +1,4 @@
 # pyflakes, pycodestyle, isort
-select = ["F", "E", "W", "I001"]
+lint.select = ["F", "E", "W", "I001"]
 line-length = 89
-ignore = ["E741"]
+lint.ignore = ["E741"]
