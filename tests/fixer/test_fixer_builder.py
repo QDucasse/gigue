@@ -227,9 +227,7 @@ def test_build_pic_base_call_execution(
     offset, cap_disasm_custom_setup, uc_emul_full_setup, fixer_handler_setup
 ):
     instr_builder = FIXERInstructionBuilder()
-    instrs = instr_builder.build_pic_base_call(
-        offset=offset, hit_case=5, hit_case_reg=5
-    )
+    instrs = instr_builder.build_pic_base_call(offset=offset, hit_case=5, hit_case_reg=5)
     bytes = instr_builder.consolidate_bytes(instrs)
     # Disassembly
     cap_disasm = cap_disasm_custom_setup

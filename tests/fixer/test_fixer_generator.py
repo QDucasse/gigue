@@ -36,6 +36,7 @@ def test_execute_trampoline_generated_binaries(
     cap_disasm_custom_setup,
     fixer_handler_setup,
     uc_emul_full_setup,
+    log_trace,
 ):
     generator = FIXERTrampolineGenerator(
         jit_start_address=JIT_START_ADDRESS,
@@ -83,10 +84,9 @@ def test_execute_trampoline_generated_binaries(
 
     # Handler
     fixer_handler = fixer_handler_setup
-    fixer_handler.shadow_stack.append(RET_ADDRESS)
     fixer_handler.hook_instr_tracer(uc_emul)
+    fixer_handler.hook_shadow_tracer(uc_emul)
     fixer_handler.hook_handler(uc_emul)
 
-    # TODO: Something fishy!
-    # uc_emul.emu_start(INTERPRETER_START_ADDRESS, RET_ADDRESS)
-    # uc_emul.emu_stop()
+    uc_emul.emu_start(INTERPRETER_START_ADDRESS, RET_ADDRESS)
+    uc_emul.emu_stop()

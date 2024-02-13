@@ -1,5 +1,8 @@
+import logging
+
 import pytest
 from unicorn.riscv_const import UC_RISCV_REG_T3
+from unicorn.unicorn_const import UC_HOOK_CODE
 
 from gigue.constants import INSTRUCTIONS_INFO
 from gigue.disassembler import Disassembler
@@ -13,6 +16,8 @@ from tests.conftest import Handler
 TEST_FIXER_CMP_REG = FIXER_CMP_REG
 assert FIXER_CMP_REG + 1 == UC_RISCV_REG_T3
 UC_FIXER_CMP_REG = UC_RISCV_REG_T3
+
+logger = logging.getLogger("gigue")
 
 
 class FIXERHandler(Handler):
@@ -36,6 +41,18 @@ class FIXERHandler(Handler):
     def handle_ecall(self, uc_emul, *args, **kwargs):
         self.cfi_exception = 1
         uc_emul.emu_stop()
+
+    # Shadow stack tracer
+    # \_______________________
+
+    def trace_shadow(self, uc_emul, *args, **kwargs):
+        logger.debug(
+            f">>> FIXER Shadow Stack: {[hex(addr) for addr in self.shadow_stack]}"
+        )
+        self.trace_reg(uc_emul)
+
+    def hook_shadow_tracer(self, uc_emul):
+        uc_emul.hook_add(UC_HOOK_CODE, self.trace_shadow)
 
 
 @pytest.fixture
