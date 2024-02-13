@@ -71,7 +71,6 @@ class FIXERTrampolineGenerator(TrampolineGenerator):
 
         # Prologue/Epilogue offsets
         self.call_size += 3
-        print(self.call_size)
         self.method_epilogue_offset += 3
 
     def build_interpreter_prologue(

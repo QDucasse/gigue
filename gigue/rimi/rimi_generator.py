@@ -79,6 +79,9 @@ class RIMIShadowStackTrampolineGenerator(TrampolineGenerator):
 
         self.shadow_stack_size = shadow_stack_size
 
+        # Prologue/Epilogue offsets
+        self.method_call_offset += 1
+
     def build_interpreter_prologue(
         self, used_s_regs: int, local_var_nb: int, contains_call: bool
     ):

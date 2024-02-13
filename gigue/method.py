@@ -27,6 +27,7 @@ class Method:
         local_vars_nb: int = 2,
         prologue_offset: int = 1,
         epilogue_offset: int = 2,
+        call_offset: int = 1,
     ):
         self.address: int = address
         self.body_size: int = body_size
@@ -49,11 +50,11 @@ class Method:
         self.is_leaf: bool = self.call_number == 0
         self.prologue_size: int = (
             # stack space + register saving + ra saving
-            prologue_offset + self.used_s_regs + (1 if not self.is_leaf else 0)
+            prologue_offset + self.used_s_regs + (call_offset if not self.is_leaf else 0)
         )
         self.epilogue_size: int = (
             # register restoring + ra restoring + stack space + ret
-            self.used_s_regs + (1 if not self.is_leaf else 0) + epilogue_offset
+            self.used_s_regs + (call_offset if not self.is_leaf else 0) + epilogue_offset
         )
 
         self.builder: InstructionBuilder = builder

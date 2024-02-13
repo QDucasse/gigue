@@ -127,6 +127,8 @@ class Generator:
         # Prologue/Epilogue offsets
         self.method_prologue_offset = 1  # Stack sizing
         self.method_epilogue_offset = 2  # Stack sizing + ret
+        # TODO: Rename and dissociate prologue epilogue
+        self.method_call_offset = 1  # ra load/store
 
         # Generation
         self.weights: List[int] = weights
@@ -229,6 +231,7 @@ class Generator:
                 builder=self.builder,
                 prologue_offset=self.method_prologue_offset,
                 epilogue_offset=self.method_epilogue_offset,
+                call_offset=self.method_call_offset,
             )
             logger.debug(
                 f"{self.log_jit_prefix()} {method.log_prefix()} Method added with size"
@@ -265,6 +268,7 @@ class Generator:
                 builder=self.builder,
                 prologue_offset=self.method_prologue_offset,
                 epilogue_offset=self.method_epilogue_offset,
+                call_offset=self.method_call_offset,
             )
             logger.debug(
                 f"{self.log_jit_prefix()} {method.log_prefix()} Leaf method added with"
