@@ -217,7 +217,7 @@ class Method:
         )
         return indexes
 
-    def patch_base_calls(self, callees, call_size):
+    def patch_base_calls(self, callees, call_size=3):
         logger.debug(f"{self.log_prefix()} Patching method base calls.")
         self.check_callees(callees)
         self.callees = callees
