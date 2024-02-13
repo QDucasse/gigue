@@ -25,6 +25,8 @@ class Method:
         call_depth: int = 1,
         used_s_regs: int = 1,
         local_vars_nb: int = 2,
+        prologue_offset: int = 1,
+        epilogue_offset: int = 2,
     ):
         self.address: int = address
         self.body_size: int = body_size
@@ -47,15 +49,11 @@ class Method:
         self.is_leaf: bool = self.call_number == 0
         self.prologue_size: int = (
             # stack space + register saving + ra saving
-            1
-            + self.used_s_regs
-            + (1 if not self.is_leaf else 0)
+            prologue_offset + self.used_s_regs + (1 if not self.is_leaf else 0)
         )
         self.epilogue_size: int = (
             # register restoring + ra restoring + stack space + ret
-            self.used_s_regs
-            + (1 if not self.is_leaf else 0)
-            + 2
+            self.used_s_regs + (1 if not self.is_leaf else 0) + epilogue_offset
         )
 
         self.builder: InstructionBuilder = builder
@@ -150,9 +148,7 @@ class Method:
     # \__________
 
     def generate(self):
-        self.machine_code = [
-            instruction.generate() for instruction in self.instructions
-        ]
+        self.machine_code = [instruction.generate() for instruction in self.instructions]
         return self.machine_code
 
     def generate_bytes(self):
@@ -221,14 +217,14 @@ class Method:
         )
         return indexes
 
-    def patch_base_calls(self, callees):
+    def patch_base_calls(self, callees, call_size):
         logger.debug(f"{self.log_prefix()} Patching method base calls.")
         self.check_callees(callees)
         self.callees = callees
 
         # Replace random parts of the method with calls to chosen callees
         # The different argument of the range aim the method body size and goes 3 by 3
-        indexes = self.select_paching_indexes(call_size=3)
+        indexes = self.select_paching_indexes(call_size=call_size)
         for ind, callee in zip(indexes, self.callees):
             # Compute the offset
             offset = callee.address - (self.address + ind * 4)

@@ -489,9 +489,7 @@ class InstructionBuilder:
         # sd s2 8(sp)
         # sd ra 12(sp)
         instructions: List[Instruction] = []
-        stack_space: int = (
-            used_s_regs + local_var_nb + (1 if contains_call else 0)
-        ) * 8
+        stack_space: int = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
         # Decrement sp by number of s registers + local variable space
         instructions.append(IInstruction.addi(rd=SP, rs1=SP, imm=-stack_space))
         # Store any saved registers used
@@ -516,9 +514,7 @@ class InstructionBuilder:
         # addi sp sp 16 (+local vars)
         # ret
         instructions: List[Instruction] = []
-        stack_space: int = (
-            used_s_regs + local_var_nb + (1 if contains_call else 0)
-        ) * 8
+        stack_space: int = (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
         # Reload saved registers used
         for i in range(used_s_regs):
             instructions.append(
@@ -576,16 +572,11 @@ class InstructionBuilder:
         # The ret JIT trampoline is used to return from a JIT method/PIC (wow).
         # It does not do much without isolation solution set up (see RIMI builder!).
         # 1. It pops the return address from the call stack
-        # 2. Comparison if the return address is JIT/interpreter
-        # 3. Transfer control-flow (with ret or variant)
+        # 2. Transfer control-flow back (with ret or variant)
         return [
-            # 1. Store the return address on the control stack
+            # 1. Pop the return address
             IInstruction.ld(rd=RA, rs1=SP, imm=0),
             IInstruction.addi(rd=SP, rs1=SP, imm=8),
-            # 2. Compare to PC
-            # UInstruction.auipc(rd=CALL_TMP_REG, imm=0),
-            # BInstruction.blt(rs1=RA, rs2=CALL_TMP_REG, imm=8),
-            # # 3. CF transfer (identical in this case)
-            # IInstruction.ret(),
+            # 2. Return
             IInstruction.ret(),
         ]

@@ -124,6 +124,10 @@ class Generator:
         self.method_count: int = 0
         self.pic_count: int = 0
 
+        # Prologue/Epilogue offsets
+        self.method_prologue_offset = 1  # Stack sizing
+        self.method_epilogue_offset = 2  # Stack sizing + ret
+
         # Generation
         self.weights: List[int] = weights
         self.builder: InstructionBuilder = InstructionBuilder()
@@ -223,6 +227,8 @@ class Generator:
                 call_depth=call_depth,
                 call_size=self.call_size,
                 builder=self.builder,
+                prologue_offset=self.method_prologue_offset,
+                epilogue_offset=self.method_epilogue_offset,
             )
             logger.debug(
                 f"{self.log_jit_prefix()} {method.log_prefix()} Method added with size"
@@ -257,6 +263,8 @@ class Generator:
                 call_depth=0,
                 call_size=self.call_size,
                 builder=self.builder,
+                prologue_offset=self.method_prologue_offset,
+                epilogue_offset=self.method_epilogue_offset,
             )
             logger.debug(
                 f"{self.log_jit_prefix()} {method.log_prefix()} Leaf method added with"
@@ -336,11 +344,13 @@ class Generator:
     def extract_callees(self, call_depth: int, nb: int) -> List[Union[Method, PIC]]:
         # Possible nb callees given a call_depth
         # -> selects callees with smaller call_depth degree
-        possible_callees: List[Union[Method, PIC]] = flatten_list([
-            self.call_depth_dict[i]
-            for i in self.call_depth_dict.keys()
-            if i < call_depth
-        ])
+        possible_callees: List[Union[Method, PIC]] = flatten_list(
+            [
+                self.call_depth_dict[i]
+                for i in self.call_depth_dict.keys()
+                if i < call_depth
+            ]
+        )
         return random.choices(possible_callees, k=nb)
 
     def patch_jit_calls(self) -> None:
@@ -376,7 +386,8 @@ class Generator:
         # Extracted to override in subclasses!
         try:
             method.patch_base_calls(
-                self.extract_callees(method.call_depth, method.call_number)
+                self.extract_callees(method.call_depth, method.call_number),
+                self.call_size,
             )
         except (
             RecursiveCallException,

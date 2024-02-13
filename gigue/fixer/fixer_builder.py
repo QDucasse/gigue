@@ -71,7 +71,9 @@ class FIXERInstructionBuilder(InstructionBuilder):
             FIXERCustomInstruction.cficall(rd=0, rs1=FIXER_CMP_REG, rs2=0),
         ]
         instructions += InstructionBuilder.build_pic_base_call(
-            offset=offset - 12, *args, **kwargs  # type: ignore
+            offset=offset - 12,
+            *args,
+            **kwargs,  # type: ignore
         )
         # Note:  type ignore due to star args
         # Note: -12 to mitigate the three additional instructions
@@ -80,7 +82,7 @@ class FIXERInstructionBuilder(InstructionBuilder):
     # Tags around rets
     # \________________
 
-    # If the check does not pass, it goes to ebreak, otherwise jumps over
+    # If the check does not pass, it goes to ecall, otherwise jumps over
     @staticmethod
     def build_epilogue(*args, **kwargs) -> List[Instruction]:
         instructions: List[Instruction] = InstructionBuilder.build_epilogue(
@@ -114,9 +116,12 @@ class FIXERInstructionBuilder(InstructionBuilder):
             SInstruction.sd(rs1=SP, rs2=RA, imm=0),
             # 2. Set RA to the return trampoline (note: should be right after)
             UInstruction.auipc(rd=RA, imm=0),
-            IInstruction.addi(rd=RA, rs1=RA, imm=0xC),
-            # 3. CF transfer
+            IInstruction.addi(rd=RA, rs1=RA, imm=0x18),
+            # 3. Store RA in the shadow stack
+            UInstruction.auipc(rd=FIXER_CMP_REG, imm=0),
+            IInstruction.addi(rd=FIXER_CMP_REG, rs1=FIXER_CMP_REG, imm=0x10),
             FIXERCustomInstruction.cficall(rd=0, rs1=FIXER_CMP_REG, rs2=0),
+            # 4. Control-flow transfer
             IInstruction.jr(rs1=CALL_TMP_REG),
         ]
 
@@ -125,22 +130,11 @@ class FIXERInstructionBuilder(InstructionBuilder):
         # The ret JIT trampoline is used to return from a JIT method/PIC (wow).
         # It does not do much without isolation solution set up (see RIMI builder!).
         # 1. It pops the return address from the call stack
-        # 2. Comparison if the return address is JIT/interpreter
-        # 3. Transfer control-flow (with ret or variant)
+        # 2. (Check return address with shadow stack) * requires CFICALL from interpreter
+        # 3. Return
         return [
-            # 1. Store the return address on the control stack
+            # 1. Load the return address back from the control stack
             IInstruction.ld(rd=RA, rs1=SP, imm=0),
             IInstruction.addi(rd=SP, rs1=SP, imm=8),
-            # 2. Compare to PC
-            UInstruction.auipc(rd=CALL_TMP_REG, imm=0),
-            BInstruction.blt(rs1=RA, rs2=CALL_TMP_REG, imm=0x14),
-            # 3. CF transfer (identical in this case)
-            FIXERCustomInstruction.cfiret(rd=FIXER_CMP_REG, rs1=0, rs2=0),
-            BInstruction.beq(rs1=RA, rs2=FIXER_CMP_REG, imm=8),
-            IInstruction.ecall(),
-            IInstruction.ret(),
-            FIXERCustomInstruction.cfiret(rd=FIXER_CMP_REG, rs1=0, rs2=0),
-            BInstruction.beq(rs1=RA, rs2=FIXER_CMP_REG, imm=8),
-            IInstruction.ecall(),
             IInstruction.ret(),
         ]
