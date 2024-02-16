@@ -43,7 +43,6 @@ def test_execute_shadow_stack_trampoline_generated_binaries(
     cap_disasm_custom_setup,
     rimi_handler_setup,
     rimi_uc_emul_full_setup,
-    log_trace,
 ):
     generator = RIMIShadowStackTrampolineGenerator(
         jit_start_address=JIT_START_ADDRESS,

@@ -26,20 +26,16 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: Unix",
         "Operating System :: POSIX",
-        "Operating System :: Microsoft :: Windows",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
-        # uncomment if you test on these interpreters:
-        # 'Programming Language :: Python :: Implementation :: IronPython',
-        # 'Programming Language :: Python :: Implementation :: Jython',
-        # 'Programming Language :: Python :: Implementation :: Stackless',
         "Topic :: Utilities",
     ],
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     install_requires=["capstone==5.0.0rc2", "unicorn==2.0.1.post1"],
     entry_points={
         "console_scripts": [

@@ -23,7 +23,6 @@ class Tutorial:
         for example in self.examples:
             if instr_name in example.keys:
                 return example.instructions
-        print(self.examples)
         msg = f"No example were found for key {instr_name}."
         logger.error(msg)
         raise MissingExampleException(msg)

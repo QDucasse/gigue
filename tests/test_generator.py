@@ -181,7 +181,6 @@ def test_fill_interpretation_loop(jit_size, jit_nb_methods, pics_ratio, disasm_s
     disasm = disasm_setup
     elt_addresses = [elt.address for elt in generator.jit_elements]
     mc_code = generator.generate_interpreter_machine_code()
-    print(elt_addresses)
     for i, instr_list in enumerate(
         window(
             mc_code[Generator.INT_PROLOGUE_SIZE : -Generator.INT_EPILOGUE_SIZE],
@@ -245,7 +244,6 @@ def test_trampoline_fill_interpretation_loop(
     )[0].address
     elt_addresses = [elt.address for elt in generator.jit_elements]
     mc_code = generator.generate_interpreter_machine_code()
-    print(elt_addresses)
     for i, instr_list in enumerate(
         window(
             mc_code[Generator.INT_PROLOGUE_SIZE : -Generator.INT_EPILOGUE_SIZE],

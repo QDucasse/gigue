@@ -36,7 +36,6 @@ def test_execute_trampoline_generated_binaries(
     cap_disasm_custom_setup,
     fixer_handler_setup,
     uc_emul_full_setup,
-    log_trace,
 ):
     generator = FIXERTrampolineGenerator(
         jit_start_address=JIT_START_ADDRESS,
