@@ -15,40 +15,12 @@ jobs:
             tox_env: 'check'
             os: 'ubuntu-latest'
 
-          - name: 'pypy310 (ubuntu)'
-            python: 'pypy-3.10'
-            toxpython: 'pypy3.10'
-            python_arch: 'x64'
-            tox_env: 'pypy310'
-            os: 'ubuntu-latest'
-
-          - name: 'py311 (ubuntu)'
-            python: '3.11'
-            toxpython: 'python3.11'
-            python_arch: 'x64'
-            tox_env: 'py311'
-            os: 'ubuntu-latest'
-
           - name: 'py312 (ubuntu)'
             python: '3.12'
             toxpython: 'python3.12'
             python_arch: 'x64'
             tox_env: 'py312'
             os: 'ubuntu-latest'
-
-          - name: 'pypy310 (macos)'
-            python: 'pypy-3.10'
-            toxpython: 'pypy3.10'
-            python_arch: 'x64'
-            tox_env: 'pypy310'
-            os: 'macos-latest'
-
-          - name: 'py311 (macos)'
-            python: '3.11'
-            toxpython: 'python3.11'
-            python_arch: 'x64'
-            tox_env: 'py311'
-            os: 'macos-latest'
 
           - name: 'py312 (macos)'
             python: '3.12'
@@ -58,10 +30,10 @@ jobs:
             os: 'macos-latest'
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
         architecture: ${{ matrix.python_arch }}
