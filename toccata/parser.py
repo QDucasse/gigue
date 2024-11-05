@@ -94,9 +94,7 @@ class DumpParser:
                         ret_address = int(line.split(":")[0], 16)
                         in_gigue_bin = False
             if start_address == -1:
-                raise MissingAddressException(
-                    "Start address was not found in the dump."
-                )
+                raise MissingAddressException("Start address was not found in the dump.")
             if end_address == -1:
                 raise MissingAddressException("End address was not found in the dump.")
             if ret_address == -1:

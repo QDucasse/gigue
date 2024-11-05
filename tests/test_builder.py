@@ -631,8 +631,7 @@ def test_build_epilogue_execution(
     current_pc = uc_emul.reg_read(UC_RISCV_REG_PC)
     assert (
         current_sp
-        == STACK_ADDRESS
-        + (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
+        == STACK_ADDRESS + (used_s_regs + local_var_nb + (1 if contains_call else 0)) * 8
     )
     assert current_pc == called_address if contains_call else RET_ADDRESS
     uc_emul.emu_stop()

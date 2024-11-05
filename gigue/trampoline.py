@@ -41,9 +41,7 @@ class Trampoline:
     # \__________
 
     def generate(self) -> List[int]:
-        self.machine_code = [
-            instruction.generate() for instruction in self.instructions
-        ]
+        self.machine_code = [instruction.generate() for instruction in self.instructions]
         return self.machine_code
 
     def generate_bytes(self) -> bytes:

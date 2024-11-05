@@ -342,9 +342,9 @@ class Plotter:
                 call_positions[call_qualif]
                 + nb_methods_positions[app_data["nb_methods_qualif"]],
                 math.ceil(
-                    mean([
-                        nb_cycle for nb_cycle in app_data["nb_cycles"] if nb_cycle != 0
-                    ])
+                    mean(
+                        [nb_cycle for nb_cycle in app_data["nb_cycles"] if nb_cycle != 0]
+                    )
                 )
                 / 1000,
                 color="blue",
@@ -360,9 +360,9 @@ class Plotter:
                 + nb_methods_positions[app_data["nb_methods_qualif"]]
                 + 0.25,
                 math.ceil(
-                    mean([
-                        nb_cycle for nb_cycle in app_data["nb_cycles"] if nb_cycle != 0
-                    ])
+                    mean(
+                        [nb_cycle for nb_cycle in app_data["nb_cycles"] if nb_cycle != 0]
+                    )
                 )
                 / 1000,
                 color="red",
@@ -457,9 +457,9 @@ class Plotter:
                 mem_positions[mem_qualif]
                 + nb_methods_positions[app_data["nb_methods_qualif"]],
                 math.ceil(
-                    mean([
-                        nb_cycle for nb_cycle in app_data["nb_cycles"] if nb_cycle != 0
-                    ])
+                    mean(
+                        [nb_cycle for nb_cycle in app_data["nb_cycles"] if nb_cycle != 0]
+                    )
                 )
                 / 1000,
                 color="blue",
@@ -475,9 +475,9 @@ class Plotter:
                 + nb_methods_positions[app_data["nb_methods_qualif"]]
                 + 0.25,
                 math.ceil(
-                    mean([
-                        nb_cycle for nb_cycle in app_data["nb_cycles"] if nb_cycle != 0
-                    ])
+                    mean(
+                        [nb_cycle for nb_cycle in app_data["nb_cycles"] if nb_cycle != 0]
+                    )
                 )
                 / 1000,
                 color="red",

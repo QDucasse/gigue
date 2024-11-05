@@ -415,9 +415,7 @@ class Runner:
                 os.makedirs(base_dir_name)
             os.makedirs(run_dir_name)
             # Base name
-            base_name: str = (
-                f"{run_dir_name}{formatted_date}_{config_name}-{run_number}"
-            )
+            base_name: str = f"{run_dir_name}{formatted_date}_{config_name}-{run_number}"
             # Dump the config data
             with open(f"{base_name}.config.json", "w") as outfile:
                 json.dump(config_data, outfile, indent=2, separators=(",", ": "))

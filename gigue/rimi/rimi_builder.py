@@ -76,9 +76,7 @@ class RIMIShadowStackInstructionBuilder(InstructionBuilder):
         # need for RA!
         if contains_call:
             # Overwrite the RA load with a load from the shadow stack
-            instructions.insert(
-                -1, RIMIIInstruction.lst(rd=RA, rs1=RIMI_SSP_REG, imm=0)
-            )
+            instructions.insert(-1, RIMIIInstruction.lst(rd=RA, rs1=RIMI_SSP_REG, imm=0))
             # Insert the addi
             instructions.insert(
                 -1, IInstruction.addi(rd=RIMI_SSP_REG, rs1=RIMI_SSP_REG, imm=8)
