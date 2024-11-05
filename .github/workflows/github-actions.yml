@@ -25,9 +25,9 @@ jobs:
           - name: 'py312 (macos)'
             python: '3.12'
             toxpython: 'python3.12'
-            python_arch: 'aarch64'
+            python_arch: 'x64'
             tox_env: 'py312'
-            os: 'macos-latest'
+            os: 'macos-13'
 
     steps:
     - uses: actions/checkout@v4
